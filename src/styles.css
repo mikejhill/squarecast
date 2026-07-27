@@ -10,6 +10,7 @@
    * overflow here prevents small transformed or shadowed elements from adding
    * a horizontal page range even when body-level clipping is not propagated.
    */
+  overflow-x: hidden;
   overflow-x: clip;
 }
 
@@ -19,7 +20,7 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
   /*
    * Floating tooltips and decorative board shadows may cross a viewport edge,
@@ -2177,6 +2178,16 @@ optgroup {
 }
 
 @media (max-width: 620px) {
+  :root,
+  body {
+    /*
+     * Some mobile engines do not enforce `clip` on the root scrolling box.
+     * `hidden` is the compatible fallback at widths where sticky preview
+     * behavior is disabled, so it cannot alter the desktop sticky container.
+     */
+    overflow-x: hidden;
+  }
+
   .site-header {
     height: 62px;
     padding: 0 12px;
@@ -2356,7 +2367,7 @@ optgroup {
   }
 }
 
-@media (max-width: 350px) {
+@media (max-width: 420px) {
   .brand > span:last-child {
     display: none;
   }

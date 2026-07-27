@@ -197,7 +197,8 @@ content-driven heights and:
 - the Card Pool list uses a shorter viewport-relative scroll cap;
 - each Card Pool row reserves a full second line for its placement control;
 - multi-column setup fields collapse;
-- header labels reduce before controls disappear;
+- the Squarecast wordmark yields to header controls before their combined
+  minimum width can enlarge the page;
 - Card Pool rows reorganize without hiding placement settings; and
 - board cells preserve a square aspect ratio.
 

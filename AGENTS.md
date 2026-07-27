@@ -92,6 +92,8 @@ See [State and Routing](docs/state-and-routing.md).
   natural heights; do not force equal mobile heights.
 - On mobile, cap the Card Pool list relative to the viewport and give each card
   row a dedicated full-width second line for its placement selector.
+- Do not impose a minimum page width. Hide the header wordmark before its
+  controls can create horizontal overflow on narrow screens.
 - Card Pool must support:
   - Enter-to-add
   - visible Add action
