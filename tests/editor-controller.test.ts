@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ApplicationServices } from "../src/app/application-services";
 import { EditorController } from "../src/controllers/EditorController";
+import { BoardDocumentService } from "../src/lib/board-document";
 import { StateCodec } from "../src/lib/codec";
-import { CsvAnswerParser, CsvFileImporter } from "../src/lib/csv";
+import {
+  CsvAnswerParser,
+  CsvAnswerSerializer,
+  CsvFileImporter,
+} from "../src/lib/csv";
 import { DuplicateCardDetector } from "../src/lib/duplicates";
 import { EditorStateService } from "../src/lib/editor-state";
 import { BoardGenerator } from "../src/lib/generator";
@@ -16,9 +21,12 @@ const createServices = () => {
     duplicateCardDetector: new DuplicateCardDetector(),
     editorState: new EditorStateService(new AnswerPoolSorter()),
     csvParser: parser,
+    csvSerializer: new CsvAnswerSerializer(),
     csvFileImporter: new CsvFileImporter(parser),
+    boardDocuments: new BoardDocumentService(),
     codec: new StateCodec(),
     clipboard: { copy: vi.fn(async () => undefined) },
+    downloads: { save: vi.fn() },
   } as unknown as ApplicationServices;
 };
 
@@ -80,6 +88,58 @@ describe("editor controller", () => {
     await expect(controller.importCsvFiles([file])).resolves.toBe(true);
 
     expect(onChange).toHaveBeenCalledTimes(2);
+  });
+
+  it("imports a complete board as a pushState checkpoint", () => {
+    const editor = BoardModel.createDefaultEditor();
+    const imported = BoardModel.createDefaultEditor();
+    imported.config.title = "Portable Board";
+    imported.answers[0]!.placement = { kind: "column", index: 1 };
+    const services = createServices();
+    const onChange = vi.fn();
+    const controller = new EditorController(editor, onChange, services);
+
+    controller.importBoardJson(services.boardDocuments.serialize(imported));
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "edit",
+        config: expect.objectContaining({ title: "Portable Board" }),
+        answers: expect.arrayContaining([
+          expect.objectContaining({
+            placement: { kind: "column", index: 1 },
+          }),
+        ]),
+      }),
+      "push",
+    );
+  });
+
+  it("exports complete JSON and re-importable CSV with descriptive names", () => {
+    const editor = BoardModel.createDefaultEditor();
+    editor.config.title = "Weekend Fun";
+    const services = createServices();
+    const controller = new EditorController(editor, vi.fn(), services);
+
+    controller.exportBoardJson();
+    controller.exportCardPoolCsv();
+
+    expect(services.downloads.save).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        fileName: "weekend-fun.squarecast.json",
+        mimeType: "application/json;charset=utf-8",
+        content: expect.stringContaining('"format": "squarecast-board"'),
+      }),
+    );
+    expect(services.downloads.save).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        fileName: "weekend-fun.cards.csv",
+        mimeType: "text/csv;charset=utf-8",
+        content: expect.stringContaining("Try a new snack"),
+      }),
+    );
   });
 
   it("creates, opens, and copies play links only for valid boards", async () => {

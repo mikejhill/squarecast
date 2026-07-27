@@ -54,6 +54,29 @@ export class CsvAnswerParser {
   }
 }
 
+/**
+ * Exports a Card Pool as one RFC-compatible CSV field per row.
+ *
+ * A single-column format remains easy to inspect in a spreadsheet and can be
+ * fed directly back through the existing paste and drag-and-drop import paths.
+ */
+export class CsvAnswerSerializer {
+  /** Serializes non-empty cards while preserving their displayed order. */
+  public serialize(values: readonly string[]): string {
+    const rows = values
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((value) => this.escape(value));
+    return rows.length > 0 ? `${rows.join("\r\n")}\r\n` : "";
+  }
+
+  /** Quotes only fields whose punctuation would otherwise change their value. */
+  private escape(value: string): string {
+    if (!/[",\r\n]/.test(value)) return value;
+    return `"${value.replaceAll('"', '""')}"`;
+  }
+}
+
 /** Minimal File contract used to keep browser file reads unit-testable. */
 export interface CsvFileLike {
   readonly name: string;

@@ -9,16 +9,23 @@ import {
 import { Panel } from "../../components/Panel";
 import type { BoardConfig } from "../../lib/model";
 import { ColorTheme } from "../../lib/theme";
+import { BoardFileTools } from "./BoardFileTools";
 
 type BoardSetupPanelProps = {
   config: BoardConfig;
+  importError: string;
   onPatch: (patch: Partial<BoardConfig>) => void;
+  onImportJson: (file: File) => Promise<void>;
+  onExportJson: () => void;
 };
 
 /** Renders board geometry, free-square, color, and typography controls. */
 export function BoardSetupPanel({
   config,
+  importError,
   onPatch,
+  onImportJson,
+  onExportJson,
 }: BoardSetupPanelProps) {
   return (
     <Panel
@@ -188,6 +195,12 @@ export function BoardSetupPanel({
           entire board.
         </small>
       </div>
+
+      <BoardFileTools
+        importError={importError}
+        onImport={onImportJson}
+        onExport={onExportJson}
+      />
     </Panel>
   );
 }

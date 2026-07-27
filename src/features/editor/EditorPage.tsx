@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -33,10 +34,17 @@ export function EditorPage({ state, onChange }: EditorPageProps) {
   const [csvOpen, setCsvOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [shareUrl, setShareUrl] = useState("");
+  const [boardImportError, setBoardImportError] = useState("");
   const [copied, setCopied] = useState<"edit" | "play" | null>(null);
   const [isCardPoolDragging, setIsCardPoolDragging] = useState(false);
   const cardPoolDragDepth = useRef(0);
   const csvCardCount = applicationServices.csvParser.parse(csvText).length;
+
+  // An invalid-file message belongs only to the state against which that
+  // import was attempted. Any successful edit or navigation clears it.
+  useEffect(() => {
+    setBoardImportError("");
+  }, [state]);
 
   const hasDraggedFiles = (event: ReactDragEvent<HTMLElement>) =>
     Array.from(event.dataTransfer.types).includes("Files");
@@ -78,6 +86,21 @@ export function EditorPage({ state, onChange }: EditorPageProps) {
     setCsvText("");
   };
 
+  const importBoardJson = async (file: File) => {
+    try {
+      controller.importBoardJson(await file.text());
+      setBoardImportError("");
+    } catch (error) {
+      logger.warn("A selected board file could not be imported.", {
+        fileName: file.name,
+        errorType: error instanceof Error ? error.name : "Unknown",
+      });
+      setBoardImportError(
+        "This is not a valid Squarecast board file. Check the JSON format and try again.",
+      );
+    }
+  };
+
   const copyUrl = async (kind: "edit" | "play", text: string) => {
     try {
       await controller.copyUrl(text);
@@ -107,7 +130,10 @@ export function EditorPage({ state, onChange }: EditorPageProps) {
 
         <BoardSetupPanel
           config={state.config}
+          importError={boardImportError}
           onPatch={(patch) => controller.patchConfig(patch)}
+          onImportJson={importBoardJson}
+          onExportJson={() => controller.exportBoardJson()}
         />
         <CardPoolPanel
           controller={controller}

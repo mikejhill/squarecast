@@ -2,6 +2,7 @@ import {
   ArrowUpAZ,
   ChevronDown,
   Clipboard,
+  Download,
   FileUp,
   Plus,
 } from "lucide-react";
@@ -75,14 +76,6 @@ export function CardPoolPanel({
         >
           Add
         </button>
-        <button
-          type="button"
-          className="quick-add-csv"
-          onClick={onOpenCsv}
-        >
-          <Clipboard size={15} />
-          Paste CSV
-        </button>
       </div>
 
       <div className="answer-toolbar">
@@ -93,23 +86,42 @@ export function CardPoolPanel({
               } add variety.`
             : `${needed - answerCount} more required to fill the board.`}
         </p>
-        <label className="sort-control">
-          <ArrowUpAZ size={15} />
-          <span className="sr-only">Sort Card Pool</span>
-          <select
-            value={editor.config.sortMode}
-            aria-label="Sort Card Pool"
-            onChange={(event) =>
-              controller.sortCards(event.target.value as AnswerSort)
-            }
+        <div className="answer-toolbar-actions">
+          <button
+            type="button"
+            className="pool-tool-button"
+            onClick={onOpenCsv}
           >
-            <option value="alphabetical">A–Z</option>
-            <option value="reverse">Z–A</option>
-            <option value="constrained">Locked First</option>
-            <option value="shuffle">Shuffle Cards</option>
-          </select>
-          <ChevronDown size={14} />
-        </label>
+            <Clipboard size={15} />
+            Paste CSV
+          </button>
+          <button
+            type="button"
+            className="pool-tool-button"
+            onClick={() => controller.exportCardPoolCsv()}
+            disabled={answerCount === 0}
+          >
+            <Download size={15} />
+            Export CSV
+          </button>
+          <label className="sort-control">
+            <ArrowUpAZ size={15} />
+            <span className="sr-only">Sort Card Pool</span>
+            <select
+              value={editor.config.sortMode}
+              aria-label="Sort Card Pool"
+              onChange={(event) =>
+                controller.sortCards(event.target.value as AnswerSort)
+              }
+            >
+              <option value="alphabetical">A–Z</option>
+              <option value="reverse">Z–A</option>
+              <option value="constrained">Locked First</option>
+              <option value="shuffle">Shuffle Cards</option>
+            </select>
+            <ChevronDown size={14} />
+          </label>
+        </div>
       </div>
 
       <div className="answer-list" aria-label="Board cards">
@@ -133,7 +145,7 @@ export function CardPoolPanel({
           <div className="empty-answers">
             <Clipboard size={24} />
             <strong>Your card pool is empty</strong>
-            <span>Use quick add or paste a CSV list.</span>
+            <span>Use quick add, paste CSV, or drop a CSV file.</span>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CsvAnswerParser,
+  CsvAnswerSerializer,
   CsvFileImporter,
   type CsvFileLike,
 } from "../src/lib/csv";
@@ -28,6 +29,31 @@ describe("CSV card parser", () => {
 
   it("retains a final value when a quoted field is not closed", () => {
     expect(parser.parse('Alpha,"Beta')).toEqual(["Alpha", "Beta"]);
+  });
+});
+
+describe("CSV card serializer", () => {
+  const serializer = new CsvAnswerSerializer();
+  const parser = new CsvAnswerParser();
+
+  it("writes one card per row and escapes punctuation losslessly", () => {
+    const cards = [
+      "Alpha",
+      "Gamma, Inc.",
+      'Said "hello"',
+      "Two\nLines",
+    ];
+    const output = serializer.serialize(cards);
+
+    expect(output).toBe(
+      'Alpha\r\n"Gamma, Inc."\r\n"Said ""hello"""\r\n"Two\nLines"\r\n',
+    );
+    expect(parser.parse(output)).toEqual(cards);
+  });
+
+  it("omits blank cards and emits an empty file for an empty pool", () => {
+    expect(serializer.serialize([" Alpha ", "", "  "])).toBe("Alpha\r\n");
+    expect(serializer.serialize([])).toBe("");
   });
 });
 

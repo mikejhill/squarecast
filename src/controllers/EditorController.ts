@@ -92,6 +92,43 @@ export class EditorController {
     );
   }
 
+  /** Replaces the editor with a validated board file as a history checkpoint. */
+  public importBoardJson(input: string): void {
+    const imported = this.services.boardDocuments.parse(input);
+    this.onChange(imported, "push");
+    logger.info("Imported a complete board configuration.", {
+      cardCount: imported.answers.length,
+    });
+  }
+
+  /** Downloads the full board configuration and Card Pool as portable JSON. */
+  public exportBoardJson(): void {
+    this.services.downloads.save({
+      content: this.services.boardDocuments.serialize(this.editor),
+      fileName: this.services.boardDocuments.jsonFileName(
+        this.editor.config.title,
+      ),
+      mimeType: "application/json;charset=utf-8",
+    });
+    logger.info("Exported a complete board configuration.");
+  }
+
+  /** Downloads the populated Card Pool as a re-importable single-column CSV. */
+  public exportCardPoolCsv(): void {
+    this.services.downloads.save({
+      content: this.services.csvSerializer.serialize(
+        this.editor.answers.map((answer) => answer.text),
+      ),
+      fileName: this.services.boardDocuments.csvFileName(
+        this.editor.config.title,
+      ),
+      mimeType: "text/csv;charset=utf-8",
+    });
+    logger.info("Exported the Card Pool as CSV.", {
+      cardCount: this.populatedCardCount,
+    });
+  }
+
   public sortCards(mode: AnswerSort): void {
     this.onChange(
       this.services.editorState.sortCards(this.editor, mode),

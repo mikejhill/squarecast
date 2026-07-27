@@ -20,8 +20,9 @@ No account, database, cookie, or backend is used. The complete editor or play se
 3. Select **Sample Board** for another curated example or **New Board** for a blank board.
 4. Add cards with the quick-add field. Press Enter after each card, use **Paste CSV**, or drop one or more CSV files anywhere on the Card Pool.
 5. Optionally constrain a card to a specific cell, row, or column.
-6. Select **Test This Board** to test the board immediately, or select **Create Play Link** to share it.
-7. Each recipient opens the launch link to create a fresh randomized board. Their marks are written back to their URL as they play.
+6. Use **Export CSV** to save the Card Pool alone, or use the Board File controls to import or export the complete board as JSON.
+7. Select **Test This Board** to test the board immediately, or select **Create Play Link** to share it.
+8. Each recipient opens the launch link to create a fresh randomized board. Their marks are written back to their URL as they play.
 
 The URL can be bookmarked or copied at any point. Editing one URL never changes a previously shared URL.
 
@@ -38,7 +39,8 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 - Seeded randomized boards with one-click reshuffling
 - Automatic per-tile text fitting or a fixed custom tile font size
 - Keyboard-friendly card entry and editing
-- CSV import with quoted-value support
+- CSV import and export with quoted-value support
+- Versioned JSON import and export for complete boards
 - Persistent card sorting, locked-card prioritization, and shuffling
 - Win detection for rows, columns, and diagonals
 - Header-level system, light, and dark site appearances on every screen
@@ -90,7 +92,7 @@ The static output is written to `dist/`.
 - `src/controllers/` — class-based editor and player interaction coordinators
 - `src/features/editor/` — focused editor page, setup, Card Pool, dialogs, rows, and preview views
 - `src/features/play/` — focused play-session view
-- `src/services/` — browser clipboard and rendered-text measurement adapters
+- `src/services/` — browser clipboard, download, and rendered-text measurement adapters
 - `src/data/sample-board-definitions.ts` — immutable curated sample content
 - `src/lib/model.ts` — versioned schemas and default state
 - `src/lib/codec.ts` — compressed URL encoding and decoding
@@ -99,7 +101,8 @@ The static output is written to `dist/`.
 - `src/lib/editor-state.ts` — immutable editor mutations
 - `src/lib/player-session.ts` — immutable play-session mutations
 - `src/lib/generator.ts` — validation, constrained randomization, and win detection
-- `src/lib/csv.ts` — CSV card parser
+- `src/lib/board-document.ts` — versioned complete-board JSON validation and serialization
+- `src/lib/csv.ts` — CSV Card Pool parser and serializer
 - `src/lib/theme.ts` — appearance resolution, color palettes, contrast, and random colors
 - `src/lib/preferences.ts` — device-local site appearance preference
 - `src/lib/logger.ts` — scoped, privacy-conscious browser runtime logging
@@ -122,6 +125,23 @@ random sample, then writes that complete sample state into the URL.
 The sole browser-storage exception is `squarecast:appearance` in `localStorage`. It stores only `system`, `light`, or `dark`. Appearance is a device-local UI preference rather than board data, so it follows the user across every Squarecast screen without changing shared links. Squarecast does not use `sessionStorage`, cookies, tracking scripts, or network APIs.
 
 Anyone who receives a Squarecast URL can read the board data embedded in it. Do not place secrets or sensitive information in a board.
+
+## Portable files
+
+**Export JSON** creates one `.squarecast.json` object containing the full board
+configuration and Card Pool, including placement constraints. The object has a
+format identifier and version so incompatible files are rejected before they
+can replace the current editor. Importing a valid board creates a Back-button
+history checkpoint.
+
+**Export CSV** creates a conventional one-column `.cards.csv` file containing
+only populated cards in their current order. Quoted commas, quotes, and line
+breaks round-trip through Paste CSV or Card Pool drag-and-drop. CSV does not
+contain board settings or placement constraints; use JSON when those must be
+preserved.
+
+Both formats are generated and read locally in the browser. Import and export
+do not upload files or introduce persisted browser state.
 
 ## Runtime diagnostics
 
