@@ -10,6 +10,7 @@ import type {
   StateChangeHandler,
 } from "./app/types";
 import { SiteHeader } from "./components/SiteHeader";
+import { SiteFooter } from "./components/SiteFooter";
 import { EditorPage } from "./features/editor/EditorPage";
 import { PlayerPage } from "./features/play/PlayerPage";
 import { NavigationCoordinator } from "./lib/navigation";
@@ -132,6 +133,7 @@ export function App() {
       ) : (
         <PlayerPage state={state} onChange={navigate} />
       )}
+      <SiteFooter />
     </div>
   );
 }

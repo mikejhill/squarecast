@@ -246,7 +246,13 @@ optgroup {
 .editor-shell {
   max-width: 1480px;
   margin: 0 auto;
-  padding: clamp(34px, 4vw, 64px) clamp(18px, 4vw, 56px) 80px;
+  padding: clamp(18px, 2.5vw, 34px) clamp(18px, 4vw, 56px) 56px;
+  display: grid;
+  gap: 18px;
+}
+
+.editor-workspace {
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(370px, 0.78fr);
   gap: clamp(32px, 5vw, 84px);
@@ -255,11 +261,6 @@ optgroup {
 
 .editor-panel {
   min-width: 0;
-}
-
-.intro {
-  max-width: 670px;
-  margin-bottom: 34px;
 }
 
 .eyebrow {
@@ -272,7 +273,6 @@ optgroup {
   text-transform: uppercase;
 }
 
-.intro h1,
 .play-title h1 {
   margin: 0;
   font-size: clamp(34px, 4.5vw, 64px);
@@ -281,7 +281,6 @@ optgroup {
   color: #1c1c1f;
 }
 
-.intro > p:last-child,
 .play-title > p:last-child {
   margin: 18px 0 0;
   color: #68645e;
@@ -297,6 +296,37 @@ optgroup {
   background: rgba(255, 254, 250, 0.86);
   box-shadow: 0 14px 50px rgba(52, 42, 31, 0.055);
   overflow: hidden;
+}
+
+.board-setup-panel,
+.editor-workspace .panel {
+  margin-top: 0;
+}
+
+.board-setup-panel .panel-body {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px 18px;
+  padding: 16px 18px;
+}
+
+.board-title-field {
+  grid-column: span 4;
+}
+
+.board-setup-panel .free-square-section {
+  grid-column: span 8;
+}
+
+.board-color-field {
+  grid-column: span 5;
+}
+
+.tile-font-field {
+  grid-column: span 4;
+}
+
+.board-setup-panel .board-file-tools {
+  grid-column: span 3;
 }
 
 .panel-heading {
@@ -384,12 +414,69 @@ optgroup {
 
 .field > span,
 .field > label,
-.field > .label {
+.field > .label,
+.field-label {
   color: #65615b;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-tooltip {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #7a756e;
+  cursor: help;
+  outline: none;
+}
+
+.info-tooltip > [role="tooltip"] {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 9px);
+  z-index: 30;
+  width: max-content;
+  max-width: min(280px, 75vw);
+  padding: 8px 10px;
+  border: 1px solid rgba(31, 30, 28, 0.14);
+  border-radius: 8px;
+  background: #242427;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(20, 18, 16, 0.2);
+  font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-align: left;
+  text-transform: none;
+  transform: translate(-50%, 4px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.14s, transform 0.14s, visibility 0.14s;
+}
+
+.info-tooltip:hover > [role="tooltip"],
+.info-tooltip:focus > [role="tooltip"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+.info-tooltip:focus-visible {
+  border-radius: 50%;
+  outline: 3px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  outline-offset: 2px;
 }
 
 .field-wide,
@@ -471,9 +558,10 @@ optgroup {
   cursor: pointer;
 }
 
-.free-square-toggle > span:first-child {
-  display: grid;
-  gap: 3px;
+.free-square-toggle > span.compact-control-label:first-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .free-square-toggle strong {
@@ -659,19 +747,12 @@ optgroup {
   text-align: right;
 }
 
-.field-help {
-  color: #7a756e;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .board-file-tools {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   align-items: center;
-  gap: 10px 18px;
-  padding-top: 17px;
-  border-top: 1px solid #ebe7e0;
+  align-content: center;
+  gap: 8px;
 }
 
 .board-file-description {
@@ -687,18 +768,8 @@ optgroup {
   color: var(--accent-dark);
 }
 
-.board-file-description span {
-  display: grid;
-  gap: 2px;
-}
-
 .board-file-description strong {
   font-size: 14px;
-}
-
-.board-file-description small {
-  color: #7a756e;
-  font-size: 12px;
 }
 
 .board-file-actions,
@@ -724,6 +795,10 @@ optgroup {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.board-file-actions button {
+  flex: 1;
 }
 
 .board-file-actions button:hover,
@@ -1357,9 +1432,15 @@ optgroup {
   opacity: 0.35;
 }
 
-.privacy-note {
-  margin: 17px 0 0;
-  color: #858078;
+.site-footer {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px 18px;
+  border-top: 1px solid rgba(31, 30, 28, 0.09);
+  color: #77726b;
   font-size: 12px;
   text-align: center;
 }
@@ -1674,12 +1755,10 @@ optgroup {
   }
 
   .brand small,
-  .intro > p:last-child,
   .play-title > p:last-child,
   .free-square-toggle small,
   .answer-toolbar p,
   .preview-topline,
-  .privacy-note,
   .play-footnote {
     color: #aaa59d;
   }
@@ -1708,7 +1787,6 @@ optgroup {
     color: #d4d0c9;
   }
 
-  .intro h1,
   .play-title h1 {
     color: #f7f4ee;
   }
@@ -1733,6 +1811,7 @@ optgroup {
   .field > span,
   .field > label,
   .field > .label,
+  .field-label,
   .free-square-label > span {
     color: #b8b3ab;
   }
@@ -1817,14 +1896,12 @@ optgroup {
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
   }
 
-  .font-slider,
-  .field-help,
-  .board-file-description small {
+  .font-slider {
     color: #aaa5ae;
   }
 
-  .board-file-tools {
-    border-color: rgba(255, 255, 255, 0.09);
+  .info-tooltip {
+    color: #aaa5ae;
   }
 
   .board-file-description {
@@ -1833,6 +1910,11 @@ optgroup {
 
   .board-file-error {
     color: #f0a45e;
+  }
+
+  .site-footer {
+    border-color: rgba(255, 255, 255, 0.09);
+    color: #aaa59d;
   }
 
   .quick-add > svg,
@@ -2050,8 +2132,20 @@ optgroup {
 }
 
 @media (max-width: 980px) {
-  .editor-shell {
+  .editor-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .board-title-field,
+  .board-setup-panel .free-square-section,
+  .board-color-field,
+  .tile-font-field {
+    grid-column: span 6;
+  }
+
+  .board-setup-panel .board-file-tools {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .preview-panel {
@@ -2096,14 +2190,11 @@ optgroup {
   }
 
   .editor-shell {
-    padding-top: 28px;
+    padding-top: 14px;
   }
 
-  .intro h1 {
-    font-size: 39px;
-  }
-
-  .panel-body {
+  .panel-body,
+  .board-setup-panel .panel-body {
     grid-template-columns: 1fr;
     padding: 15px;
   }
@@ -2113,11 +2204,15 @@ optgroup {
   }
 
   .field-wide,
+  .board-title-field,
+  .board-color-field,
+  .tile-font-field,
+  .board-setup-panel .free-square-section,
   .quick-add,
   .answer-toolbar,
   .answer-list,
-  .board-file-tools {
-    grid-column: auto;
+  .board-setup-panel .board-file-tools {
+    grid-column: 1 / -1;
   }
 
   .free-square-section {

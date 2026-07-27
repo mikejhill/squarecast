@@ -72,9 +72,6 @@ export function EditorPreviewPanel({
         Create Play Link
         <span aria-hidden="true">→</span>
       </button>
-      <p className="privacy-note">
-        Nothing is uploaded. This board lives entirely in its URL.
-      </p>
     </aside>
   );
 }

@@ -1,5 +1,6 @@
 import { Download, FileJson, Upload } from "lucide-react";
 import { useRef, type ChangeEvent } from "react";
+import { InfoTooltip } from "../../components/InfoTooltip";
 
 type BoardFileToolsProps = {
   importError: string;
@@ -27,13 +28,14 @@ export function BoardFileTools({
   };
 
   return (
-    <div className="board-file-tools field-wide">
+    <div className="board-file-tools">
       <div className="board-file-description">
         <FileJson size={19} aria-hidden="true" />
-        <span>
-          <strong>Board File</strong>
-          <small>Configuration and Card Pool in one JSON file</small>
-        </span>
+        <strong>Board File</strong>
+        <InfoTooltip label="About board JSON files">
+          Includes the complete board configuration and Card Pool in one JSON
+          file.
+        </InfoTooltip>
       </div>
       <div className="board-file-actions">
         <input

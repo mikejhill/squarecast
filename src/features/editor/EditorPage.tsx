@@ -118,40 +118,34 @@ export function EditorPage({ state, onChange }: EditorPageProps) {
 
   return (
     <main className="editor-shell">
-      <section className="editor-panel">
-        <div className="intro">
-          <p className="eyebrow">Board Studio</p>
-          <h1>Make a Board. Share the Fun.</h1>
-          <p>
-            Add a generous card pool, pin the non-negotiables, then share one
-            self-contained link.
-          </p>
+      <BoardSetupPanel
+        config={state.config}
+        importError={boardImportError}
+        onPatch={(patch) => controller.patchConfig(patch)}
+        onImportJson={importBoardJson}
+        onExportJson={() => controller.exportBoardJson()}
+      />
+
+      <section className="editor-workspace">
+        <div className="editor-panel">
+          <CardPoolPanel
+            controller={controller}
+            isDragging={isCardPoolDragging}
+            onOpenCsv={() => setCsvOpen(true)}
+            onDragEnter={handleCardPoolDragEnter}
+            onDragOver={handleCardPoolDragOver}
+            onDragLeave={handleCardPoolDragLeave}
+            onDrop={handleCardPoolDrop}
+          />
         </div>
 
-        <BoardSetupPanel
-          config={state.config}
-          importError={boardImportError}
-          onPatch={(patch) => controller.patchConfig(patch)}
-          onImportJson={importBoardJson}
-          onExportJson={() => controller.exportBoardJson()}
-        />
-        <CardPoolPanel
+        <EditorPreviewPanel
           controller={controller}
-          isDragging={isCardPoolDragging}
-          onOpenCsv={() => setCsvOpen(true)}
-          onDragEnter={handleCardPoolDragEnter}
-          onDragOver={handleCardPoolDragOver}
-          onDragLeave={handleCardPoolDragLeave}
-          onDrop={handleCardPoolDrop}
+          copied={copied}
+          onCopyEditor={() => copyUrl("edit", window.location.href)}
+          onCreatePlayLink={createPlayLink}
         />
       </section>
-
-      <EditorPreviewPanel
-        controller={controller}
-        copied={copied}
-        onCopyEditor={() => copyUrl("edit", window.location.href)}
-        onCreatePlayLink={createPlayLink}
-      />
 
       <EditorDialogs
         csvOpen={csvOpen}

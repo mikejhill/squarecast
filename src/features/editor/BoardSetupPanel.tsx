@@ -7,6 +7,7 @@ import {
   Type,
 } from "lucide-react";
 import { Panel } from "../../components/Panel";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import type { BoardConfig } from "../../lib/model";
 import { ColorTheme } from "../../lib/theme";
 import { BoardFileTools } from "./BoardFileTools";
@@ -29,6 +30,7 @@ export function BoardSetupPanel({
 }: BoardSetupPanelProps) {
   return (
     <Panel
+      className="board-setup-panel"
       icon={<Settings2 size={18} />}
       title="Board Setup"
       aside={
@@ -51,7 +53,7 @@ export function BoardSetupPanel({
         </label>
       }
     >
-      <label className="field field-wide">
+      <label className="field board-title-field">
         <span>Board Title</span>
         <input
           value={config.title}
@@ -67,9 +69,11 @@ export function BoardSetupPanel({
         }`}
       >
         <label className="free-square-toggle">
-          <span>
+          <span className="compact-control-label">
             <strong>Centered Free Square</strong>
-            <small>Automatically marked for every player</small>
+            <InfoTooltip label="About the free square">
+              Automatically marked for every player.
+            </InfoTooltip>
           </span>
           <input
             type="checkbox"
@@ -93,7 +97,7 @@ export function BoardSetupPanel({
         )}
       </div>
 
-      <div className="field field-wide">
+      <div className="field board-color-field">
         <span>Board Color</span>
         <div className="theme-row">
           {ColorTheme.presets.map((preset) => (
@@ -152,8 +156,14 @@ export function BoardSetupPanel({
         </div>
       </div>
 
-      <div className="field field-wide">
-        <span>Tile Text Size</span>
+      <div className="field tile-font-field">
+        <div className="field-label">
+          <span>Tile Text Size</span>
+          <InfoTooltip label="About automatic tile text sizing">
+            Auto sizes every tile independently to fit its rendered text. Fixed
+            applies one size to the entire board.
+          </InfoTooltip>
+        </div>
         <div className="font-size-controls">
           <div className="segmented compact-segmented">
             <button
@@ -190,10 +200,6 @@ export function BoardSetupPanel({
             <output>{config.fontSize}px</output>
           </label>
         </div>
-        <small className="field-help">
-          Auto sizes every tile independently. Fixed applies one size to the
-          entire board.
-        </small>
       </div>
 
       <BoardFileTools
