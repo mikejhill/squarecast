@@ -90,6 +90,31 @@ describe("board generator", () => {
     expect(play.checked).toEqual([]);
   });
 
+  it("reshuffles partial previews before the board is valid", () => {
+    const editor = BoardModel.createDefaultEditor();
+    editor.config.title = "";
+    editor.answers = editor.answers.slice(0, 4);
+
+    const first = generator
+      .generatePreview(editor, "preview-one")
+      .map((cell) => cell.id);
+    const second = generator
+      .generatePreview(editor, "preview-two")
+      .map((cell) => cell.id);
+
+    expect(first).not.toEqual(second);
+    expect(first.filter((id) => !id.startsWith("placeholder"))).toHaveLength(5);
+    expect(first[12]).toBe("__free__");
+  });
+
+  it("uses full generation for valid previews", () => {
+    const editor = BoardModel.createDefaultEditor();
+
+    expect(generator.generatePreview(editor, "valid-preview")).toEqual(
+      generator.generate(editor, "valid-preview").cells,
+    );
+  });
+
   it("rejects more constrained cards than available squares", () => {
     const editor = BoardModel.createDefaultEditor();
     editor.config.size = 3;

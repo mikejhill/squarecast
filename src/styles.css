@@ -37,6 +37,12 @@ button:disabled {
   cursor: not-allowed;
 }
 
+option,
+optgroup {
+  background: #fff;
+  color: #222225;
+}
+
 .app {
   --accent: #ff6b45;
   --accent-dark: color-mix(in srgb, var(--accent) 72%, #000);
@@ -1743,6 +1749,12 @@ button:disabled {
 
   .placement select {
     color-scheme: dark;
+  }
+
+  option,
+  optgroup {
+    background: #202024;
+    color: #f0ede7;
   }
 
   .icon-button {

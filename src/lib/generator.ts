@@ -130,6 +130,48 @@ export class BoardGenerator {
     };
   }
 
+  public generatePreview(editor: EditorState, seed: string): PlayCell[] {
+    if (this.validate(editor).valid) {
+      return this.generate(editor, seed).cells;
+    }
+
+    const size = editor.config.size;
+    const freeIndex = BoardModel.freeCellIndex(size, editor.config.free);
+    const random = this.createRandom(this.hashString(seed));
+    const answers = this.shuffle(
+      editor.answers
+        .filter((answer) => answer.text.trim())
+        .map((answer) => ({ ...answer, text: answer.text.trim() })),
+      random,
+    );
+    const openCells = this.shuffle(
+      Array.from({ length: size ** 2 }, (_, index) => index).filter(
+        (index) => index !== freeIndex,
+      ),
+      random,
+    );
+    const placed = new Map(
+      openCells
+        .slice(0, answers.length)
+        .map((cell, index) => [cell, answers[index] as Answer] as const),
+    );
+
+    return Array.from({ length: size ** 2 }, (_, index) => {
+      if (index === freeIndex) {
+        return {
+          id: "__free__",
+          text: editor.config.freeLabel.trim() || "FREE",
+          free: true,
+        };
+      }
+      const answer = placed.get(index);
+      return {
+        id: answer?.id ?? `placeholder-${index}`,
+        text: answer?.text ?? "Add card",
+      };
+    });
+  }
+
   public winningCells(play: PlayState): Set<number> {
     const checked = new Set(play.checked);
     const lines: number[][] = [];

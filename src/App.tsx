@@ -49,7 +49,6 @@ import {
   type Answer,
   type EditorState,
   type Placement,
-  type PlayCell,
   type PlayState,
 } from "./lib/model";
 import { AnswerPoolSorter, type AnswerSort } from "./lib/sorting";
@@ -988,28 +987,10 @@ function AnswerRow({
 }
 
 function BoardPreview({ editor }: { editor: EditorState }) {
-  const validation = generator.validate(editor);
-  let cells: PlayCell[];
-  if (validation.valid) {
-    cells = generator.generate(editor, editor.config.previewSeed).cells;
-  } else {
-    const freeIndex = BoardModel.freeCellIndex(
-      editor.config.size,
-      editor.config.free,
-    );
-    const answers = editor.answers.filter((answer) => answer.text.trim());
-    let cursor = 0;
-    cells = Array.from({ length: editor.config.size ** 2 }, (_, index) => {
-      if (index === freeIndex) {
-        return { id: "__free__", text: editor.config.freeLabel || "FREE", free: true };
-      }
-      const answer = answers[cursor++];
-      return {
-        id: answer?.id || `placeholder-${index}`,
-        text: answer?.text || "Add card",
-      };
-    });
-  }
+  const cells = generator.generatePreview(
+    editor,
+    editor.config.previewSeed,
+  );
 
   return (
     <div className="board-frame preview-board">
