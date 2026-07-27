@@ -185,7 +185,9 @@ cues.
 ## Responsive Behavior
 
 The desktop editor uses a full-width setup band followed by a two-column
-workspace. At narrower widths:
+workspace. Card Pool and Live Preview share the same outer height while they
+are side by side. At narrower widths, both sections return to their natural
+content-driven heights and:
 
 - Card Pool and Live Preview stack;
 - multi-column setup fields collapse;

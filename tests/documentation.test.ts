@@ -30,7 +30,11 @@ class DocumentationCatalog {
       .filter((name) => name.endsWith(".md"))
       .sort()
       .map((name) => resolve(this.root, "docs", name));
-    return [resolve(this.root, "README.md"), ...guides];
+    return [
+      resolve(this.root, "README.md"),
+      resolve(this.root, "AGENTS.md"),
+      ...guides,
+    ];
   }
 
   /** Extracts non-remote Markdown links and resolves them from their source. */
