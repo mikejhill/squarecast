@@ -28,6 +28,10 @@ export function BoardSetupPanel({
   onImportJson,
   onExportJson,
 }: BoardSetupPanelProps) {
+  const usesVisiblePreset = ColorTheme.presets.some(
+    (preset) => preset.id === config.theme,
+  );
+
   return (
     <Panel
       className="board-setup-panel"
@@ -63,39 +67,40 @@ export function BoardSetupPanel({
         />
       </label>
 
-      <div
-        className={`free-square-section ${
-          config.free ? "" : "without-label"
-        }`}
-      >
-        <label className="free-square-toggle">
-          <span className="compact-control-label">
-            <strong>Centered Free Square</strong>
-            <InfoTooltip label="About the free square">
-              Automatically marked for every player.
-            </InfoTooltip>
-          </span>
+      <div className="field free-square-field">
+        <div className="field-label">
+          <span>Free Square</span>
+          <InfoTooltip label="About the free square">
+            Adds an automatically marked square at the center of the board.
+          </InfoTooltip>
+        </div>
+        <label className="free-square-control">
+          <span>{config.free ? "Enabled" : "Disabled"}</span>
           <input
             type="checkbox"
             checked={config.free}
+            aria-label="Free Square"
             onChange={(event) => onPatch({ free: event.target.checked })}
           />
           <span className="toggle" aria-hidden="true" />
         </label>
-
-        {config.free && (
-          <label className="free-square-label">
-            <span>Label</span>
-            <input
-              value={config.freeLabel}
-              onChange={(event) => onPatch({ freeLabel: event.target.value })}
-              placeholder="FREE"
-              maxLength={36}
-              aria-label="Free-Square Label"
-            />
-          </label>
-        )}
       </div>
+
+      <label
+        className={`field free-square-label-field ${
+          config.free ? "" : "is-disabled"
+        }`}
+      >
+        <span>Free Square Label</span>
+        <input
+          value={config.freeLabel}
+          disabled={!config.free}
+          onChange={(event) => onPatch({ freeLabel: event.target.value })}
+          placeholder="FREE"
+          maxLength={36}
+          aria-label="Free Square Label"
+        />
+      </label>
 
       <div className="field board-color-field">
         <span>Board Color</span>
@@ -123,7 +128,9 @@ export function BoardSetupPanel({
           ))}
           <label
             className={`custom-color ${
-              config.theme === "custom" ? "selected" : ""
+              config.theme === "custom" || !usesVisiblePreset
+                ? "selected"
+                : ""
             }`}
             title="Choose a custom board color"
           >
@@ -143,6 +150,8 @@ export function BoardSetupPanel({
           <button
             type="button"
             className="random-color-button"
+            aria-label="Randomize board color"
+            data-tooltip="Randomize board color"
             onClick={() =>
               onPatch({
                 theme: "custom",
@@ -151,7 +160,6 @@ export function BoardSetupPanel({
             }
           >
             <Shuffle size={15} />
-            Randomize
           </button>
         </div>
       </div>

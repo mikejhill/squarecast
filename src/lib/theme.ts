@@ -19,11 +19,8 @@ export class ColorTheme {
     { id: "mint", label: "Mint", color: "#20a679" },
     { id: "violet", label: "Violet", color: "#7559d9" },
     { id: "ocean", label: "Ocean", color: "#1976d2" },
-    { id: "sunflower", label: "Sunflower", color: "#d99a00" },
     { id: "rose", label: "Rose", color: "#d94f70" },
-    { id: "teal", label: "Teal", color: "#008b8b" },
     { id: "indigo", label: "Indigo", color: "#4d5bd4" },
-    { id: "orange", label: "Orange", color: "#e86f18" },
   ];
 
   /** Produces the CSS custom properties consumed by editor and play surfaces. */

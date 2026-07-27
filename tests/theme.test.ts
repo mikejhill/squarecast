@@ -31,8 +31,16 @@ describe("appearance and board colors", () => {
     });
   });
 
-  it("provides a varied named palette", () => {
-    expect(ColorTheme.presets.length).toBeGreaterThanOrEqual(10);
+  it("provides the compact named palette used by Board Setup", () => {
+    expect(ColorTheme.presets.map((preset) => preset.id)).toEqual([
+      "ink",
+      "coral",
+      "mint",
+      "violet",
+      "ocean",
+      "rose",
+      "indigo",
+    ]);
     expect(new Set(ColorTheme.presets.map((preset) => preset.color)).size).toBe(
       ColorTheme.presets.length,
     );
