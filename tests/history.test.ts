@@ -1,0 +1,33 @@
+import { describe, expect, it, vi } from "vitest";
+import { UrlHistoryService } from "../src/lib/history";
+
+describe("URL history service", () => {
+  const createHistory = () => ({
+    pushState: vi.fn(),
+    replaceState: vi.fn(),
+  });
+
+  it("creates a history entry for major transitions", () => {
+    const history = createHistory();
+    new UrlHistoryService(history).write("#sq1:new-board", "push");
+
+    expect(history.pushState).toHaveBeenCalledWith(null, "", "#sq1:new-board");
+    expect(history.replaceState).not.toHaveBeenCalled();
+  });
+
+  it("updates the current entry for routine state changes", () => {
+    const history = createHistory();
+    new UrlHistoryService(history).write("#sq1:typing", "replace");
+
+    expect(history.replaceState).toHaveBeenCalledWith(null, "", "#sq1:typing");
+    expect(history.pushState).not.toHaveBeenCalled();
+  });
+
+  it("does not rewrite history while restoring Back or Forward state", () => {
+    const history = createHistory();
+    new UrlHistoryService(history).write("#sq1:restored", "none");
+
+    expect(history.pushState).not.toHaveBeenCalled();
+    expect(history.replaceState).not.toHaveBeenCalled();
+  });
+});

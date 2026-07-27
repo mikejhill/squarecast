@@ -39,6 +39,7 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 - Ten named board colors, a custom color picker, and color randomization
 - Responsive editor and play layouts
 - Compressed, schema-validated URL state
+- Back and Forward restoration across major board transitions
 
 ## Development
 

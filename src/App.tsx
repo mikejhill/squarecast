@@ -33,12 +33,13 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { StateCodec } from "./lib/codec";
 import { BoardFactory } from "./lib/board-factory";
+import { StateCodec } from "./lib/codec";
 import { CsvAnswerParser } from "./lib/csv";
 import { DuplicateCardDetector } from "./lib/duplicates";
 import { AutoFontSizePolicy, FontSizeOptimizer } from "./lib/font-size";
 import { BoardGenerator, type ValidationResult } from "./lib/generator";
+import { UrlHistoryService, type HistoryWriteMode } from "./lib/history";
 import {
   BoardModel,
   IdFactory,
@@ -52,6 +53,10 @@ import { AnswerPoolSorter, type AnswerSort } from "./lib/sorting";
 import { AppearanceResolver, ColorTheme } from "./lib/theme";
 
 type ActiveState = EditorState | PlayState;
+type StateChangeHandler = (
+  state: ActiveState,
+  historyMode?: HistoryWriteMode,
+) => void;
 
 class ClipboardService {
   public async copy(text: string): Promise<void> {
@@ -98,6 +103,7 @@ const autoFontSizePolicy = new AutoFontSizePolicy();
 const duplicateCardDetector = new DuplicateCardDetector();
 const clipboard = new ClipboardService();
 const stateService = new ApplicationStateService(codec, generator, boardFactory);
+const urlHistory = new UrlHistoryService(window.history);
 
 export function App() {
   const [state, setState] = useState<ActiveState>(() =>
@@ -106,10 +112,25 @@ export function App() {
   const [systemIsDark, setSystemIsDark] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches,
   );
+  const historyMode = useRef<HistoryWriteMode>("replace");
+  const navigate: StateChangeHandler = (nextState, mode = "replace") => {
+    historyMode.current = mode;
+    setState(nextState);
+  };
 
   useEffect(() => {
-    window.history.replaceState(null, "", codec.encode(state));
+    urlHistory.write(codec.encode(state), historyMode.current);
+    historyMode.current = "replace";
   }, [state]);
+
+  useEffect(() => {
+    const restoreHistoryState = () => {
+      historyMode.current = "none";
+      setState(stateService.load(window.location.hash));
+    };
+    window.addEventListener("popstate", restoreHistoryState);
+    return () => window.removeEventListener("popstate", restoreHistoryState);
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -145,12 +166,12 @@ export function App() {
     >
       <SiteHeader
         mode={state.mode}
-        onNewBoard={() => setState(boardFactory.createNewEditor())}
+        onNewBoard={() => navigate(boardFactory.createNewEditor(), "push")}
       />
       {state.mode === "edit" ? (
-        <Editor state={state} onChange={setState} />
+        <Editor state={state} onChange={navigate} />
       ) : (
-        <Player state={state} onChange={setState} />
+        <Player state={state} onChange={navigate} />
       )}
     </div>
   );
@@ -205,7 +226,7 @@ function Editor({
   onChange,
 }: {
   state: EditorState;
-  onChange: (state: ActiveState) => void;
+  onChange: StateChangeHandler;
 }) {
   const [newAnswer, setNewAnswer] = useState("");
   const [csvOpen, setCsvOpen] = useState(false);
@@ -235,7 +256,10 @@ function Editor({
         return invalid ? { ...answer, placement: { kind: "any" as const } } : answer;
       });
     }
-    onChange({ ...state, config, answers });
+    onChange(
+      { ...state, config, answers },
+      patch.size !== undefined || patch.free !== undefined ? "push" : "replace",
+    );
   };
 
   const addAnswer = (text = newAnswer, afterId?: string) => {
@@ -270,24 +294,30 @@ function Editor({
   };
 
   const deleteAnswer = (id: string) => {
-    onChange({ ...state, answers: state.answers.filter((answer) => answer.id !== id) });
+    onChange(
+      { ...state, answers: state.answers.filter((answer) => answer.id !== id) },
+      "push",
+    );
   };
 
   const importCsv = () => {
     const values = csvParser.parse(csvText);
     if (!values.length) return;
     const imported = [
-        ...state.answers,
-        ...values.map((text) => ({
-          id: IdFactory.create(),
-          text,
-          placement: { kind: "any" as const },
-        })),
-      ];
-    onChange({
-      ...state,
-      answers: sorter.sort(imported, state.config.sortMode),
-    });
+      ...state.answers,
+      ...values.map((text) => ({
+        id: IdFactory.create(),
+        text,
+        placement: { kind: "any" as const },
+      })),
+    ];
+    onChange(
+      {
+        ...state,
+        answers: sorter.sort(imported, state.config.sortMode),
+      },
+      "push",
+    );
     setCsvOpen(false);
     setCsvText("");
   };
@@ -304,7 +334,7 @@ function Editor({
 
   const playBoard = () => {
     if (!validation.valid) return;
-    onChange(generator.generate(state, IdFactory.seed()));
+    onChange(generator.generate(state, IdFactory.seed()), "push");
   };
 
   const doCopy = async (kind: "edit" | "play", text: string) => {
@@ -314,11 +344,14 @@ function Editor({
   };
 
   const sortAnswers = (mode: AnswerSort) => {
-    onChange({
-      ...state,
-      config: { ...state.config, sortMode: mode },
-      answers: sorter.sort(state.answers, mode),
-    });
+    onChange(
+      {
+        ...state,
+        config: { ...state.config, sortMode: mode },
+        answers: sorter.sort(state.answers, mode),
+      },
+      "push",
+    );
   };
 
   return (
@@ -923,7 +956,7 @@ function Player({
   onChange,
 }: {
   state: PlayState;
-  onChange: (state: ActiveState) => void;
+  onChange: StateChangeHandler;
 }) {
   const [copied, setCopied] = useState(false);
   const wins = generator.winningCells(state);
@@ -938,7 +971,7 @@ function Player({
   };
 
   const reshuffle = () => {
-    onChange(generator.generate(state.source, IdFactory.seed()));
+    onChange(generator.generate(state.source, IdFactory.seed()), "push");
   };
 
   const copySession = async () => {
@@ -950,7 +983,11 @@ function Player({
   return (
     <main className="play-shell">
       <div className="play-toolbar">
-        <button type="button" className="text-button" onClick={() => onChange(state.source)}>
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => onChange(state.source, "push")}
+        >
           <ArrowLeft size={16} />
           Edit This Board
         </button>
