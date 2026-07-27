@@ -92,15 +92,14 @@ export function App() {
 
   // Keep native controls and surrounding browser chrome aligned with site CSS.
   useEffect(() => {
-    document.documentElement.style.colorScheme = resolvedAppearance;
-    document.body.style.backgroundColor =
+    const surfaceColor =
       resolvedAppearance === "dark" ? "#111114" : "#f4f1eb";
+    document.documentElement.style.colorScheme = resolvedAppearance;
+    document.documentElement.style.backgroundColor = surfaceColor;
+    document.body.style.backgroundColor = surfaceColor;
     document
       .querySelector<HTMLMetaElement>("#theme-color")
-      ?.setAttribute(
-        "content",
-        resolvedAppearance === "dark" ? "#111114" : "#f4f1eb",
-      );
+      ?.setAttribute("content", surfaceColor);
   }, [resolvedAppearance]);
 
   return (

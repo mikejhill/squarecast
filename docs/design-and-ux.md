@@ -201,6 +201,9 @@ content-driven heights and:
   minimum width can enlarge the page;
 - the stacked application surface is the horizontal containment boundary, so
   descendant controls and decorative effects cannot enlarge the document;
+- the root document remains locked to the viewport while `<body>` owns vertical
+  scrolling, preventing an unthemed `<html>` canvas from appearing beside the
+  site;
 - Card Pool rows reorganize without hiding placement settings; and
 - board cells preserve a square aspect ratio.
 

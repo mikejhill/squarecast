@@ -96,6 +96,8 @@ See [State and Routing](docs/state-and-routing.md).
   controls can create horizontal overflow on narrow screens.
 - At stacked widths, keep the application surface itself as the horizontal
   containment boundary. Do not rely only on root-element overflow behavior.
+- Keep `<html>` locked to the viewport and use `<body>` as the vertical
+  scroller. Synchronize both surfaces with the resolved light/dark appearance.
 - Card Pool must support:
   - Enter-to-add
   - visible Add action
