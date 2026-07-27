@@ -58,6 +58,7 @@ export class BoardDocumentService {
       const editor: EditorState = {
         v: 1,
         mode: "edit",
+        setupCollapsed: false,
         config: document.config,
         answers: document.cards.map((card) => ({
           id: IdFactory.create(),

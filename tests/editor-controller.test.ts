@@ -64,8 +64,13 @@ describe("editor controller", () => {
     controller.deleteCard(editor.answers[0]!.id);
     controller.sortCards("reverse");
     controller.shufflePreview();
+    controller.setSetupCollapsed(true);
 
-    expect(onChange).toHaveBeenCalledTimes(6);
+    expect(onChange).toHaveBeenCalledTimes(7);
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ setupCollapsed: true }),
+      "replace",
+    );
   });
 
   it("imports pasted and dropped CSV values", async () => {

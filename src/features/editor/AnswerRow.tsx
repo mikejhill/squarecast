@@ -15,7 +15,6 @@ type AnswerRowProps = {
   freeIndex: number | null;
   onChange: (patch: Partial<Answer>) => void;
   onDelete: () => void;
-  onEnter: () => void;
 };
 
 /** Edits one card's text and placement constraint without owning board state. */
@@ -27,7 +26,6 @@ export function AnswerRow({
   freeIndex,
   onChange,
   onDelete,
-  onEnter,
 }: AnswerRowProps) {
   const selectValue =
     answer.placement.kind === "any"
@@ -46,7 +44,7 @@ export function AnswerRow({
   const handleKey = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      onEnter();
+      event.currentTarget.blur();
     }
   };
 

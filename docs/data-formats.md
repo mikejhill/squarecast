@@ -28,7 +28,7 @@ move together.
     "accentColor": "#008b8b",
     "fontMode": "auto",
     "fontSize": 18,
-    "sortMode": "alphabetical",
+    "sortMode": "manual",
     "previewSeed": "example-preview"
   },
   "cards": [
@@ -70,7 +70,7 @@ move together.
 | `accentColor` | Six-digit hexadecimal color |
 | `fontMode` | `auto` or `fixed` |
 | `fontSize` | Integer from 10 through 32 |
-| `sortMode` | `alphabetical`, `reverse`, `constrained`, or `shuffle` |
+| `sortMode` | `manual`, `alphabetical`, `reverse`, `constrained`, or `shuffle` |
 | `previewSeed` | Non-empty string |
 
 ### Placement rules
@@ -101,6 +101,8 @@ out-of-range board sizes, and malformed placement rules are rejected.
 
 Imported cards receive fresh internal IDs. IDs identify one editor session and
 are deliberately excluded from the portable format.
+The Board Setup disclosure state is also excluded because it is editor UI state,
+not portable board configuration.
 
 A successful import creates a browser-history checkpoint, allowing the prior
 board to be restored with Back.

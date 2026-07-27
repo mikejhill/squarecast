@@ -11,7 +11,8 @@ describe("board model", () => {
     const editor = BoardModel.createDefaultEditor();
     expect(editor.config.title).toBe("Weekend Adventure Bingo");
     expect(editor.config.fontMode).toBe("auto");
-    expect(editor.config.sortMode).toBe("alphabetical");
+    expect(editor.config.sortMode).toBe("manual");
+    expect(editor.setupCollapsed).toBe(false);
     expect(editor.answers).toHaveLength(28);
   });
 

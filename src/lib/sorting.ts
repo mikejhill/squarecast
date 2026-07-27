@@ -22,6 +22,8 @@ export class AnswerPoolSorter {
       cardCount: result.length,
     });
     switch (mode) {
+      case "manual":
+        return result;
       case "alphabetical":
         return result.sort((left, right) =>
           left.text.localeCompare(right.text, undefined, { sensitivity: "base" }),

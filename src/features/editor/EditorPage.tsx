@@ -120,8 +120,12 @@ export function EditorPage({ state, onChange }: EditorPageProps) {
     <main className="editor-shell">
       <BoardSetupPanel
         config={state.config}
+        collapsed={state.setupCollapsed}
         importError={boardImportError}
         onPatch={(patch) => controller.patchConfig(patch)}
+        onCollapsedChange={(collapsed) =>
+          controller.setSetupCollapsed(collapsed)
+        }
         onImportJson={importBoardJson}
         onExportJson={() => controller.exportBoardJson()}
       />

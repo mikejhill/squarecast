@@ -24,6 +24,13 @@ describe("card pool sorting", () => {
     expect(answers.map((answer) => answer.id)).toEqual(["1", "2", "3"]);
   });
 
+  it("preserves insertion order when manual sorting is selected", () => {
+    const sorted = sorter.sort(answers, "manual");
+
+    expect(sorted.map((answer) => answer.id)).toEqual(["1", "2", "3"]);
+    expect(sorted).not.toBe(answers);
+  });
+
   it("moves constrained cards ahead of flexible cards", () => {
     expect(sorter.sort(answers, "constrained")[0]?.id).toBe("2");
   });

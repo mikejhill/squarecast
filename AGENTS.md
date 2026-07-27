@@ -112,7 +112,10 @@ See [State and Routing](docs/state-and-routing.md).
   - CSV export
   - duplicate warnings beside affected cards
   - exact-cell, row, and column constraints
-- Card Pool sorting defaults to alphabetical and reapplies after additions.
+- Card Pool sorting defaults to Manual Order. Deterministic sort modes reapply
+  after additions, imports, text edits, and placement changes.
+- Board Setup disclosure state is editor-session state and is restored from the
+  URL hash.
 - Live Preview remains available for incomplete boards and uses placeholders
   where necessary.
 - **Shuffle Preview** works on partial boards and appears as a real button.

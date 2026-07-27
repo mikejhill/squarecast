@@ -26,6 +26,14 @@ type CardPoolPanelProps = {
   onDrop: DragEventHandler<HTMLElement>;
 };
 
+const sortLabels: Record<AnswerSort, string> = {
+  manual: "Manual Order",
+  alphabetical: "A–Z",
+  reverse: "Z–A",
+  constrained: "Locked First",
+  shuffle: "Shuffle Cards",
+};
+
 /** Renders quick entry, sorting, constraints, and CSV drop affordances. */
 export function CardPoolPanel({
   controller,
@@ -106,7 +114,9 @@ export function CardPoolPanel({
           </button>
           <label className="sort-control">
             <ArrowUpAZ size={15} />
-            <span className="sr-only">Sort Card Pool</span>
+            <span className="sort-control-value">
+              {sortLabels[editor.config.sortMode]}
+            </span>
             <select
               value={editor.config.sortMode}
               aria-label="Sort Card Pool"
@@ -114,6 +124,7 @@ export function CardPoolPanel({
                 controller.sortCards(event.target.value as AnswerSort)
               }
             >
+              <option value="manual">Manual Order</option>
               <option value="alphabetical">A–Z</option>
               <option value="reverse">Z–A</option>
               <option value="constrained">Locked First</option>
@@ -138,7 +149,6 @@ export function CardPoolPanel({
             )}
             onChange={(patch) => controller.updateCard(answer.id, patch)}
             onDelete={() => controller.deleteCard(answer.id)}
-            onEnter={() => controller.addCard("New card", answer.id)}
           />
         ))}
         {!editor.answers.length && (

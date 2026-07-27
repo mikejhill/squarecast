@@ -8,7 +8,7 @@ const logger = new RuntimeLogger("board-factory");
 export class BoardFactory {
   /**
    * Returns an empty 5×5 editor with a free square, automatic text sizing,
-   * alphabetical card sorting, and a newly randomized accessible accent.
+   * manual card ordering, and a newly randomized accessible accent.
    */
   public createNewEditor(random: () => number = Math.random): EditorState {
     const accentColor = ColorTheme.random(random);
@@ -19,6 +19,7 @@ export class BoardFactory {
     return {
       v: 1,
       mode: "edit",
+      setupCollapsed: false,
       config: {
         title: "",
         size: 5,
@@ -28,7 +29,7 @@ export class BoardFactory {
         accentColor,
         fontMode: "auto",
         fontSize: 18,
-        sortMode: "alphabetical",
+        sortMode: "manual",
         previewSeed: IdFactory.seed(),
       },
       answers: [],

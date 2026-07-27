@@ -352,6 +352,33 @@ optgroup {
   text-transform: uppercase;
 }
 
+.panel-collapse-button {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #d9d5ce;
+  border-radius: 8px;
+  background: #fffefa;
+  color: #5d5953;
+}
+
+.panel-collapse-button:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, #d9d5ce);
+  color: var(--accent-dark);
+}
+
+.panel-collapse-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  outline-offset: 2px;
+}
+
+.panel-body[hidden] {
+  display: none;
+}
+
 .panel-size-select {
   position: relative;
   display: flex;
@@ -902,6 +929,7 @@ optgroup {
 .sort-control {
   position: relative;
   min-height: 34px;
+  min-width: 126px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -910,24 +938,39 @@ optgroup {
   border-radius: 8px;
   background: #fff;
   color: #4e4b47;
-}
-
-.sort-control select {
-  appearance: none;
-  border: 0;
-  outline: 0;
-  padding: 0 18px 0 2px;
-  background: transparent;
-  color: inherit;
-  font-size: 12px;
-  font-weight: 700;
   cursor: pointer;
 }
 
-.sort-control > svg:last-child {
+.sort-control select {
   position: absolute;
-  right: 7px;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  background: transparent;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.sort-control-value {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sort-control > svg:last-child {
   pointer-events: none;
+}
+
+.sort-control:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, #d9d5ce);
+  outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  outline-offset: 1px;
 }
 
 .sr-only {
@@ -1199,17 +1242,11 @@ optgroup {
   background: var(--accent-soft);
   color: var(--accent-dark);
   text-align: left;
-  box-shadow: 0 5px 0 color-mix(in srgb, var(--accent) 48%, #17171a);
-  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  transition: filter 0.15s;
 }
 
 .copy-editor-action:hover {
   filter: saturate(1.12) brightness(1.02);
-}
-
-.copy-editor-action:active {
-  transform: translateY(3px);
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 48%, #17171a);
 }
 
 .copy-editor-action:focus-visible {
@@ -1425,8 +1462,7 @@ optgroup {
   color: #fff;
   font-size: 15px;
   font-weight: 800;
-  box-shadow: 0 7px 0 #08080a;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: filter 0.15s;
 }
 
 .primary-action span {
@@ -1434,14 +1470,12 @@ optgroup {
   font-size: 20px;
 }
 
-.primary-action:not(:disabled):active {
-  transform: translateY(5px);
-  box-shadow: 0 2px 0 #08080a;
+.primary-action:not(:disabled):hover {
+  filter: brightness(1.08);
 }
 
 .primary-action:disabled {
   opacity: 0.35;
-  box-shadow: none;
 }
 
 .share-play-action {
@@ -1912,6 +1946,7 @@ optgroup {
   }
 
   .random-color-button,
+  .panel-collapse-button,
   .board-file-actions button,
   .pool-tool-button,
   .preview-shuffle-button,
@@ -1987,14 +2022,6 @@ optgroup {
     border-color: var(--accent);
     background: var(--accent);
     color: var(--on-accent);
-  }
-
-  .primary-action {
-    box-shadow: 0 7px 0 color-mix(in srgb, var(--accent) 48%, #050506);
-  }
-
-  .primary-action:not(:disabled):active {
-    box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 48%, #050506);
   }
 
   .answer-list {

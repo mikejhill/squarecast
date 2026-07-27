@@ -51,6 +51,7 @@ export class SampleBoardCatalog {
     return {
       v: 1,
       mode: "edit",
+      setupCollapsed: false,
       config: {
         title: definition.title,
         size: SampleBoardCatalog.boardSize,
@@ -60,7 +61,7 @@ export class SampleBoardCatalog {
         accentColor: definition.accentColor,
         fontMode: "auto",
         fontSize: 18,
-        sortMode: "alphabetical",
+        sortMode: "manual",
         previewSeed: IdFactory.seed(),
       },
       answers,

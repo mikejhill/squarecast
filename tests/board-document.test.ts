@@ -16,10 +16,12 @@ describe("board document service", () => {
       fontSize: 21,
       sortMode: "constrained",
     };
+    source.setupCollapsed = true;
     source.answers[0]!.placement = { kind: "row", index: 2 };
     const restored = documents.parse(documents.serialize(source));
 
     expect(restored.config).toEqual(source.config);
+    expect(restored.setupCollapsed).toBe(false);
     expect(
       restored.answers.map(({ text, placement }) => ({ text, placement })),
     ).toEqual(

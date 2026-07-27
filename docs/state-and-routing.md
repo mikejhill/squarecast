@@ -48,6 +48,7 @@ Editor state contains:
 - board title, dimensions, free-square behavior, color, and text settings;
 - Card Pool entries and placement rules;
 - selected sort mode; and
+- Board Setup disclosure state; and
 - live-preview seed.
 
 This is the source of truth used to create launch and play states.
@@ -98,6 +99,7 @@ Squarecast distinguishes high-frequency edits from meaningful transitions.
 | Interaction | History behavior | Reason |
 | --- | --- | --- |
 | Typing a title or editing a card | Replace current entry | Avoid one Back step per keystroke |
+| Expanding or collapsing Board Setup | Replace current entry | Preserve the view without adding navigation noise |
 | Changing board geometry | Push a new entry | The change can invalidate placement rules |
 | New Board or Sample Board | Push a new entry | Preserve the prior board |
 | Test This Board | Push a new entry | Preserve the editor |

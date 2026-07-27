@@ -14,7 +14,7 @@ export function ValidationCard({
           <Check size={16} />
         </span>
         <p>
-          <strong>Ready to Cast</strong>Your board rules fit cleanly.
+          <strong>Ready to Play</strong>Your board rules fit cleanly.
         </p>
       </div>
     );

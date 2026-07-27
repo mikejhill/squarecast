@@ -14,8 +14,10 @@ import { BoardFileTools } from "./BoardFileTools";
 
 type BoardSetupPanelProps = {
   config: BoardConfig;
+  collapsed: boolean;
   importError: string;
   onPatch: (patch: Partial<BoardConfig>) => void;
+  onCollapsedChange: (collapsed: boolean) => void;
   onImportJson: (file: File) => Promise<void>;
   onExportJson: () => void;
 };
@@ -23,8 +25,10 @@ type BoardSetupPanelProps = {
 /** Renders board geometry, free-square, color, and typography controls. */
 export function BoardSetupPanel({
   config,
+  collapsed,
   importError,
   onPatch,
+  onCollapsedChange,
   onImportJson,
   onExportJson,
 }: BoardSetupPanelProps) {
@@ -37,6 +41,8 @@ export function BoardSetupPanel({
       className="board-setup-panel"
       icon={<Settings2 size={18} />}
       title="Board Setup"
+      collapsed={collapsed}
+      onCollapsedChange={onCollapsedChange}
       aside={
         <label className="panel-size-select">
           <span className="sr-only">Board Size</span>

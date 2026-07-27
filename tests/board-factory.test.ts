@@ -15,8 +15,9 @@ describe("new board factory", () => {
       theme: "custom",
       fontMode: "auto",
       fontSize: 18,
-      sortMode: "alphabetical",
+      sortMode: "manual",
     });
+    expect(editor.setupCollapsed).toBe(false);
     expect(editor.answers).toEqual([]);
   });
 

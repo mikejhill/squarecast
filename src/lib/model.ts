@@ -21,6 +21,7 @@ export const fontModeSchema = z.enum(["auto", "fixed"]);
 export type FontMode = z.infer<typeof fontModeSchema>;
 
 export const answerSortSchema = z.enum([
+  "manual",
   "alphabetical",
   "reverse",
   "constrained",
@@ -63,6 +64,7 @@ export type BoardConfig = z.infer<typeof boardConfigSchema>;
 export const editorStateSchema = z.object({
   v: z.literal(1),
   mode: z.literal("edit"),
+  setupCollapsed: z.boolean().default(false),
   config: boardConfigSchema,
   answers: z.array(answerSchema),
 });
@@ -168,6 +170,7 @@ export class BoardModel {
     return {
       v: 1,
       mode: "edit",
+      setupCollapsed: false,
       config: {
         title: "Weekend Adventure Bingo",
         size: 5,
@@ -177,7 +180,7 @@ export class BoardModel {
         accentColor: "#ff6b45",
         fontMode: "auto",
         fontSize: 18,
-        sortMode: "alphabetical",
+        sortMode: "manual",
         previewSeed: "weekend-preview",
       },
       answers: starterAnswers.map((text) => ({

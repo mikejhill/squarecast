@@ -44,7 +44,7 @@ describe("editor state service", () => {
     expect(mutation.state.answers[0]?.placement).toEqual({ kind: "any" });
   });
 
-  it("adds trimmed cards, rejects blanks, and preserves selected sorting", () => {
+  it("appends trimmed cards in the default manual order and rejects blanks", () => {
     const editor = BoardModel.createDefaultEditor();
     editor.answers = [];
 
@@ -53,18 +53,17 @@ describe("editor state service", () => {
     const withAlpha = service.addCard(withZulu, "Alpha");
 
     expect(withAlpha.answers.map((answer) => answer.text)).toEqual([
-      "Alpha",
       "Zulu",
+      "Alpha",
     ]);
   });
 
-  it("supports insertion requests, card updates, and deletion", () => {
+  it("supports card updates and deletion without reshuffling shuffled pools", () => {
     const editor = BoardModel.createDefaultEditor();
     editor.config.sortMode = "shuffle";
     editor.answers = editor.answers.slice(0, 2);
-    const target = editor.answers[0]!;
 
-    const added = service.addCard(editor, "Inserted", target.id);
+    const added = service.addCard(editor, "Inserted");
     const inserted = added.answers.find((answer) => answer.text === "Inserted")!;
     const updated = service.updateCard(added, inserted.id, {
       text: "Updated",
@@ -85,8 +84,31 @@ describe("editor state service", () => {
     );
   });
 
+  it("reapplies deterministic sorting after card edits", () => {
+    const editor = BoardModel.createDefaultEditor();
+    editor.config.sortMode = "alphabetical";
+    editor.answers = [
+      { id: "z", text: "Zulu", placement: { kind: "any" } },
+      { id: "m", text: "Museum", placement: { kind: "any" } },
+    ];
+
+    const renamed = service.updateCard(editor, "z", { text: "Alpha" });
+
+    expect(renamed.answers.map((answer) => answer.text)).toEqual([
+      "Alpha",
+      "Museum",
+    ]);
+
+    const constrained = service.sortCards(renamed, "constrained");
+    const placed = service.updateCard(constrained, "m", {
+      placement: { kind: "row", index: 0 },
+    });
+    expect(placed.answers[0]?.id).toBe("m");
+  });
+
   it("appends imports and changes the persistent sort mode", () => {
     const editor = BoardModel.createDefaultEditor();
+    editor.config.sortMode = "alphabetical";
     editor.answers = [];
 
     expect(service.appendCards(editor, [])).toBe(editor);
@@ -102,5 +124,13 @@ describe("editor state service", () => {
       "Beta",
       "Alpha",
     ]);
+  });
+
+  it("stores the Board Setup disclosure state independently", () => {
+    const editor = BoardModel.createDefaultEditor();
+    const collapsed = service.setSetupCollapsed(editor, true);
+
+    expect(collapsed.setupCollapsed).toBe(true);
+    expect(editor.setupCollapsed).toBe(false);
   });
 });

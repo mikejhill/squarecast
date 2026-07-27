@@ -53,11 +53,7 @@ export class EditorStateService {
   }
 
   /** Adds one trimmed card and reapplies the selected persistent sort mode. */
-  public addCard(
-    editor: EditorState,
-    text: string,
-    afterId?: string,
-  ): EditorState {
+  public addCard(editor: EditorState, text: string): EditorState {
     const value = text.trim();
     if (!value) return editor;
     const answer: Answer = {
@@ -65,30 +61,34 @@ export class EditorStateService {
       text: value,
       placement: { kind: "any" },
     };
-    const answers = [...editor.answers];
-    if (afterId) {
-      const index = answers.findIndex((item) => item.id === afterId);
-      answers.splice(index + 1, 0, answer);
-    } else {
-      answers.push(answer);
-    }
+    const answers = [...editor.answers, answer];
     return {
       ...editor,
       answers: this.sorter.sort(answers, editor.config.sortMode),
     };
   }
 
-  /** Updates one card by identity and preserves every unaffected card object. */
+  /**
+   * Updates one card by identity and reapplies order-dependent sorting.
+   * Manual and shuffled lists preserve their current visual order while text
+   * and placement edits immediately update deterministic sort modes.
+   */
   public updateCard(
     editor: EditorState,
     id: string,
     patch: Partial<Answer>,
   ): EditorState {
+    const answers = editor.answers.map((answer) =>
+      answer.id === id ? { ...answer, ...patch } : answer,
+    );
+    const shouldResort =
+      editor.config.sortMode !== "manual" &&
+      editor.config.sortMode !== "shuffle";
     return {
       ...editor,
-      answers: editor.answers.map((answer) =>
-        answer.id === id ? { ...answer, ...patch } : answer,
-      ),
+      answers: shouldResort
+        ? this.sorter.sort(answers, editor.config.sortMode)
+        : answers,
     };
   }
 
@@ -127,5 +127,13 @@ export class EditorStateService {
       config: { ...editor.config, sortMode: mode },
       answers: this.sorter.sort(editor.answers, mode),
     };
+  }
+
+  /** Stores Board Setup disclosure state as URL-backed editor presentation. */
+  public setSetupCollapsed(
+    editor: EditorState,
+    setupCollapsed: boolean,
+  ): EditorState {
+    return { ...editor, setupCollapsed };
   }
 }

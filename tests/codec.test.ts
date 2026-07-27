@@ -8,6 +8,7 @@ describe("URL state codec", () => {
 
   it("round-trips editor state through a compact hash", () => {
     const state = BoardModel.createDefaultEditor();
+    state.setupCollapsed = true;
     expect(codec.decode(codec.encode(state))).toEqual(state);
   });
 
@@ -44,6 +45,7 @@ describe("URL state codec", () => {
     });
 
     expect(restored.config.sortMode).toBe("alphabetical");
+    expect(restored.setupCollapsed).toBe(false);
     expect("appearance" in restored.config).toBe(false);
   });
 });

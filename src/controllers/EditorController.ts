@@ -48,12 +48,8 @@ export class EditorController {
   }
 
   /** Adds one card and reports whether a non-empty value was accepted. */
-  public addCard(text: string, afterId?: string): boolean {
-    const next = this.services.editorState.addCard(
-      this.editor,
-      text,
-      afterId,
-    );
+  public addCard(text: string): boolean {
+    const next = this.services.editorState.addCard(this.editor, text);
     if (next === this.editor) return false;
     this.onChange(next);
     return true;
@@ -135,6 +131,14 @@ export class EditorController {
       "push",
     );
     logger.info("Changed the persistent Card Pool sort.", { mode });
+  }
+
+  /** Persists Board Setup disclosure state without adding a history entry. */
+  public setSetupCollapsed(collapsed: boolean): void {
+    this.onChange(
+      this.services.editorState.setSetupCollapsed(this.editor, collapsed),
+      "replace",
+    );
   }
 
   public shufflePreview(): void {
