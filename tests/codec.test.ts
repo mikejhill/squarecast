@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import LZString from "lz-string";
 import { StateCodec } from "../src/lib/codec";
-import { BoardModel } from "../src/lib/model";
+import { BoardModel, editorStateSchema } from "../src/lib/model";
 
 describe("URL state codec", () => {
   const codec = new StateCodec();
@@ -25,5 +25,16 @@ describe("URL state codec", () => {
     const state = BoardModel.createDefaultEditor();
     const url = codec.createUrl(state, "https://example.test/squarecast/#old");
     expect(url).toBe(`https://example.test/squarecast/${codec.encode(state)}`);
+  });
+
+  it("defaults legacy editor URLs to alphabetical card sorting", () => {
+    const editor = BoardModel.createDefaultEditor();
+    const { sortMode: _sortMode, ...legacyConfig } = editor.config;
+    const restored = editorStateSchema.parse({
+      ...editor,
+      config: legacyConfig,
+    });
+
+    expect(restored.config.sortMode).toBe("alphabetical");
   });
 });

@@ -21,6 +21,14 @@ export type Theme = z.infer<typeof themeSchema>;
 export const fontModeSchema = z.enum(["auto", "fixed"]);
 export type FontMode = z.infer<typeof fontModeSchema>;
 
+export const answerSortSchema = z.enum([
+  "alphabetical",
+  "reverse",
+  "constrained",
+  "shuffle",
+]);
+export type AnswerSort = z.infer<typeof answerSortSchema>;
+
 export const placementSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("any") }),
   z.object({ kind: z.literal("cell"), index: z.number().int().nonnegative() }),
@@ -49,6 +57,7 @@ export const boardConfigSchema = z.object({
   appearance: appearanceSchema.default("system"),
   fontMode: fontModeSchema.default("auto"),
   fontSize: z.number().int().min(10).max(32).default(18),
+  sortMode: answerSortSchema.default("alphabetical"),
   previewSeed: z.string().min(1).default("preview"),
 });
 export type BoardConfig = z.infer<typeof boardConfigSchema>;
@@ -166,6 +175,7 @@ export class BoardModel {
         appearance: "system",
         fontMode: "auto",
         fontSize: 18,
+        sortMode: "alphabetical",
         previewSeed: "weekend-preview",
       },
       answers: starterAnswers.map((text) => ({

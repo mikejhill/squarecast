@@ -24,6 +24,7 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 ## Features
 
 - 3×3 through 7×7 square boards
+- Blank one-click board creation with a fresh randomized color
 - Optional centered free square with a custom label
 - Unlimited card pool with live minimum-count validation
 - Exact-cell, row, and column placement rules
@@ -32,7 +33,7 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 - Automatic per-tile text fitting or a fixed custom tile font size
 - Keyboard-friendly card entry and editing
 - CSV import with quoted-value support
-- Card sorting, locked-card prioritization, and shuffling
+- Persistent card sorting, locked-card prioritization, and shuffling
 - Win detection for rows, columns, and diagonals
 - System, light, and dark site appearances
 - Ten named board colors, a custom color picker, and color randomization

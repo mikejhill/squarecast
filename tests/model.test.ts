@@ -12,6 +12,7 @@ describe("board model", () => {
     expect(editor.config.title).toBe("Weekend Adventure Bingo");
     expect(editor.config.appearance).toBe("system");
     expect(editor.config.fontMode).toBe("auto");
+    expect(editor.config.sortMode).toBe("alphabetical");
     expect(editor.answers).toHaveLength(28);
   });
 

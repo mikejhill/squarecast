@@ -34,6 +34,7 @@ import {
   type ReactNode,
 } from "react";
 import { StateCodec } from "./lib/codec";
+import { BoardFactory } from "./lib/board-factory";
 import { CsvAnswerParser } from "./lib/csv";
 import { DuplicateCardDetector } from "./lib/duplicates";
 import { AutoFontSizePolicy, FontSizeOptimizer } from "./lib/font-size";
@@ -73,6 +74,7 @@ class ApplicationStateService {
   public constructor(
     private readonly codec: StateCodec,
     private readonly generator: BoardGenerator,
+    private readonly boardFactory: BoardFactory,
   ) {}
 
   public load(hash: string): ActiveState {
@@ -81,12 +83,13 @@ class ApplicationStateService {
       return this.generator.generate(decoded.source, IdFactory.seed());
     }
     if (decoded?.mode === "edit" || decoded?.mode === "play") return decoded;
-    return BoardModel.createDefaultEditor();
+    return this.boardFactory.createNewEditor();
   }
 }
 
 const codec = new StateCodec();
 const generator = new BoardGenerator();
+const boardFactory = new BoardFactory();
 const csvParser = new CsvAnswerParser();
 const sorter = new AnswerPoolSorter();
 const appearanceResolver = new AppearanceResolver();
@@ -94,7 +97,7 @@ const fontSizeOptimizer = new FontSizeOptimizer();
 const autoFontSizePolicy = new AutoFontSizePolicy();
 const duplicateCardDetector = new DuplicateCardDetector();
 const clipboard = new ClipboardService();
-const stateService = new ApplicationStateService(codec, generator);
+const stateService = new ApplicationStateService(codec, generator, boardFactory);
 
 export function App() {
   const [state, setState] = useState<ActiveState>(() =>
@@ -140,7 +143,10 @@ export function App() {
       data-theme={config.theme}
       style={ColorTheme.style(config.accentColor)}
     >
-      <SiteHeader mode={state.mode} />
+      <SiteHeader
+        mode={state.mode}
+        onNewBoard={() => setState(boardFactory.createNewEditor())}
+      />
       {state.mode === "edit" ? (
         <Editor state={state} onChange={setState} />
       ) : (
@@ -150,7 +156,13 @@ export function App() {
   );
 }
 
-function SiteHeader({ mode }: { mode: "edit" | "play" }) {
+function SiteHeader({
+  mode,
+  onNewBoard,
+}: {
+  mode: "edit" | "play";
+  onNewBoard: () => void;
+}) {
   return (
     <header className="site-header">
       <a className="brand" href={import.meta.env.BASE_URL} aria-label="Squarecast home">
@@ -166,6 +178,10 @@ function SiteHeader({ mode }: { mode: "edit" | "play" }) {
         </span>
       </a>
       <div className="header-actions">
+        <button type="button" className="new-board-button" onClick={onNewBoard}>
+          <Plus size={16} />
+          <span>New Board</span>
+        </button>
         <div className="mode-label">
           {mode === "edit" ? <Settings2 size={15} /> : <Sparkles size={15} />}
           {mode === "edit" ? "Studio" : "Live Board"}
@@ -238,7 +254,10 @@ function Editor({
       answers.push(answer);
       setNewAnswer("");
     }
-    onChange({ ...state, answers });
+    onChange({
+      ...state,
+      answers: sorter.sort(answers, state.config.sortMode),
+    });
   };
 
   const updateAnswer = (id: string, patch: Partial<Answer>) => {
@@ -257,16 +276,17 @@ function Editor({
   const importCsv = () => {
     const values = csvParser.parse(csvText);
     if (!values.length) return;
-    onChange({
-      ...state,
-      answers: [
+    const imported = [
         ...state.answers,
         ...values.map((text) => ({
           id: IdFactory.create(),
           text,
           placement: { kind: "any" as const },
         })),
-      ],
+      ];
+    onChange({
+      ...state,
+      answers: sorter.sort(imported, state.config.sortMode),
     });
     setCsvOpen(false);
     setCsvText("");
@@ -294,7 +314,11 @@ function Editor({
   };
 
   const sortAnswers = (mode: AnswerSort) => {
-    onChange({ ...state, answers: sorter.sort(state.answers, mode) });
+    onChange({
+      ...state,
+      config: { ...state.config, sortMode: mode },
+      answers: sorter.sort(state.answers, mode),
+    });
   };
 
   return (
@@ -529,16 +553,12 @@ function Editor({
               <ArrowUpAZ size={15} />
               <span className="sr-only">Sort Card Pool</span>
               <select
-                defaultValue=""
+                value={state.config.sortMode}
                 aria-label="Sort Card Pool"
                 onChange={(event) => {
-                  if (event.target.value) {
-                    sortAnswers(event.target.value as AnswerSort);
-                    event.target.value = "";
-                  }
+                  sortAnswers(event.target.value as AnswerSort);
                 }}
               >
-                <option value="" disabled>Sort</option>
                 <option value="alphabetical">A–Z</option>
                 <option value="reverse">Z–A</option>
                 <option value="constrained">Locked First</option>
@@ -952,47 +972,49 @@ function Player({
         <p>Tap a square when it happens. Complete any row, column, or diagonal.</p>
       </div>
 
-      {hasWin && (
-        <div className="win-banner" role="status">
-          <Sparkles size={20} />
-          <strong>Bingo.</strong>
-          You completed a line.
-        </div>
-      )}
+      <div className="play-board-stage">
+        {hasWin && (
+          <div className="win-banner" role="status">
+            <Sparkles size={20} />
+            <strong>Bingo.</strong>
+            You completed a line.
+          </div>
+        )}
 
-      <div className="board-frame play-board">
-        <div className="board-heading">
-          <span>{hasWin ? "COMPLETED" : "BINGO BOARD"}</span>
-          <h2>{state.title}</h2>
-          <span>{state.size} × {state.size}</span>
-        </div>
-        <div
-          className="board-grid"
-          style={{ "--board-size": state.size } as React.CSSProperties}
-          aria-label={`${state.size} by ${state.size} bingo board`}
-        >
-          {state.cells.map((cell, index) => {
-            const checked = state.checked.includes(index);
-            return (
-              <button
-                type="button"
-                className={`board-cell play-cell ${checked ? "checked" : ""} ${
-                  cell.free ? "free-cell" : ""
-                } ${wins.has(index) ? "winning" : ""}`}
-                key={`${cell.id}-${index}`}
-                aria-pressed={checked}
-                aria-label={`${cell.text}${cell.free ? ", free square" : ""}`}
-                onClick={() => toggleCell(index)}
-              >
-                <AutoFitText
-                  text={cell.text}
-                  mode={state.fontMode}
-                  fixedSize={state.fontSize}
-                />
-                <span className="check-mark" aria-hidden="true"><Check size={18} /></span>
-              </button>
-            );
-          })}
+        <div className="board-frame play-board">
+          <div className="board-heading">
+            <span>{hasWin ? "COMPLETED" : "BINGO BOARD"}</span>
+            <h2>{state.title}</h2>
+            <span>{state.size} × {state.size}</span>
+          </div>
+          <div
+            className="board-grid"
+            style={{ "--board-size": state.size } as React.CSSProperties}
+            aria-label={`${state.size} by ${state.size} bingo board`}
+          >
+            {state.cells.map((cell, index) => {
+              const checked = state.checked.includes(index);
+              return (
+                <button
+                  type="button"
+                  className={`board-cell play-cell ${checked ? "checked" : ""} ${
+                    cell.free ? "free-cell" : ""
+                  } ${wins.has(index) ? "winning" : ""}`}
+                  key={`${cell.id}-${index}`}
+                  aria-pressed={checked}
+                  aria-label={`${cell.text}${cell.free ? ", free square" : ""}`}
+                  onClick={() => toggleCell(index)}
+                >
+                  <AutoFitText
+                    text={cell.text}
+                    mode={state.fontMode}
+                    fixedSize={state.fontSize}
+                  />
+                  <span className="check-mark" aria-hidden="true"><Check size={18} /></span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

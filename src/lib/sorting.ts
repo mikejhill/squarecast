@@ -1,6 +1,6 @@
-import type { Answer } from "./model";
+import type { Answer, AnswerSort } from "./model";
 
-export type AnswerSort = "alphabetical" | "reverse" | "constrained" | "shuffle";
+export type { AnswerSort } from "./model";
 
 export class AnswerPoolSorter {
   public sort(
