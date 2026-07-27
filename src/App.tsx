@@ -7,6 +7,7 @@ import {
   Copy,
   Dices,
   ExternalLink,
+  FileUp,
   Github,
   Link2,
   LockKeyhole,
@@ -31,11 +32,13 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type DragEvent as ReactDragEvent,
+  type DragEventHandler,
   type ReactNode,
 } from "react";
 import { BoardFactory } from "./lib/board-factory";
 import { StateCodec } from "./lib/codec";
-import { CsvAnswerParser } from "./lib/csv";
+import { CsvAnswerParser, CsvFileImporter } from "./lib/csv";
 import { DuplicateCardDetector } from "./lib/duplicates";
 import { AutoFontSizePolicy, FontSizeOptimizer } from "./lib/font-size";
 import { BoardGenerator, type ValidationResult } from "./lib/generator";
@@ -100,6 +103,7 @@ const codec = new StateCodec();
 const generator = new BoardGenerator();
 const boardFactory = new BoardFactory();
 const csvParser = new CsvAnswerParser();
+const csvFileImporter = new CsvFileImporter(csvParser);
 const sorter = new AnswerPoolSorter();
 const appearanceResolver = new AppearanceResolver();
 const fontSizeOptimizer = new FontSizeOptimizer();
@@ -277,6 +281,8 @@ function Editor({
   const [csvText, setCsvText] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState<"edit" | "play" | null>(null);
+  const [isCardPoolDragging, setIsCardPoolDragging] = useState(false);
+  const cardPoolDragDepth = useRef(0);
   const validation = useMemo(() => generator.validate(state), [state]);
   const duplicateCardIds = useMemo(
     () => duplicateCardDetector.findDuplicateIds(state.answers),
@@ -344,8 +350,7 @@ function Editor({
     );
   };
 
-  const importCsv = () => {
-    const values = csvParser.parse(csvText);
+  const appendImportedCards = (values: readonly string[]) => {
     if (!values.length) return;
     const imported = [
       ...state.answers,
@@ -362,8 +367,46 @@ function Editor({
       },
       "push",
     );
+  };
+
+  const importCsv = () => {
+    const values = csvParser.parse(csvText);
+    if (!values.length) return;
+    appendImportedCards(values);
     setCsvOpen(false);
     setCsvText("");
+  };
+
+  const hasDraggedFiles = (event: ReactDragEvent<HTMLElement>) =>
+    Array.from(event.dataTransfer.types).includes("Files");
+
+  const handleCardPoolDragEnter = (event: ReactDragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    cardPoolDragDepth.current += 1;
+    setIsCardPoolDragging(true);
+  };
+
+  const handleCardPoolDragOver = (event: ReactDragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleCardPoolDragLeave = (event: ReactDragEvent<HTMLElement>) => {
+    event.preventDefault();
+    cardPoolDragDepth.current = Math.max(0, cardPoolDragDepth.current - 1);
+    if (cardPoolDragDepth.current === 0) setIsCardPoolDragging(false);
+  };
+
+  const handleCardPoolDrop = async (event: ReactDragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    cardPoolDragDepth.current = 0;
+    setIsCardPoolDragging(false);
+    appendImportedCards(
+      await csvFileImporter.parse(Array.from(event.dataTransfer.files)),
+    );
   };
 
   const createPlayLink = () => {
@@ -403,7 +446,7 @@ function Editor({
       <section className="editor-panel">
         <div className="intro">
           <p className="eyebrow">Board Studio</p>
-          <h1>Build It Once. Let Every Board Land Differently.</h1>
+          <h1>Make a Board. Share the Fun.</h1>
           <p>
             Add a generous card pool, pin the non-negotiables, then share one
             self-contained link.
@@ -585,6 +628,13 @@ function Editor({
           icon={<Clipboard size={18} />}
           title="Card Pool"
           aside={`${answerCount} / ${needed} needed`}
+          className={`card-pool-panel ${
+            isCardPoolDragging ? "is-dragging" : ""
+          }`}
+          onDragEnter={handleCardPoolDragEnter}
+          onDragOver={handleCardPoolDragOver}
+          onDragLeave={handleCardPoolDragLeave}
+          onDrop={handleCardPoolDrop}
         >
           <div className="quick-add">
             <Plus size={18} />
@@ -597,8 +647,21 @@ function Editor({
               placeholder="Type a card, then press Enter"
               aria-label="New card"
             />
-            <button type="button" onClick={() => addAnswer()} disabled={!newAnswer.trim()}>
+            <button
+              type="button"
+              className="quick-add-submit"
+              onClick={() => addAnswer()}
+              disabled={!newAnswer.trim()}
+            >
               Add
+            </button>
+            <button
+              type="button"
+              className="quick-add-csv"
+              onClick={() => setCsvOpen(true)}
+            >
+              <Clipboard size={15} />
+              Paste CSV
             </button>
           </div>
 
@@ -608,10 +671,6 @@ function Editor({
                 ? `${answerCount - needed} extra card${answerCount - needed === 1 ? "" : "s"} add variety.`
                 : `${needed - answerCount} more required to fill the board.`}
             </p>
-            <button type="button" className="text-button" onClick={() => setCsvOpen(true)}>
-              <Clipboard size={15} />
-              Paste CSV
-            </button>
             <label className="sort-control">
               <ArrowUpAZ size={15} />
               <span className="sr-only">Sort Card Pool</span>
@@ -656,6 +715,13 @@ function Editor({
               </div>
             )}
           </div>
+          {isCardPoolDragging && (
+            <div className="card-drop-overlay" role="status" aria-live="polite">
+              <FileUp size={32} />
+              <strong>Drop CSV Files</strong>
+              <span>Cards will be imported and sorted automatically.</span>
+            </div>
+          )}
         </Panel>
       </section>
 
@@ -779,14 +845,30 @@ function Panel({
   title,
   aside,
   children,
+  className,
+  onDragEnter,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: {
   icon: ReactNode;
   title: string;
   aside: ReactNode;
   children: ReactNode;
+  className?: string;
+  onDragEnter?: DragEventHandler<HTMLElement>;
+  onDragOver?: DragEventHandler<HTMLElement>;
+  onDragLeave?: DragEventHandler<HTMLElement>;
+  onDrop?: DragEventHandler<HTMLElement>;
 }) {
   return (
-    <section className="panel">
+    <section
+      className={`panel${className ? ` ${className}` : ""}`}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <div className="panel-heading">
         <span className="panel-icon">{icon}</span>
         <h2>{title}</h2>

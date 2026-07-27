@@ -33,3 +33,31 @@ export class CsvAnswerParser {
     return values;
   }
 }
+
+export interface CsvFileLike {
+  readonly name: string;
+  readonly type: string;
+  text(): Promise<string>;
+}
+
+export class CsvFileImporter {
+  public constructor(private readonly parser: CsvAnswerParser) {}
+
+  public accepts(file: CsvFileLike): boolean {
+    const type = file.type.toLowerCase();
+    return (
+      file.name.toLowerCase().endsWith(".csv") ||
+      type === "text/csv" ||
+      type === "application/vnd.ms-excel"
+    );
+  }
+
+  public async parse(files: readonly CsvFileLike[]): Promise<string[]> {
+    const contents = await Promise.all(
+      files
+        .filter((file) => this.accepts(file))
+        .map((file) => file.text()),
+    );
+    return contents.flatMap((content) => this.parser.parse(content));
+  }
+}
