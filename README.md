@@ -7,7 +7,7 @@ No account, database, cookie, local storage, or backend is used. The complete ed
 ## Use Squarecast
 
 1. Open the hosted site.
-2. Choose a board size, free-square setting, title, and color theme.
+2. Choose a system, light, or dark appearance; board size; free-square setting; title; tile font size; and board color.
 3. Add answers with the quick-add field. Press Enter after each answer, or use **Paste CSV** to import multiple values.
 4. Optionally constrain an answer to a specific cell, row, or column.
 5. Select **Create play link** and share it.
@@ -23,11 +23,13 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 - Exact-cell, row, and column placement rules
 - Conflict detection before generation
 - Seeded randomized boards with one-click reshuffling
-- Auto-fitting text in every board cell
+- Automatic per-tile text fitting or a fixed custom tile font size
 - Keyboard-friendly answer entry and editing
 - CSV import with quoted-value support
+- Answer sorting, locked-answer prioritization, and shuffling
 - Win detection for rows, columns, and diagonals
-- Four accessible visual themes
+- System, light, and dark site appearances
+- Ten named board colors, a custom color picker, and color randomization
 - Responsive editor and play layouts
 - Compressed, schema-validated URL state
 
@@ -53,6 +55,11 @@ Quality checks:
 npm run check
 ```
 
+`npm run check` runs strict TypeScript compilation, the production build, and
+coverage-gated behavioral tests. Every domain source file must maintain at
+least 90% statement and line coverage, 80% branch coverage, and 100% function
+coverage.
+
 Create a production build:
 
 ```bash
@@ -68,7 +75,9 @@ The static output is written to `dist/`.
 - `src/lib/codec.ts` — compressed URL encoding and decoding
 - `src/lib/generator.ts` — validation, constrained randomization, and win detection
 - `src/lib/csv.ts` — CSV answer parser
-- `tests/` — unit tests for state, parsing, randomization, constraints, and wins
+- `src/lib/theme.ts` — appearance resolution, color palettes, contrast, and random colors
+- `src/lib/sorting.ts` — answer-pool sorting strategies
+- `tests/` — behavioral tests for state, parsing, color logic, sorting, randomization, constraints, and wins
 - `.github/workflows/deploy-pages.yml` — tested GitHub Pages deployment
 
 ## State and privacy
@@ -86,6 +95,14 @@ Anyone who receives a Squarecast URL can read the board data embedded in it. Do 
 5. Open a pull request describing the behavior change and test coverage.
 
 Keep the project fully static and URL-native. Do not add server state or browser storage.
+
+## Architecture
+
+Squarecast uses strict TypeScript and class-based application and domain
+services. State encoding, parsing, board generation, sorting, appearance
+resolution, identifiers, clipboard behavior, and application bootstrapping are
+encapsulated behind typed classes. React components remain declarative views
+and delegate stateful behavior to those services.
 
 ## License
 

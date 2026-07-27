@@ -1,19 +1,40 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { AppearanceResolver, ColorTheme } from "../src/lib/theme";
 
-describe("system color theme", () => {
-  const html = readFileSync("index.html", "utf8");
-  const css = readFileSync("src/styles.css", "utf8");
+describe("appearance and board colors", () => {
+  const resolver = new AppearanceResolver();
 
-  it("advertises native light and dark color schemes", () => {
-    expect(html).toContain('name="color-scheme" content="light dark"');
-    expect(html).toContain('media="(prefers-color-scheme: light)"');
-    expect(html).toContain('media="(prefers-color-scheme: dark)"');
+  it("uses the system preference only in system mode", () => {
+    expect(resolver.resolve("system", true)).toBe("dark");
+    expect(resolver.resolve("system", false)).toBe("light");
+    expect(resolver.resolve("light", true)).toBe("light");
+    expect(resolver.resolve("dark", false)).toBe("dark");
   });
 
-  it("uses the operating-system color preference", () => {
-    expect(css).toContain("@media (prefers-color-scheme: light)");
-    expect(css).toContain("@media (prefers-color-scheme: dark)");
-    expect(css).toContain("color-scheme: light dark");
+  it("creates deterministic valid custom colors from a supplied random source", () => {
+    expect(ColorTheme.random(() => 0)).toBe("#a92d2d");
+    expect(ColorTheme.random(() => 0.999)).toMatch(/^#[0-9a-f]{6}$/);
+    for (const hueFraction of [0.2, 0.35, 0.5, 0.7, 0.85]) {
+      const values = [hueFraction, 0.5, 0.5];
+      expect(ColorTheme.random(() => values.shift() ?? 0.5)).toMatch(
+        /^#[0-9a-f]{6}$/,
+      );
+    }
+  });
+
+  it("chooses readable foreground colors for light and dark accents", () => {
+    expect(ColorTheme.contrastColor("#ffffff")).toBe("#17171a");
+    expect(ColorTheme.contrastColor("#101010")).toBe("#ffffff");
+    expect(ColorTheme.style("#ffffff")).toMatchObject({
+      "--accent": "#ffffff",
+      "--on-accent": "#17171a",
+    });
+  });
+
+  it("provides a varied named palette", () => {
+    expect(ColorTheme.presets.length).toBeGreaterThanOrEqual(10);
+    expect(new Set(ColorTheme.presets.map((preset) => preset.color)).size).toBe(
+      ColorTheme.presets.length,
+    );
   });
 });

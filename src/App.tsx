@@ -1,18 +1,26 @@
 import {
   ArrowLeft,
+  ArrowUpAZ,
   Check,
   ChevronDown,
   Clipboard,
   Copy,
   Dices,
   ExternalLink,
+  Github,
   Link2,
   LockKeyhole,
+  Monitor,
+  Moon,
+  Palette,
   Plus,
   RotateCcw,
   Settings2,
+  Shuffle,
   Sparkles,
+  Sun,
   Trash2,
+  Type,
   X,
 } from "lucide-react";
 import {
@@ -23,67 +31,108 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { decodeState, encodeState, stateUrl } from "./lib/codec";
-import { parseCsvAnswers } from "./lib/csv";
+import { StateCodec } from "./lib/codec";
+import { CsvAnswerParser } from "./lib/csv";
+import { BoardGenerator, type ValidationResult } from "./lib/generator";
 import {
-  generateBoard,
-  validateEditor,
-  winningCells,
-} from "./lib/generator";
-import {
-  blankSquareCount,
-  createDefaultEditor,
-  freeCellIndex,
-  makeId,
+  BoardModel,
+  IdFactory,
   type Answer,
   type EditorState,
   type Placement,
   type PlayCell,
   type PlayState,
-  type Theme,
 } from "./lib/model";
+import { AnswerPoolSorter, type AnswerSort } from "./lib/sorting";
+import { AppearanceResolver, ColorTheme } from "./lib/theme";
 
 type ActiveState = EditorState | PlayState;
 
-function randomSeed(): string {
-  const bytes = new Uint32Array(2);
-  crypto.getRandomValues(bytes);
-  return `${bytes[0].toString(36)}${bytes[1].toString(36)}`;
+class ClipboardService {
+  public async copy(text: string): Promise<void> {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const input = document.createElement("textarea");
+    input.value = text;
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+  }
 }
 
-function loadInitialState(): ActiveState {
-  const decoded = decodeState(window.location.hash);
-  if (decoded?.mode === "launch") {
-    return generateBoard(decoded.source, randomSeed());
+class ApplicationStateService {
+  public constructor(
+    private readonly codec: StateCodec,
+    private readonly generator: BoardGenerator,
+  ) {}
+
+  public load(hash: string): ActiveState {
+    const decoded = this.codec.decode(hash);
+    if (decoded?.mode === "launch") {
+      return this.generator.generate(decoded.source, IdFactory.seed());
+    }
+    if (decoded?.mode === "edit" || decoded?.mode === "play") return decoded;
+    return BoardModel.createDefaultEditor();
   }
-  if (decoded?.mode === "edit" || decoded?.mode === "play") return decoded;
-  return createDefaultEditor();
 }
 
-async function copyText(text: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const input = document.createElement("textarea");
-  input.value = text;
-  input.style.position = "fixed";
-  input.style.opacity = "0";
-  document.body.appendChild(input);
-  input.select();
-  document.execCommand("copy");
-  input.remove();
-}
+const codec = new StateCodec();
+const generator = new BoardGenerator();
+const csvParser = new CsvAnswerParser();
+const sorter = new AnswerPoolSorter();
+const appearanceResolver = new AppearanceResolver();
+const clipboard = new ClipboardService();
+const stateService = new ApplicationStateService(codec, generator);
 
 export function App() {
-  const [state, setState] = useState<ActiveState>(loadInitialState);
+  const [state, setState] = useState<ActiveState>(() =>
+    stateService.load(window.location.hash),
+  );
+  const [systemIsDark, setSystemIsDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
 
   useEffect(() => {
-    window.history.replaceState(null, "", encodeState(state));
+    window.history.replaceState(null, "", codec.encode(state));
   }, [state]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = (event: MediaQueryListEvent): void =>
+      setSystemIsDark(event.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  const config = state.mode === "edit" ? state.config : state.source.config;
+  const resolvedAppearance = appearanceResolver.resolve(
+    config.appearance,
+    systemIsDark,
+  );
+
+  useEffect(() => {
+    document.documentElement.style.colorScheme = resolvedAppearance;
+    document.body.style.backgroundColor =
+      resolvedAppearance === "dark" ? "#111114" : "#f4f1eb";
+    const themeColor = document.querySelector<HTMLMetaElement>("#theme-color");
+    themeColor?.setAttribute(
+      "content",
+      resolvedAppearance === "dark" ? "#111114" : "#f4f1eb",
+    );
+  }, [resolvedAppearance]);
+
   return (
-    <div className="app" data-theme={state.mode === "edit" ? state.config.theme : state.theme}>
+    <div
+      className={`app is-${resolvedAppearance}`}
+      data-appearance={config.appearance}
+      data-theme={config.theme}
+      style={ColorTheme.style(config.accentColor)}
+    >
       <SiteHeader mode={state.mode} />
       {state.mode === "edit" ? (
         <Editor state={state} onChange={setState} />
@@ -97,7 +146,7 @@ export function App() {
 function SiteHeader({ mode }: { mode: "edit" | "play" }) {
   return (
     <header className="site-header">
-      <div className="brand">
+      <a className="brand" href={import.meta.env.BASE_URL} aria-label="Squarecast home">
         <span className="brand-mark" aria-hidden="true">
           <span />
           <span />
@@ -106,12 +155,23 @@ function SiteHeader({ mode }: { mode: "edit" | "play" }) {
         </span>
         <span>
           <strong>Squarecast</strong>
-          <small>URL-native bingo boards</small>
+          <small>URL-Native Bingo Boards</small>
         </span>
-      </div>
-      <div className="mode-pill">
-        {mode === "edit" ? <Settings2 size={15} /> : <Sparkles size={15} />}
-        {mode === "edit" ? "Studio" : "Live board"}
+      </a>
+      <div className="header-actions">
+        <div className="mode-label">
+          {mode === "edit" ? <Settings2 size={15} /> : <Sparkles size={15} />}
+          {mode === "edit" ? "Studio" : "Live Board"}
+        </div>
+        <a
+          className="github-link"
+          href="https://github.com/mikejhill/squarecast"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Github size={17} />
+          <span>GitHub</span>
+        </a>
       </div>
     </header>
   );
@@ -129,15 +189,15 @@ function Editor({
   const [csvText, setCsvText] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState<"edit" | "play" | null>(null);
-  const validation = useMemo(() => validateEditor(state), [state]);
-  const needed = blankSquareCount(state);
+  const validation = useMemo(() => generator.validate(state), [state]);
+  const needed = BoardModel.blankSquareCount(state);
   const answerCount = state.answers.filter((answer) => answer.text.trim()).length;
 
   const patchConfig = (patch: Partial<EditorState["config"]>) => {
     const config = { ...state.config, ...patch };
     let answers = state.answers;
     if (patch.size !== undefined || patch.free !== undefined) {
-      const freeIndex = freeCellIndex(config.size, config.free);
+      const freeIndex = BoardModel.freeCellIndex(config.size, config.free);
       answers = answers.map((answer) => {
         const placement = answer.placement;
         const invalid =
@@ -154,7 +214,11 @@ function Editor({
   const addAnswer = (text = newAnswer, afterId?: string) => {
     const value = text.trim();
     if (!value) return;
-    const answer: Answer = { id: makeId(), text: value, placement: { kind: "any" } };
+    const answer: Answer = {
+      id: IdFactory.create(),
+      text: value,
+      placement: { kind: "any" },
+    };
     const answers = [...state.answers];
     if (afterId) {
       const index = answers.findIndex((item) => item.id === afterId);
@@ -180,14 +244,14 @@ function Editor({
   };
 
   const importCsv = () => {
-    const values = parseCsvAnswers(csvText);
+    const values = csvParser.parse(csvText);
     if (!values.length) return;
     onChange({
       ...state,
       answers: [
         ...state.answers,
         ...values.map((text) => ({
-          id: makeId(),
+          id: IdFactory.create(),
           text,
           placement: { kind: "any" as const },
         })),
@@ -200,45 +264,62 @@ function Editor({
   const createPlayLink = () => {
     if (!validation.valid) return;
     setShareUrl(
-      stateUrl({ v: 1, mode: "launch", source: state }, window.location.href),
+      codec.createUrl(
+        { v: 1, mode: "launch", source: state },
+        window.location.href,
+      ),
     );
   };
 
   const doCopy = async (kind: "edit" | "play", text: string) => {
-    await copyText(text);
+    await clipboard.copy(text);
     setCopied(kind);
     window.setTimeout(() => setCopied(null), 1600);
+  };
+
+  const sortAnswers = (mode: AnswerSort) => {
+    onChange({ ...state, answers: sorter.sort(state.answers, mode) });
   };
 
   return (
     <main className="editor-shell">
       <section className="editor-panel">
         <div className="intro">
-          <p className="eyebrow">Board studio</p>
-          <h1>Build it once. Let every board land differently.</h1>
+          <p className="eyebrow">Board Studio</p>
+          <h1>Build It Once. Let Every Board Land Differently.</h1>
           <p>
             Add a generous answer pool, pin the non-negotiables, then share one
             self-contained link.
           </p>
+          <div className="editor-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => doCopy("edit", window.location.href)}
+            >
+              {copied === "edit" ? <Check size={17} /> : <Link2 size={17} />}
+              {copied === "edit" ? "Editor Link Copied" : "Copy Editor Link"}
+            </button>
+          </div>
         </div>
 
         <Panel
           icon={<Settings2 size={18} />}
-          title="Board setup"
+          title="Board Setup"
           aside={`${state.config.size} × ${state.config.size}`}
         >
           <label className="field field-wide">
-            <span>Board title</span>
+            <span>Board Title</span>
             <input
               value={state.config.title}
               onChange={(event) => patchConfig({ title: event.target.value })}
-              placeholder="Friday team bingo"
+              placeholder="Weekend Adventure Bingo"
               maxLength={80}
             />
           </label>
 
           <div className="field">
-            <span>Board size</span>
+            <span>Board Size</span>
             <div className="segmented" aria-label="Board size">
               {[3, 4, 5, 6, 7].map((size) => (
                 <button
@@ -269,7 +350,7 @@ function Editor({
 
           {state.config.free && (
             <label className="field">
-              <span>Free-square label</span>
+              <span>Free-Square Label</span>
               <input
                 value={state.config.freeLabel}
                 onChange={(event) => patchConfig({ freeLabel: event.target.value })}
@@ -279,30 +360,137 @@ function Editor({
             </label>
           )}
 
-          <div className="field">
-            <span>Color theme</span>
-            <div className="theme-row">
-              {(["ink", "coral", "mint", "violet"] as Theme[]).map((theme) => (
+          <div className="field field-wide">
+            <span>Appearance</span>
+            <div className="appearance-options" aria-label="Site appearance">
+              {(
+                [
+                  ["system", "System", <Monitor size={16} />],
+                  ["light", "Light", <Sun size={16} />],
+                  ["dark", "Dark", <Moon size={16} />],
+                ] as const
+              ).map(([appearance, label, icon]) => (
                 <button
                   type="button"
-                  key={theme}
-                  className={`theme-swatch theme-${theme} ${
-                    state.config.theme === theme ? "selected" : ""
-                  }`}
-                  aria-label={`${theme} theme`}
-                  aria-pressed={state.config.theme === theme}
-                  onClick={() => patchConfig({ theme })}
+                  key={appearance}
+                  className={state.config.appearance === appearance ? "active" : ""}
+                  aria-pressed={state.config.appearance === appearance}
+                  onClick={() => patchConfig({ appearance })}
                 >
-                  {state.config.theme === theme && <Check size={14} />}
+                  {icon}
+                  {label}
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="field field-wide">
+            <span>Board Color</span>
+            <div className="theme-row">
+              {ColorTheme.presets.map((preset) => (
+                <button
+                  type="button"
+                  key={preset.id}
+                  className={`theme-swatch ${
+                    state.config.theme === preset.id ? "selected" : ""
+                  }`}
+                  style={{ background: preset.color }}
+                  aria-label={`${preset.label} board color`}
+                  title={preset.label}
+                  aria-pressed={state.config.theme === preset.id}
+                  onClick={() =>
+                    patchConfig({
+                      theme: preset.id,
+                      accentColor: preset.color,
+                    })
+                  }
+                >
+                  {state.config.theme === preset.id && <Check size={15} />}
+                </button>
+              ))}
+              <label
+                className={`custom-color ${
+                  state.config.theme === "custom" ? "selected" : ""
+                }`}
+                title="Choose a custom board color"
+              >
+                <Palette size={16} />
+                <input
+                  type="color"
+                  value={state.config.accentColor}
+                  onChange={(event) =>
+                    patchConfig({
+                      theme: "custom",
+                      accentColor: event.target.value,
+                    })
+                  }
+                  aria-label="Custom board color"
+                />
+              </label>
+              <button
+                type="button"
+                className="random-color-button"
+                onClick={() =>
+                  patchConfig({
+                    theme: "custom",
+                    accentColor: ColorTheme.random(),
+                  })
+                }
+              >
+                <Shuffle size={15} />
+                Randomize
+              </button>
+            </div>
+          </div>
+
+          <div className="field field-wide">
+            <span>Tile Text Size</span>
+            <div className="font-size-controls">
+              <div className="segmented compact-segmented">
+                <button
+                  type="button"
+                  className={state.config.fontMode === "auto" ? "active" : ""}
+                  aria-pressed={state.config.fontMode === "auto"}
+                  onClick={() => patchConfig({ fontMode: "auto" })}
+                >
+                  Auto
+                </button>
+                <button
+                  type="button"
+                  className={state.config.fontMode === "fixed" ? "active" : ""}
+                  aria-pressed={state.config.fontMode === "fixed"}
+                  onClick={() => patchConfig({ fontMode: "fixed" })}
+                >
+                  Fixed
+                </button>
+              </div>
+              <label className="font-slider">
+                <Type size={17} />
+                <input
+                  type="range"
+                  min="10"
+                  max="32"
+                  step="1"
+                  value={state.config.fontSize}
+                  disabled={state.config.fontMode === "auto"}
+                  onChange={(event) =>
+                    patchConfig({ fontSize: Number(event.target.value) })
+                  }
+                  aria-label="Fixed tile font size"
+                />
+                <output>{state.config.fontSize}px</output>
+              </label>
+            </div>
+            <small className="field-help">
+              Auto sizes every tile independently. Fixed applies one size to the
+              entire board.
+            </small>
           </div>
         </Panel>
 
         <Panel
           icon={<Clipboard size={18} />}
-          title="Answer pool"
+          title="Answer Pool"
           aside={`${answerCount} / ${needed} needed`}
         >
           <div className="quick-add">
@@ -331,6 +519,27 @@ function Editor({
               <Clipboard size={15} />
               Paste CSV
             </button>
+            <label className="sort-control">
+              <ArrowUpAZ size={15} />
+              <span className="sr-only">Sort Answer Pool</span>
+              <select
+                defaultValue=""
+                aria-label="Sort Answer Pool"
+                onChange={(event) => {
+                  if (event.target.value) {
+                    sortAnswers(event.target.value as AnswerSort);
+                    event.target.value = "";
+                  }
+                }}
+              >
+                <option value="" disabled>Sort</option>
+                <option value="alphabetical">A–Z</option>
+                <option value="reverse">Z–A</option>
+                <option value="constrained">Locked First</option>
+                <option value="shuffle">Shuffle Answers</option>
+              </select>
+              <ChevronDown size={14} />
+            </label>
           </div>
 
           <div className="answer-list" aria-label="Board answers">
@@ -340,7 +549,10 @@ function Editor({
                 answer={answer}
                 index={index}
                 size={state.config.size}
-                freeIndex={freeCellIndex(state.config.size, state.config.free)}
+                freeIndex={BoardModel.freeCellIndex(
+                  state.config.size,
+                  state.config.free,
+                )}
                 onChange={(patch) => updateAnswer(answer.id, patch)}
                 onDelete={() => deleteAnswer(answer.id)}
                 onEnter={() => addAnswer("New answer", answer.id)}
@@ -359,14 +571,14 @@ function Editor({
 
       <aside className="preview-panel">
         <div className="preview-topline">
-          <span>Live preview</span>
+          <span>Live Preview</span>
           <button
             type="button"
             className="text-button compact"
-            onClick={() => doCopy("edit", window.location.href)}
+            onClick={() => patchConfig({ previewSeed: IdFactory.seed() })}
           >
-            {copied === "edit" ? <Check size={15} /> : <Link2 size={15} />}
-            {copied === "edit" ? "Copied" : "Copy edit URL"}
+            <Shuffle size={15} />
+            Shuffle Preview
           </button>
         </div>
         <BoardPreview editor={state} />
@@ -378,7 +590,7 @@ function Editor({
           onClick={createPlayLink}
         >
           <Dices size={19} />
-          Create play link
+          Create Play Link
           <span aria-hidden="true">→</span>
         </button>
         <p className="privacy-note">
@@ -387,7 +599,7 @@ function Editor({
       </aside>
 
       {csvOpen && (
-        <Modal title="Paste CSV answers" onClose={() => setCsvOpen(false)}>
+        <Modal title="Paste CSV Answers" onClose={() => setCsvOpen(false)}>
           <p className="modal-copy">
             Paste rows, columns, or quoted values. Every non-empty CSV cell becomes
             one answer.
@@ -407,16 +619,16 @@ function Editor({
               type="button"
               className="primary-button"
               onClick={importCsv}
-              disabled={!parseCsvAnswers(csvText).length}
+              disabled={!csvParser.parse(csvText).length}
             >
-              Import {parseCsvAnswers(csvText).length || ""} answers
+              Import {csvParser.parse(csvText).length || ""} Answers
             </button>
           </div>
         </Modal>
       )}
 
       {shareUrl && (
-        <Modal title="Your play link is ready" onClose={() => setShareUrl("")}>
+        <Modal title="Your Play Link Is Ready" onClose={() => setShareUrl("")}>
           <div className="share-hero">
             <span><Sparkles size={24} /></span>
             <p>
@@ -566,12 +778,15 @@ function AnswerRow({
 }
 
 function BoardPreview({ editor }: { editor: EditorState }) {
-  const validation = validateEditor(editor);
+  const validation = generator.validate(editor);
   let cells: PlayCell[];
   if (validation.valid) {
-    cells = generateBoard(editor, "squarecast-preview").cells;
+    cells = generator.generate(editor, editor.config.previewSeed).cells;
   } else {
-    const freeIndex = freeCellIndex(editor.config.size, editor.config.free);
+    const freeIndex = BoardModel.freeCellIndex(
+      editor.config.size,
+      editor.config.free,
+    );
     const answers = editor.answers.filter((answer) => answer.text.trim());
     let cursor = 0;
     cells = Array.from({ length: editor.config.size ** 2 }, (_, index) => {
@@ -589,9 +804,9 @@ function BoardPreview({ editor }: { editor: EditorState }) {
   return (
     <div className="board-frame preview-board">
       <div className="board-heading">
-        <span>PLAY</span>
+        <span>PREVIEW</span>
         <h2>{editor.config.title || "Untitled board"}</h2>
-        <span>WIN</span>
+        <span>{editor.config.size} × {editor.config.size}</span>
       </div>
       <div
         className="board-grid"
@@ -604,7 +819,11 @@ function BoardPreview({ editor }: { editor: EditorState }) {
             }`}
             key={`${cell.id}-${index}`}
           >
-            <AutoFitText text={cell.text} />
+            <AutoFitText
+              text={cell.text}
+              mode={editor.config.fontMode}
+              fixedSize={editor.config.fontSize}
+            />
           </div>
         ))}
       </div>
@@ -615,13 +834,13 @@ function BoardPreview({ editor }: { editor: EditorState }) {
 function ValidationCard({
   validation,
 }: {
-  validation: ReturnType<typeof validateEditor>;
+  validation: ValidationResult;
 }) {
   if (validation.valid && !validation.warnings.length) {
     return (
       <div className="status-card valid">
         <span><Check size={16} /></span>
-        <p><strong>Ready to cast</strong>Your board rules fit cleanly.</p>
+        <p><strong>Ready to Cast</strong>Your board rules fit cleanly.</p>
       </div>
     );
   }
@@ -629,7 +848,7 @@ function ValidationCard({
   return (
     <div className={`status-card ${validation.valid ? "warning" : "invalid"}`}>
       <span>{validation.valid ? "!" : "×"}</span>
-      <p><strong>{validation.valid ? "Check this" : "Needs attention"}</strong>{messages[0]}</p>
+      <p><strong>{validation.valid ? "Check This" : "Needs Attention"}</strong>{messages[0]}</p>
     </div>
   );
 }
@@ -642,11 +861,11 @@ function Player({
   onChange: (state: ActiveState) => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const wins = winningCells(state);
+  const wins = generator.winningCells(state);
   const hasWin = wins.size > 0;
 
   const toggleCell = (index: number) => {
-    if (state.cells[index].free) return;
+    if (state.cells[index]?.free) return;
     const checked = new Set(state.checked);
     if (checked.has(index)) checked.delete(index);
     else checked.add(index);
@@ -654,11 +873,11 @@ function Player({
   };
 
   const reshuffle = () => {
-    onChange(generateBoard(state.source, randomSeed()));
+    onChange(generator.generate(state.source, IdFactory.seed()));
   };
 
   const copySession = async () => {
-    await copyText(window.location.href);
+    await clipboard.copy(window.location.href);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   };
@@ -668,22 +887,22 @@ function Player({
       <div className="play-toolbar">
         <button type="button" className="text-button" onClick={() => onChange(state.source)}>
           <ArrowLeft size={16} />
-          Edit source
+          Edit Source
         </button>
         <div className="play-actions">
           <button type="button" className="secondary-button compact-button" onClick={reshuffle}>
             <RotateCcw size={16} />
-            New shuffle
+            New Shuffle
           </button>
           <button type="button" className="secondary-button compact-button" onClick={copySession}>
             {copied ? <Check size={16} /> : <Copy size={16} />}
-            {copied ? "Copied" : "Copy session"}
+            {copied ? "Copied" : "Copy Session"}
           </button>
         </div>
       </div>
 
       <div className="play-title">
-        <p className="eyebrow">Your randomized board</p>
+        <p className="eyebrow">Your Randomized Board</p>
         <h1>{state.title}</h1>
         <p>Tap a square when it happens. Complete any row, column, or diagonal.</p>
       </div>
@@ -698,9 +917,9 @@ function Player({
 
       <div className="board-frame play-board">
         <div className="board-heading">
-          <span>SQUARE</span>
-          <h2>{hasWin ? "BINGO!" : "MARK IT"}</h2>
-          <span>CAST</span>
+          <span>{hasWin ? "COMPLETED" : "BINGO BOARD"}</span>
+          <h2>{state.title}</h2>
+          <span>{state.size} × {state.size}</span>
         </div>
         <div
           className="board-grid"
@@ -720,7 +939,11 @@ function Player({
                 aria-label={`${cell.text}${cell.free ? ", free square" : ""}`}
                 onClick={() => toggleCell(index)}
               >
-                <AutoFitText text={cell.text} />
+                <AutoFitText
+                  text={cell.text}
+                  mode={state.fontMode}
+                  fixedSize={state.fontSize}
+                />
                 <span className="check-mark" aria-hidden="true"><Check size={18} /></span>
               </button>
             );
@@ -735,18 +958,30 @@ function Player({
   );
 }
 
-function AutoFitText({ text }: { text: string }) {
+function AutoFitText({
+  text,
+  mode,
+  fixedSize,
+}: {
+  text: string;
+  mode: "auto" | "fixed";
+  fixedSize: number;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    if (mode === "fixed") {
+      element.style.fontSize = `${fixedSize}px`;
+      return;
+    }
     const parent = element.parentElement;
     if (!parent) return;
 
     const fit = () => {
-      let low = 8;
-      let high = 30;
+      let low = 10;
+      let high = 38;
       for (let step = 0; step < 7; step += 1) {
         const mid = (low + high) / 2;
         element.style.fontSize = `${mid}px`;
@@ -766,7 +1001,7 @@ function AutoFitText({ text }: { text: string }) {
     const observer = new ResizeObserver(fit);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [text]);
+  }, [fixedSize, mode, text]);
 
   return <span ref={ref} className="auto-fit">{text}</span>;
 }

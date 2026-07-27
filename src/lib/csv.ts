@@ -1,30 +1,35 @@
-export function parseCsvAnswers(input: string): string[] {
-  const values: string[] = [];
-  let field = "";
-  let quoted = false;
+export class CsvAnswerParser {
+  public parse(input: string): string[] {
+    const values: string[] = [];
+    let field = "";
+    let quoted = false;
 
-  const push = () => {
-    const value = field.trim();
-    if (value) values.push(value);
-    field = "";
-  };
+    const push = (): void => {
+      const value = field.trim();
+      if (value) values.push(value);
+      field = "";
+    };
 
-  for (let i = 0; i < input.length; i += 1) {
-    const char = input[i];
-    if (char === '"') {
-      if (quoted && input[i + 1] === '"') {
-        field += '"';
-        i += 1;
+    for (let index = 0; index < input.length; index += 1) {
+      const character = input[index];
+      if (character === '"') {
+        if (quoted && input[index + 1] === '"') {
+          field += '"';
+          index += 1;
+        } else {
+          quoted = !quoted;
+        }
+      } else if (
+        (character === "," || character === "\n" || character === "\r") &&
+        !quoted
+      ) {
+        push();
+        if (character === "\r" && input[index + 1] === "\n") index += 1;
       } else {
-        quoted = !quoted;
+        field += character;
       }
-    } else if ((char === "," || char === "\n" || char === "\r") && !quoted) {
-      push();
-      if (char === "\r" && input[i + 1] === "\n") i += 1;
-    } else {
-      field += char;
     }
+    push();
+    return values;
   }
-  push();
-  return values;
 }

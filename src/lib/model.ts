@@ -1,7 +1,25 @@
 import { z } from "zod";
 
-export const themeSchema = z.enum(["ink", "coral", "mint", "violet"]);
+export const appearanceSchema = z.enum(["system", "light", "dark"]);
+export type Appearance = z.infer<typeof appearanceSchema>;
+
+export const themeSchema = z.enum([
+  "ink",
+  "coral",
+  "mint",
+  "violet",
+  "ocean",
+  "sunflower",
+  "rose",
+  "teal",
+  "indigo",
+  "orange",
+  "custom",
+]);
 export type Theme = z.infer<typeof themeSchema>;
+
+export const fontModeSchema = z.enum(["auto", "fixed"]);
+export type FontMode = z.infer<typeof fontModeSchema>;
 
 export const placementSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("any") }),
@@ -18,16 +36,27 @@ export const answerSchema = z.object({
 });
 export type Answer = z.infer<typeof answerSchema>;
 
+export const boardConfigSchema = z.object({
+  title: z.string(),
+  size: z.number().int().min(3).max(7),
+  free: z.boolean(),
+  freeLabel: z.string(),
+  theme: themeSchema.default("coral"),
+  accentColor: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i)
+    .default("#ff6b45"),
+  appearance: appearanceSchema.default("system"),
+  fontMode: fontModeSchema.default("auto"),
+  fontSize: z.number().int().min(10).max(32).default(18),
+  previewSeed: z.string().min(1).default("preview"),
+});
+export type BoardConfig = z.infer<typeof boardConfigSchema>;
+
 export const editorStateSchema = z.object({
   v: z.literal(1),
   mode: z.literal("edit"),
-  config: z.object({
-    title: z.string(),
-    size: z.number().int().min(3).max(7),
-    free: z.boolean(),
-    freeLabel: z.string(),
-    theme: themeSchema,
-  }),
+  config: boardConfigSchema,
   answers: z.array(answerSchema),
 });
 export type EditorState = z.infer<typeof editorStateSchema>;
@@ -51,7 +80,14 @@ export const playStateSchema = z.object({
   mode: z.literal("play"),
   title: z.string(),
   size: z.number().int().min(3).max(7),
-  theme: themeSchema,
+  theme: themeSchema.default("coral"),
+  accentColor: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i)
+    .default("#ff6b45"),
+  appearance: appearanceSchema.default("system"),
+  fontMode: fontModeSchema.default("auto"),
+  fontSize: z.number().int().min(10).max(32).default(18),
   cells: z.array(playCellSchema),
   checked: z.array(z.number().int().nonnegative()),
   source: editorStateSchema,
@@ -66,67 +102,85 @@ export const appStateSchema = z.discriminatedUnion("mode", [
 ]);
 export type AppState = z.infer<typeof appStateSchema>;
 
-export function makeId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID().slice(0, 8);
-  }
-  return Math.random().toString(36).slice(2, 10);
-}
-
 const starterAnswers = [
-  "Someone says “quick question”",
-  "You hear a keyboard clacking",
-  "A pet joins the call",
-  "Someone is accidentally muted",
-  "The meeting starts late",
-  "A screen share goes missing",
-  "“Can everyone see my screen?”",
-  "Someone mentions the weather",
-  "A notification sound plays",
-  "Two people talk at once",
-  "Someone drops a link in chat",
-  "A camera freezes perfectly",
-  "“Let’s take this offline”",
-  "Someone uses a reaction emoji",
-  "A surprise acronym appears",
-  "The agenda gets rearranged",
-  "Someone needs to rejoin",
-  "A deadline gets mentioned",
-  "Someone says “circle back”",
-  "A coffee mug enters frame",
-  "Someone asks for context",
-  "A calendar invite is promised",
-  "The call ends early",
-  "Someone says “great point”",
-  "A follow-up owner is assigned",
-  "Someone forgets they are sharing",
-  "A phone rings in the background",
-  "Someone says “one last thing”",
+  "Try a new snack",
+  "Spot a dog in a bandana",
+  "Take a scenic photo",
+  "Hear live music",
+  "Find a tiny bookstore",
+  "Order something you cannot pronounce",
+  "See a colorful mural",
+  "Walk down a street you have never tried",
+  "Find a great window display",
+  "Drink something with an umbrella",
+  "Watch a sunset",
+  "Visit a local market",
+  "Take the long way home",
+  "Find a perfect picnic spot",
+  "Hear a favorite song in public",
+  "Discover a new dessert",
+  "See an unusual bicycle",
+  "Find a quiet bench",
+  "Spot a funny street sign",
+  "Buy a postcard",
+  "See someone wearing a bold hat",
+  "Find a hidden garden",
+  "Try a seasonal flavor",
+  "Take a photo with friends",
+  "See a vintage car",
+  "Find a great view",
+  "Learn a local fact",
+  "End the day with ice cream",
 ];
 
-export function createDefaultEditor(): EditorState {
-  return {
-    v: 1,
-    mode: "edit",
-    config: {
-      title: "Team meeting bingo",
-      size: 5,
-      free: true,
-      freeLabel: "FREE",
-      theme: "coral",
-    },
-    answers: starterAnswers.map((text) => ({
-      id: makeId(),
-      text,
-      placement: { kind: "any" as const },
-    })),
-  };
+export class IdFactory {
+  public static create(): string {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return crypto.randomUUID().slice(0, 8);
+    }
+    return Math.random().toString(36).slice(2, 10);
+  }
+
+  public static seed(): string {
+    if (typeof crypto !== "undefined" && "getRandomValues" in crypto) {
+      const bytes = new Uint32Array(2);
+      crypto.getRandomValues(bytes);
+      return `${bytes[0]?.toString(36)}${bytes[1]?.toString(36)}`;
+    }
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  }
 }
 
-export function freeCellIndex(size: number, enabled: boolean): number | null {
-  return enabled ? Math.floor(size / 2) * size + Math.floor(size / 2) : null;
-}
+export class BoardModel {
+  public static createDefaultEditor(): EditorState {
+    return {
+      v: 1,
+      mode: "edit",
+      config: {
+        title: "Weekend Adventure Bingo",
+        size: 5,
+        free: true,
+        freeLabel: "FREE",
+        theme: "coral",
+        accentColor: "#ff6b45",
+        appearance: "system",
+        fontMode: "auto",
+        fontSize: 18,
+        previewSeed: "weekend-preview",
+      },
+      answers: starterAnswers.map((text) => ({
+        id: IdFactory.create(),
+        text,
+        placement: { kind: "any" as const },
+      })),
+    };
+  }
 
-export function blankSquareCount(editor: EditorState): number {
-  return editor.config.size ** 2 - (editor.config.free ? 1 : 0);
+  public static freeCellIndex(size: number, enabled: boolean): number | null {
+    return enabled ? Math.floor(size / 2) * size + Math.floor(size / 2) : null;
+  }
+
+  public static blankSquareCount(editor: EditorState): number {
+    return editor.config.size ** 2 - (editor.config.free ? 1 : 0);
+  }
 }
