@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AnswerPoolSorter } from "../src/lib/sorting";
 import type { Answer } from "../src/lib/model";
 
-describe("answer pool sorting", () => {
+describe("card pool sorting", () => {
   const sorter = new AnswerPoolSorter();
   const answers: Answer[] = [
     { id: "1", text: "Zebra", placement: { kind: "any" } },
@@ -24,7 +24,7 @@ describe("answer pool sorting", () => {
     expect(answers.map((answer) => answer.id)).toEqual(["1", "2", "3"]);
   });
 
-  it("moves constrained answers ahead of flexible answers", () => {
+  it("moves constrained cards ahead of flexible cards", () => {
     expect(sorter.sort(answers, "constrained")[0]?.id).toBe("2");
   });
 

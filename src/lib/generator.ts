@@ -30,10 +30,10 @@ export class BoardGenerator {
     if (!editor.config.title.trim()) errors.push("Add a board title.");
     if (answers.length < needed) {
       const missing = needed - answers.length;
-      errors.push(`Add ${missing} more answer${missing === 1 ? "" : "s"}.`);
+      errors.push(`Add ${missing} more card${missing === 1 ? "" : "s"}.`);
     }
     if (mandatory.length > needed) {
-      errors.push(`Only ${needed} constrained answers can fit on this board.`);
+      errors.push(`Only ${needed} constrained cards can fit on this board.`);
     }
     if (
       mandatory.length <= needed &&
@@ -45,7 +45,7 @@ export class BoardGenerator {
       )
     ) {
       errors.push(
-        "The placement rules conflict. Move or loosen a locked answer.",
+        "The placement rules conflict. Move or loosen a locked card.",
       );
     }
 
@@ -53,7 +53,7 @@ export class BoardGenerator {
       answer.text.trim().toLowerCase(),
     );
     if (new Set(normalized).size !== normalized.length) {
-      warnings.push("Duplicate answer text will appear as separate squares.");
+      warnings.push("Duplicate card text will appear as separate squares.");
     }
     if (encodeURIComponent(JSON.stringify(editor)).length > 7000) {
       warnings.push(
@@ -109,7 +109,7 @@ export class BoardGenerator {
           };
         }
         const answer = placed.get(index);
-        if (!answer) throw new Error("Not enough answers to fill the board.");
+        if (!answer) throw new Error("Not enough cards to fill the board.");
         return { id: answer.id, text: answer.text };
       },
     );

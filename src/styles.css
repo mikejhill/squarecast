@@ -889,8 +889,10 @@ button:disabled {
   max-width: 100%;
   padding: 0;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   word-break: normal;
+  hyphens: none;
+  text-wrap: balance;
   line-height: 1.08;
   font-weight: 700;
   letter-spacing: -0.035em;
@@ -1006,6 +1008,40 @@ button:disabled {
 .primary-action:disabled {
   opacity: 0.35;
   box-shadow: none;
+}
+
+.share-play-action {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 11px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, currentColor);
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 15px;
+  font-weight: 800;
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.share-play-action span {
+  margin-left: auto;
+  font-size: 20px;
+}
+
+.share-play-action:not(:disabled):hover {
+  filter: saturate(1.12) brightness(1.02);
+}
+
+.share-play-action:not(:disabled):active {
+  transform: translateY(2px);
+}
+
+.share-play-action:disabled {
+  opacity: 0.35;
 }
 
 .privacy-note {

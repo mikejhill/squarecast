@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CsvAnswerParser } from "../src/lib/csv";
 
-describe("CSV answer parser", () => {
+describe("CSV card parser", () => {
   const parser = new CsvAnswerParser();
 
   it("accepts rows, columns, quoted commas, and escaped quotes", () => {

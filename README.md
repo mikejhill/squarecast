@@ -1,6 +1,6 @@
 # Squarecast
 
-Squarecast is a static, URL-native bingo board studio. Build a square board, add more answers than it needs, lock important answers to a cell, row, or column, then send a play link. Each player gets a randomized board.
+Squarecast is a static, URL-native bingo board studio. Build a square board, add more cards than it needs, lock important cards to a cell, row, or column, then send a play link. Each player gets a randomized board.
 
 No account, database, cookie, local storage, or backend is used. The complete editor or play session is compressed into the URL hash.
 
@@ -8,9 +8,9 @@ No account, database, cookie, local storage, or backend is used. The complete ed
 
 1. Open the hosted site.
 2. Choose a system, light, or dark appearance; board size; free-square setting; title; tile font size; and board color.
-3. Add answers with the quick-add field. Press Enter after each answer, or use **Paste CSV** to import multiple values.
-4. Optionally constrain an answer to a specific cell, row, or column.
-5. Select **Create play link** and share it.
+3. Add cards with the quick-add field. Press Enter after each card, or use **Paste CSV** to import multiple values.
+4. Optionally constrain a card to a specific cell, row, or column.
+5. Select **Play This Board** to test the board immediately, or select **Create Play Link** to share it.
 6. Each recipient opens the launch link to create a fresh randomized board. Their marks are written back to their URL as they play.
 
 The URL can be bookmarked or copied at any point. Editing one URL never changes a previously shared URL.
@@ -19,14 +19,14 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 
 - 3×3 through 7×7 square boards
 - Optional centered free square with a custom label
-- Unlimited answer pool with live minimum-count validation
+- Unlimited card pool with live minimum-count validation
 - Exact-cell, row, and column placement rules
 - Conflict detection before generation
 - Seeded randomized boards with one-click reshuffling
 - Automatic per-tile text fitting or a fixed custom tile font size
-- Keyboard-friendly answer entry and editing
+- Keyboard-friendly card entry and editing
 - CSV import with quoted-value support
-- Answer sorting, locked-answer prioritization, and shuffling
+- Card sorting, locked-card prioritization, and shuffling
 - Win detection for rows, columns, and diagonals
 - System, light, and dark site appearances
 - Ten named board colors, a custom color picker, and color randomization
@@ -74,9 +74,9 @@ The static output is written to `dist/`.
 - `src/lib/model.ts` — versioned schemas and default state
 - `src/lib/codec.ts` — compressed URL encoding and decoding
 - `src/lib/generator.ts` — validation, constrained randomization, and win detection
-- `src/lib/csv.ts` — CSV answer parser
+- `src/lib/csv.ts` — CSV card parser
 - `src/lib/theme.ts` — appearance resolution, color palettes, contrast, and random colors
-- `src/lib/sorting.ts` — answer-pool sorting strategies
+- `src/lib/sorting.ts` — card-pool sorting strategies
 - `tests/` — behavioral tests for state, parsing, color logic, sorting, randomization, constraints, and wins
 - `.github/workflows/deploy-pages.yml` — tested GitHub Pages deployment
 

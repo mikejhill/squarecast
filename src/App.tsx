@@ -274,6 +274,11 @@ function Editor({
     );
   };
 
+  const playBoard = () => {
+    if (!validation.valid) return;
+    onChange(generator.generate(state, IdFactory.seed()));
+  };
+
   const doCopy = async (kind: "edit" | "play", text: string) => {
     await clipboard.copy(text);
     setCopied(kind);
@@ -291,7 +296,7 @@ function Editor({
           <p className="eyebrow">Board Studio</p>
           <h1>Build It Once. Let Every Board Land Differently.</h1>
           <p>
-            Add a generous answer pool, pin the non-negotiables, then share one
+            Add a generous card pool, pin the non-negotiables, then share one
             self-contained link.
           </p>
         </div>
@@ -483,7 +488,7 @@ function Editor({
 
         <Panel
           icon={<Clipboard size={18} />}
-          title="Answer Pool"
+          title="Card Pool"
           aside={`${answerCount} / ${needed} needed`}
         >
           <div className="quick-add">
@@ -494,8 +499,8 @@ function Editor({
               onKeyDown={(event) => {
                 if (event.key === "Enter") addAnswer();
               }}
-              placeholder="Type an answer, then press Enter"
-              aria-label="New answer"
+              placeholder="Type a card, then press Enter"
+              aria-label="New card"
             />
             <button type="button" onClick={() => addAnswer()} disabled={!newAnswer.trim()}>
               Add
@@ -505,7 +510,7 @@ function Editor({
           <div className="answer-toolbar">
             <p>
               {answerCount >= needed
-                ? `${answerCount - needed} extra answer${answerCount - needed === 1 ? "" : "s"} add variety.`
+                ? `${answerCount - needed} extra card${answerCount - needed === 1 ? "" : "s"} add variety.`
                 : `${needed - answerCount} more required to fill the board.`}
             </p>
             <button type="button" className="text-button" onClick={() => setCsvOpen(true)}>
@@ -514,10 +519,10 @@ function Editor({
             </button>
             <label className="sort-control">
               <ArrowUpAZ size={15} />
-              <span className="sr-only">Sort Answer Pool</span>
+              <span className="sr-only">Sort Card Pool</span>
               <select
                 defaultValue=""
-                aria-label="Sort Answer Pool"
+                aria-label="Sort Card Pool"
                 onChange={(event) => {
                   if (event.target.value) {
                     sortAnswers(event.target.value as AnswerSort);
@@ -529,13 +534,13 @@ function Editor({
                 <option value="alphabetical">A–Z</option>
                 <option value="reverse">Z–A</option>
                 <option value="constrained">Locked First</option>
-                <option value="shuffle">Shuffle Answers</option>
+                <option value="shuffle">Shuffle Cards</option>
               </select>
               <ChevronDown size={14} />
             </label>
           </div>
 
-          <div className="answer-list" aria-label="Board answers">
+          <div className="answer-list" aria-label="Board cards">
             {state.answers.map((answer, index) => (
               <AnswerRow
                 key={answer.id}
@@ -548,13 +553,13 @@ function Editor({
                 )}
                 onChange={(patch) => updateAnswer(answer.id, patch)}
                 onDelete={() => deleteAnswer(answer.id)}
-                onEnter={() => addAnswer("New answer", answer.id)}
+                onEnter={() => addAnswer("New card", answer.id)}
               />
             ))}
             {!state.answers.length && (
               <div className="empty-answers">
                 <Clipboard size={24} />
-                <strong>Your answer pool is empty</strong>
+                <strong>Your card pool is empty</strong>
                 <span>Use quick add or paste a CSV list.</span>
               </div>
             )}
@@ -593,6 +598,16 @@ function Editor({
           type="button"
           className="primary-action"
           disabled={!validation.valid}
+          onClick={playBoard}
+        >
+          <Sparkles size={19} />
+          Play This Board
+          <span aria-hidden="true">→</span>
+        </button>
+        <button
+          type="button"
+          className="share-play-action"
+          disabled={!validation.valid}
           onClick={createPlayLink}
         >
           <Dices size={19} />
@@ -605,16 +620,16 @@ function Editor({
       </aside>
 
       {csvOpen && (
-        <Modal title="Paste CSV Answers" onClose={() => setCsvOpen(false)}>
+        <Modal title="Paste CSV Cards" onClose={() => setCsvOpen(false)}>
           <p className="modal-copy">
             Paste rows, columns, or quoted values. Every non-empty CSV cell becomes
-            one answer.
+            one card.
           </p>
           <textarea
             className="csv-input"
             value={csvText}
             onChange={(event) => setCsvText(event.target.value)}
-            placeholder={'Answer one,Answer two\n"Answer with, a comma"'}
+            placeholder={'Card one,Card two\n"Card with, a comma"'}
             autoFocus
           />
           <div className="modal-actions">
@@ -627,7 +642,7 @@ function Editor({
               onClick={importCsv}
               disabled={!csvParser.parse(csvText).length}
             >
-              Import {csvParser.parse(csvText).length || ""} Answers
+              Import {csvParser.parse(csvText).length || ""} Cards
             </button>
           </div>
         </Modal>
@@ -735,14 +750,14 @@ function AnswerRow({
         value={answer.text}
         onChange={(event) => onChange({ text: event.target.value })}
         onKeyDown={handleKey}
-        aria-label={`Answer ${index + 1}`}
+        aria-label={`Card ${index + 1}`}
       />
       <div className={`placement ${answer.placement.kind !== "any" ? "locked" : ""}`}>
         {answer.placement.kind !== "any" && <LockKeyhole size={13} />}
         <select
           value={selectValue}
           onChange={(event) => onChange({ placement: parsePlacement(event.target.value) })}
-          aria-label={`Placement for answer ${index + 1}`}
+          aria-label={`Placement for card ${index + 1}`}
         >
           <option value="any">Anywhere</option>
           <optgroup label="Specific row">
@@ -775,7 +790,7 @@ function AnswerRow({
         type="button"
         className="icon-button delete-button"
         onClick={onDelete}
-        aria-label={`Delete answer ${index + 1}`}
+        aria-label={`Delete card ${index + 1}`}
       >
         <Trash2 size={16} />
       </button>
@@ -802,7 +817,7 @@ function BoardPreview({ editor }: { editor: EditorState }) {
       const answer = answers[cursor++];
       return {
         id: answer?.id || `placeholder-${index}`,
-        text: answer?.text || "Add answer",
+        text: answer?.text || "Add card",
       };
     });
   }
@@ -893,7 +908,7 @@ function Player({
       <div className="play-toolbar">
         <button type="button" className="text-button" onClick={() => onChange(state.source)}>
           <ArrowLeft size={16} />
-          Edit Source
+          Edit This Board
         </button>
         <div className="play-actions">
           <button type="button" className="secondary-button compact-button" onClick={reshuffle}>
@@ -991,12 +1006,14 @@ class RenderedTextFitter {
     const range = document.createRange();
     range.selectNodeContents(this.element);
     const rendered = range.getBoundingClientRect();
+    const safeWidth = Math.max(1, availableWidth - 1);
+    const safeHeight = Math.max(1, availableHeight - 1);
 
     return (
-      this.element.scrollWidth <= availableWidth + 0.5 &&
-      this.element.scrollHeight <= availableHeight + 0.5 &&
-      rendered.width <= availableWidth + 0.5 &&
-      rendered.height <= availableHeight + 0.5
+      this.element.scrollWidth <= availableWidth &&
+      this.element.scrollHeight <= availableHeight &&
+      rendered.width <= safeWidth &&
+      rendered.height <= safeHeight
     );
   }
 }

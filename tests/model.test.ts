@@ -15,7 +15,7 @@ describe("board model", () => {
     expect(editor.answers).toHaveLength(28);
   });
 
-  it("calculates free-square placement and required answer counts", () => {
+  it("calculates free-square placement and required card counts", () => {
     const editor = BoardModel.createDefaultEditor();
     expect(BoardModel.freeCellIndex(5, true)).toBe(12);
     expect(BoardModel.freeCellIndex(4, true)).toBe(10);
