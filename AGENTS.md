@@ -94,6 +94,8 @@ See [State and Routing](docs/state-and-routing.md).
   row a dedicated full-width second line for its placement selector.
 - Do not impose a minimum page width. Hide the header wordmark before its
   controls can create horizontal overflow on narrow screens.
+- At stacked widths, keep the application surface itself as the horizontal
+  containment boundary. Do not rely only on root-element overflow behavior.
 - Card Pool must support:
   - Enter-to-add
   - visible Add action

@@ -2159,6 +2159,35 @@ optgroup {
 }
 
 @media (max-width: 980px) {
+  /*
+   * At stacked widths the preview is no longer sticky, so the application can
+   * safely become the horizontal containment boundary. This prevents any
+   * descendant's intrinsic width, shadow, or native control from enlarging the
+   * document even in engines with inconsistent root-overflow handling.
+   */
+  .app {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .site-header,
+  .editor-shell,
+  .site-footer,
+  .editor-workspace,
+  .board-setup-panel,
+  .editor-panel,
+  .preview-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .brand small,
+  .mode-label,
+  .github-link {
+    display: none;
+  }
+
   .editor-workspace {
     grid-template-columns: 1fr;
     /* Stacked sections keep their own content-driven responsive heights. */
@@ -2193,16 +2222,8 @@ optgroup {
     padding: 0 12px;
   }
 
-  .brand small {
-    display: none;
-  }
-
   .header-actions {
     gap: 8px;
-  }
-
-  .github-link {
-    display: none;
   }
 
   .new-board-button,
@@ -2214,10 +2235,6 @@ optgroup {
 
   .new-board-button span,
   .sample-board-button span {
-    display: none;
-  }
-
-  .mode-label {
     display: none;
   }
 
