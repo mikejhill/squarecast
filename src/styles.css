@@ -976,8 +976,13 @@ optgroup {
   gap: 7px;
   max-height: 780px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 8px;
+  border: 1px solid #d9d5ce;
+  border-radius: 12px;
+  background: #f5f2ec;
+  box-shadow: inset 0 1px 3px rgba(45, 39, 32, 0.04);
   scrollbar-color: #c7c1b8 transparent;
+  scrollbar-gutter: stable;
 }
 
 @media (min-width: 981px) {
@@ -1993,6 +1998,9 @@ optgroup {
   }
 
   .answer-list {
+    border-color: #45434a;
+    background: #161619;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.2);
     scrollbar-color: #55535c transparent;
   }
 

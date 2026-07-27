@@ -86,6 +86,8 @@ See [State and Routing](docs/state-and-routing.md).
 - The Card Pool list fills the remaining desktop panel height and scrolls
   internally; it must neither leave a blank region below it nor make the shared
   editor row taller.
+- Give the Card Pool scroll region a visible themed border and inset surface in
+  both light and dark appearances.
 - Editor controls, tooltips, and decorative effects must not create horizontal
   page scrolling.
 - Once the workspace stacks at responsive widths, both sections use independent

@@ -195,6 +195,8 @@ content-driven heights and:
 
 - Card Pool and Live Preview stack;
 - the Card Pool list uses a shorter viewport-relative scroll cap;
+- the Card Pool list has a themed inset boundary that identifies it as an
+  independent scroll region;
 - each Card Pool row reserves a full second line for its placement control;
 - multi-column setup fields collapse;
 - the Squarecast wordmark yields to header controls before their combined
