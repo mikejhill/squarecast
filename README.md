@@ -4,188 +4,97 @@
 
 # Squarecast
 
-Squarecast is a static, URL-native bingo board studio. Build a square board, add more cards than it needs, lock important cards to a cell, row, or column, then send a play link. Each player gets a randomized board.
+[![Deploy Squarecast to GitHub Pages](https://github.com/mikejhill/squarecast/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/mikejhill/squarecast/actions/workflows/deploy-pages.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Live site:** [mikejhill.github.io/squarecast](https://mikejhill.github.io/squarecast/)
+Squarecast is a browser-based bingo board studio for creating, randomizing,
+sharing, and playing custom boards. A board lives entirely in its URL, so
+Squarecast needs no account, database, or server-side application. Add more
+cards than the grid requires to give each generated board a different mix.
 
-[Open a blank board](https://mikejhill.github.io/squarecast/#new), or open the
-front page to receive a randomly selected sample board.
+[Open Squarecast](https://mikejhill.github.io/squarecast/) ·
+[Start with a blank board](https://mikejhill.github.io/squarecast/#new)
 
-No account, database, cookie, or backend is used. The complete editor or play session is compressed into the URL hash. Only the device-local light, dark, or system appearance preference uses `localStorage`.
+## How It Works
 
-## Use Squarecast
+1. Start with a curated sample or a blank board.
+2. Configure the board and build a Card Pool—the list of possible squares.
+3. Add optional rules that place specific cards in a cell, row, or column.
+4. Test a randomized board and resolve any validation issues.
+5. Create a play link. Each player receives an independently randomized board.
 
-1. Open the hosted site to start with one of sixteen randomly selected 5×5 sample boards.
-2. Choose a system, light, or dark site appearance from the header, then configure the board size, free-square setting, title, tile font size, and board color.
-3. Select **Sample Board** for another curated example or **New Board** for a blank board.
-4. Add cards with the quick-add field. Press Enter after each card, use **Paste CSV**, or drop one or more CSV files anywhere on the Card Pool.
-5. Optionally constrain a card to a specific cell, row, or column.
-6. Use **Export CSV** to save the Card Pool alone, or use the Board File controls to import or export the complete board as JSON.
-7. Select **Test This Board** to test the board immediately, or select **Create Play Link** to share it.
-8. Each recipient opens the launch link to create a fresh randomized board. Their marks are written back to their URL as they play.
-
-The URL can be bookmarked or copied at any point. Editing one URL never changes a previously shared URL.
+Players mark cards directly in the browser. Their board and progress remain in
+the URL, which can be copied or bookmarked at any time.
 
 ## Features
 
-- 3×3 through 7×7 square boards
-- Blank one-click board creation with a fresh randomized color
-- Sixteen complete, curated 5×5 sample boards selected randomly on the front page
-- Stable `#new` route for linking directly to fresh blank-board creation
+- Square boards from 3×3 through 7×7
 - Optional centered free square with a custom label
-- Unlimited card pool with live minimum-count validation
-- Exact-cell, row, and column placement rules
-- Conflict detection before generation
-- Seeded randomized boards with one-click reshuffling
-- Automatic per-tile text fitting or a fixed custom tile font size
-- Keyboard-friendly card entry and editing
-- CSV import and export with quoted-value support
-- Versioned JSON import and export for complete boards
-- Persistent card sorting, locked-card prioritization, and shuffling
-- Win detection for rows, columns, and diagonals
-- Header-level system, light, and dark site appearances on every screen
-- Ten named board colors, a custom color picker, and color randomization
-- Responsive editor and play layouts
-- Compressed, schema-validated URL state
-- Back and Forward restoration across major board transitions
+- Curated 5×5 sample boards
+- Card Pools with no fixed maximum and persistent sorting
+- Exact-cell, row, and column placement constraints
+- Live validation and partial-board previews
+- Seeded randomization and one-click reshuffling
+- Automatic per-tile text fitting based on rendered measurements
+- Light, dark, and system appearance modes
+- Custom board colors and accessible contrast handling
+- Complete-board JSON import and export
+- Card Pool CSV import, export, paste, and drag-and-drop
+- URL-aware Back and Forward navigation
+- Responsive editing and play layouts
 
-## Development
+## Privacy
 
-Requirements:
+Squarecast processes board data locally in the browser. Editor state, generated
+boards, and play progress are stored in the URL fragment and are not uploaded
+by the application.
 
-- Node.js 20.19 or newer
-- npm
+The site appearance preference is the only value stored in `localStorage`.
+Squarecast does not use cookies, analytics, telemetry, or remote logging.
 
-Install and run:
+Shared URLs contain the board data required to restore that board. Do not place
+secrets or sensitive information in a board.
+
+## Local Development
+
+Squarecast requires Node.js 20.19 or newer and npm.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite.
-
-Quality checks:
+Run the complete quality gate before submitting a change:
 
 ```bash
 npm run check
 ```
 
-`npm run check` runs strict TypeScript compilation, the production build, and
-coverage-gated behavioral tests. Every domain source file must maintain at
-least 90% statement and line coverage, 80% branch coverage, and 100% function
-coverage.
+This runs the coverage-gated test suite, strict TypeScript compilation, and the
+production build.
 
-Create a production build:
+## Documentation
 
-```bash
-npm run build
-```
+Technical documentation lives in [`docs/`](docs/README.md).
 
-The static output is written to `dist/`.
-
-## Project structure
-
-- `src/App.tsx` — top-level state, appearance, and feature composition
-- `src/app/` — application service composition and shared state-transition types
-- `src/components/` — reusable header, panel, modal, preview, validation, and text-fitting views
-- `src/controllers/` — class-based editor and player interaction coordinators
-- `src/features/editor/` — focused editor page, setup, Card Pool, dialogs, rows, and preview views
-- `src/features/play/` — focused play-session view
-- `src/services/` — browser clipboard, download, and rendered-text measurement adapters
-- `src/data/sample-board-definitions.ts` — immutable curated sample content
-- `src/lib/model.ts` — versioned schemas and default state
-- `src/lib/codec.ts` — compressed URL encoding and decoding
-- `src/lib/application-state.ts` — route-to-state restoration
-- `src/lib/navigation.ts` — pending History API write coordination
-- `src/lib/editor-state.ts` — immutable editor mutations
-- `src/lib/player-session.ts` — immutable play-session mutations
-- `src/lib/generator.ts` — validation, constrained randomization, and win detection
-- `src/lib/board-document.ts` — versioned complete-board JSON validation and serialization
-- `src/lib/csv.ts` — CSV Card Pool parser and serializer
-- `src/lib/theme.ts` — appearance resolution, color palettes, contrast, and random colors
-- `src/lib/preferences.ts` — device-local site appearance preference
-- `src/lib/logger.ts` — scoped, privacy-conscious browser runtime logging
-- `src/lib/routes.ts` — special front-page and new-board hash routes
-- `src/lib/sample-boards.ts` — sample definition-to-editor catalog behavior
-- `src/lib/sorting.ts` — Card Pool sorting strategies
-- `tests/` — behavioral tests for state, parsing, color logic, sorting, randomization, constraints, and wins
-- `.github/workflows/deploy-pages.yml` — tested GitHub Pages deployment
-
-## State and privacy
-
-Squarecast writes all board, editor, and play-session state to `window.location.hash` using the History API. Shared URLs therefore contain the complete board and never depend on state from another device.
-
-The special `#new` fragment is an action route rather than persisted board
-state. Opening it creates a fresh blank board with default settings and a new
-random color. The first board edit replaces that action route with the complete
-encoded editor state. Opening the hash-free front page similarly chooses a
-random sample, then writes that complete sample state into the URL.
-
-The sole browser-storage exception is `squarecast:appearance` in `localStorage`. It stores only `system`, `light`, or `dark`. Appearance is a device-local UI preference rather than board data, so it follows the user across every Squarecast screen without changing shared links. Squarecast does not use `sessionStorage`, cookies, tracking scripts, or network APIs.
-
-Anyone who receives a Squarecast URL can read the board data embedded in it. Do not place secrets or sensitive information in a board.
-
-## Portable files
-
-**Export JSON** creates one `.squarecast.json` object containing the full board
-configuration and Card Pool, including placement constraints. The object has a
-format identifier and version so incompatible files are rejected before they
-can replace the current editor. Importing a valid board creates a Back-button
-history checkpoint.
-
-**Export CSV** creates a conventional one-column `.cards.csv` file containing
-only populated cards in their current order. Quoted commas, quotes, and line
-breaks round-trip through Paste CSV or Card Pool drag-and-drop. CSV does not
-contain board settings or placement constraints; use JSON when those must be
-preserved.
-
-Both formats are generated and read locally in the browser. Import and export
-do not upload files or introduce persisted browser state.
-
-## Runtime diagnostics
-
-Squarecast uses `loglevel`, a small browser-focused logging library. Each
-application service creates a named logger, but the shipped runtime threshold
-is fixed at `warn`. Debug and informational calls document normal control flow
-for development without appearing in a user's console. Recoverable degradation
-uses `warn`; failed operations and invariant violations use `error`.
-
-Logging is local to the browser console. Squarecast has no telemetry endpoint,
-log transport, analytics service, or remote error collector. Diagnostics record
-operation types, counts, modes, and normalized error messages. They must not
-include card text, board titles, encoded hash state, share URLs, or clipboard
-contents. The log threshold is not persisted and does not create another
-browser-storage exception.
+| Guide | Purpose |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Runtime layers, service boundaries, state model, and generation algorithm |
+| [Design and UX](docs/design-and-ux.md) | Interaction principles, editing and play flows, accessibility, and responsive behavior |
+| [State and Routing](docs/state-and-routing.md) | URL state, action routes, browser history, launch links, and privacy boundaries |
+| [Data Formats](docs/data-formats.md) | JSON board documents, CSV Card Pools, validation, and compatibility |
+| [Development](docs/development.md) | Repository structure, coding conventions, testing, and contribution workflow |
+| [Operations](docs/operations.md) | Logging, CI/CD, deployment, diagnostics, and recovery |
 
 ## Contributing
 
-1. Create a branch from `main`.
-2. Make a focused change.
-3. Add or update tests.
-4. Run `npm run check`.
-5. Open a pull request describing the behavior change and test coverage.
+Issues and pull requests are welcome. Keep changes focused, preserve the
+static and URL-native architecture, add meaningful tests for behavioral
+changes, and run `npm run check` before opening a pull request.
 
-Keep the project fully static and URL-native. Do not add server state or browser storage beyond the documented site-appearance preference.
-
-## Architecture
-
-Squarecast uses strict TypeScript and class-based application, controller,
-domain, and browser-adapter services. State encoding, parsing, board generation,
-sorting, editor mutations, play-session mutations, navigation intent, local
-appearance preferences, clipboard behavior, rendered text measurement, and
-application bootstrapping are encapsulated behind typed classes.
-
-React function components remain declarative because hooks are React's native
-composition model. Components are divided by feature and delegate imperative
-behavior to controllers and services. `App.tsx` is intentionally limited to
-global composition rather than containing editor or player implementation.
-
-Class and method JSDoc explains responsibility, invariants, algorithms, and
-failure behavior. Keep comments focused on decisions that cannot be recovered
-from syntax alone; update them with the implementation rather than narrating
-individual statements.
+See the [development guide](docs/development.md) for repository conventions and
+the [design and UX guide](docs/design-and-ux.md) for product constraints.
 
 ## License
 
-MIT
+Squarecast is available under the [MIT License](LICENSE).
