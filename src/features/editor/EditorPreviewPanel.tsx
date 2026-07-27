@@ -1,0 +1,80 @@
+import {
+  Check,
+  Dices,
+  Link2,
+  Shuffle,
+  Sparkles,
+} from "lucide-react";
+import { BoardPreview } from "../../components/BoardPreview";
+import { ValidationCard } from "../../components/ValidationCard";
+import type { EditorController } from "../../controllers/EditorController";
+
+type EditorPreviewPanelProps = {
+  controller: EditorController;
+  copied: "edit" | "play" | null;
+  onCopyEditor: () => void;
+  onCreatePlayLink: () => void;
+};
+
+/** Renders the sticky preview and all editor-to-play actions. */
+export function EditorPreviewPanel({
+  controller,
+  copied,
+  onCopyEditor,
+  onCreatePlayLink,
+}: EditorPreviewPanelProps) {
+  const validation = controller.validation;
+  return (
+    <aside className="preview-panel">
+      <div className="preview-topline">
+        <span>Live Preview</span>
+        <button
+          type="button"
+          className="text-button compact"
+          onClick={() => controller.shufflePreview()}
+        >
+          <Shuffle size={15} />
+          Shuffle Preview
+        </button>
+      </div>
+      <button
+        type="button"
+        className="copy-editor-action"
+        onClick={onCopyEditor}
+      >
+        {copied === "edit" ? <Check size={21} /> : <Link2 size={21} />}
+        <span>
+          <strong>
+            {copied === "edit" ? "Editor Link Copied" : "Copy Editor Link"}
+          </strong>
+          <small>Save or share this editable board</small>
+        </span>
+      </button>
+      <BoardPreview editor={controller.editor} />
+      <ValidationCard validation={validation} />
+      <button
+        type="button"
+        className="share-play-action"
+        disabled={!validation.valid}
+        onClick={() => controller.openTestBoard()}
+      >
+        <Sparkles size={19} />
+        Test This Board
+        <span aria-hidden="true">→</span>
+      </button>
+      <button
+        type="button"
+        className="primary-action"
+        disabled={!validation.valid}
+        onClick={onCreatePlayLink}
+      >
+        <Dices size={19} />
+        Create Play Link
+        <span aria-hidden="true">→</span>
+      </button>
+      <p className="privacy-note">
+        Nothing is uploaded. This board lives entirely in its URL.
+      </p>
+    </aside>
+  );
+}

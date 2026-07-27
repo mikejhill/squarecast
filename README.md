@@ -84,17 +84,28 @@ The static output is written to `dist/`.
 
 ## Project structure
 
-- `src/App.tsx` — editor, share flow, and play interface
+- `src/App.tsx` — top-level state, appearance, and feature composition
+- `src/app/` — application service composition and shared state-transition types
+- `src/components/` — reusable header, panel, modal, preview, validation, and text-fitting views
+- `src/controllers/` — class-based editor and player interaction coordinators
+- `src/features/editor/` — focused editor page, setup, Card Pool, dialogs, rows, and preview views
+- `src/features/play/` — focused play-session view
+- `src/services/` — browser clipboard and rendered-text measurement adapters
+- `src/data/sample-board-definitions.ts` — immutable curated sample content
 - `src/lib/model.ts` — versioned schemas and default state
 - `src/lib/codec.ts` — compressed URL encoding and decoding
+- `src/lib/application-state.ts` — route-to-state restoration
+- `src/lib/navigation.ts` — pending History API write coordination
+- `src/lib/editor-state.ts` — immutable editor mutations
+- `src/lib/player-session.ts` — immutable play-session mutations
 - `src/lib/generator.ts` — validation, constrained randomization, and win detection
 - `src/lib/csv.ts` — CSV card parser
 - `src/lib/theme.ts` — appearance resolution, color palettes, contrast, and random colors
 - `src/lib/preferences.ts` — device-local site appearance preference
 - `src/lib/logger.ts` — scoped, privacy-conscious browser runtime logging
 - `src/lib/routes.ts` — special front-page and new-board hash routes
-- `src/lib/sample-boards.ts` — curated complete sample-board catalog
-- `src/lib/sorting.ts` — card-pool sorting strategies
+- `src/lib/sample-boards.ts` — sample definition-to-editor catalog behavior
+- `src/lib/sorting.ts` — Card Pool sorting strategies
 - `tests/` — behavioral tests for state, parsing, color logic, sorting, randomization, constraints, and wins
 - `.github/workflows/deploy-pages.yml` — tested GitHub Pages deployment
 
@@ -139,11 +150,16 @@ Keep the project fully static and URL-native. Do not add server state or browser
 
 ## Architecture
 
-Squarecast uses strict TypeScript and class-based application and domain
-services. State encoding, parsing, board generation, sorting, local appearance
-preferences, appearance resolution, identifiers, clipboard behavior, and application bootstrapping are
-encapsulated behind typed classes. React components remain declarative views
-and delegate stateful behavior to those services.
+Squarecast uses strict TypeScript and class-based application, controller,
+domain, and browser-adapter services. State encoding, parsing, board generation,
+sorting, editor mutations, play-session mutations, navigation intent, local
+appearance preferences, clipboard behavior, rendered text measurement, and
+application bootstrapping are encapsulated behind typed classes.
+
+React function components remain declarative because hooks are React's native
+composition model. Components are divided by feature and delegate imperative
+behavior to controllers and services. `App.tsx` is intentionally limited to
+global composition rather than containing editor or player implementation.
 
 Class and method JSDoc explains responsibility, invariants, algorithms, and
 failure behavior. Keep comments focused on decisions that cannot be recovered

@@ -100,6 +100,7 @@ export const playStateSchema = z.object({
   seed: z.string(),
 });
 export type PlayState = z.infer<typeof playStateSchema>;
+export type ActiveState = EditorState | PlayState;
 
 export const appStateSchema = z.discriminatedUnion("mode", [
   editorStateSchema,

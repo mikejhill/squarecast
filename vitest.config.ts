@@ -7,7 +7,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "html", "lcov"],
-      include: ["src/lib/**/*.ts"],
+      include: ["src/lib/**/*.ts", "src/controllers/**/*.ts"],
       exclude: ["src/lib/**/*.d.ts"],
       thresholds: {
         perFile: true,
