@@ -1103,10 +1103,37 @@ optgroup {
   text-transform: uppercase;
 }
 
+.preview-shuffle-button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid #d9d5ce;
+  border-radius: 8px;
+  background: #fffefa;
+  color: #4e4b47;
+  font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.preview-shuffle-button:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, #d9d5ce);
+  color: var(--accent-dark);
+}
+
+.preview-shuffle-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  outline-offset: 2px;
+}
+
 .copy-editor-action {
   width: 100%;
   min-height: 58px;
-  margin: 0 0 16px;
+  margin: 11px 0 0;
   padding: 11px 16px;
   display: flex;
   align-items: center;
@@ -1450,7 +1477,8 @@ optgroup {
 .modal-actions {
   margin-top: 18px;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: 9px;
 }
 
@@ -1820,6 +1848,7 @@ optgroup {
   .random-color-button,
   .board-file-actions button,
   .pool-tool-button,
+  .preview-shuffle-button,
   .sort-control {
     border-color: #494850;
     background: #28282d;

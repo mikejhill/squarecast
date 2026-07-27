@@ -30,13 +30,25 @@ export function EditorPreviewPanel({
         <span>Live Preview</span>
         <button
           type="button"
-          className="text-button compact"
+          className="preview-shuffle-button"
           onClick={() => controller.shufflePreview()}
         >
           <Shuffle size={15} />
           Shuffle Preview
         </button>
       </div>
+      <BoardPreview editor={controller.editor} />
+      <ValidationCard validation={validation} />
+      <button
+        type="button"
+        className="share-play-action"
+        disabled={!validation.valid}
+        onClick={() => controller.openTestBoard()}
+      >
+        <Sparkles size={19} />
+        Test This Board
+        <span aria-hidden="true">→</span>
+      </button>
       <button
         type="button"
         className="copy-editor-action"
@@ -49,18 +61,6 @@ export function EditorPreviewPanel({
           </strong>
           <small>Save or share this editable board</small>
         </span>
-      </button>
-      <BoardPreview editor={controller.editor} />
-      <ValidationCard validation={validation} />
-      <button
-        type="button"
-        className="share-play-action"
-        disabled={!validation.valid}
-        onClick={() => controller.openTestBoard()}
-      >
-        <Sparkles size={19} />
-        Test This Board
-        <span aria-hidden="true">→</span>
       </button>
       <button
         type="button"

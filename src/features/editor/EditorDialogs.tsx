@@ -50,18 +50,18 @@ export function EditorDialogs({
           <div className="modal-actions">
             <button
               type="button"
-              className="secondary-button"
-              onClick={onCloseCsv}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
               className="primary-button"
               onClick={onImportCsv}
               disabled={!csvCardCount}
             >
               Import {csvCardCount || ""} Cards
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={onCloseCsv}
+            >
+              Cancel
             </button>
           </div>
         </Modal>
@@ -97,13 +97,6 @@ export function EditorDialogs({
             </div>
           </label>
           <div className="modal-actions">
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={onCloseShare}
-            >
-              Done
-            </button>
             <a
               className="primary-button"
               href={shareUrl}
@@ -113,6 +106,13 @@ export function EditorDialogs({
               Open play board
               <ExternalLink size={16} />
             </a>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={onCloseShare}
+            >
+              Close
+            </button>
           </div>
         </Modal>
       )}

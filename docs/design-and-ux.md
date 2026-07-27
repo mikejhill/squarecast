@@ -60,8 +60,8 @@ The header contains navigation and device-level controls:
 
 - Squarecast home link;
 - system, light, and dark appearance;
-- random sample selection;
 - fresh-board creation;
+- random sample selection;
 - current mode label; and
 - repository link.
 
@@ -103,14 +103,24 @@ the pool.
 The preview combines:
 
 - preview shuffling;
-- a prominent editor-link action;
 - the current board;
 - validation status;
 - immediate test play; and
+- a prominent editor-link action;
 - play-link creation.
 
 The editor link is intentionally prominent because the URL is the save and
 collaboration mechanism.
+
+## Action Ordering
+
+Horizontal action groups follow one stable convention:
+
+- the primary or forward action appears on the left; and
+- the secondary, cancellation, or dismissal action appears on the right.
+
+Dialog actions use the available row width to reinforce this separation.
+Peer actions without a primary/dismissal relationship retain task order.
 
 ## Play Experience
 

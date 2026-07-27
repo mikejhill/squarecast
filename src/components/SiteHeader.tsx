@@ -72,21 +72,21 @@ export function SiteHeader({
         </div>
         <button
           type="button"
-          className="sample-board-button"
-          onClick={onSampleBoard}
-          title="Open a random sample board"
-        >
-          <LayoutTemplate size={16} />
-          <span>Sample Board</span>
-        </button>
-        <button
-          type="button"
           className="new-board-button"
           onClick={onNewBoard}
           title="Create a blank board"
         >
           <Plus size={16} />
           <span>New Board</span>
+        </button>
+        <button
+          type="button"
+          className="sample-board-button"
+          onClick={onSampleBoard}
+          title="Open a random sample board"
+        >
+          <LayoutTemplate size={16} />
+          <span>Sample Board</span>
         </button>
         <div className="mode-label">
           {mode === "edit" ? <Settings2 size={15} /> : <Sparkles size={15} />}
