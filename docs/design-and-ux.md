@@ -194,6 +194,8 @@ effects. At narrower widths, both sections return to their natural
 content-driven heights and:
 
 - Card Pool and Live Preview stack;
+- the Card Pool list uses a shorter viewport-relative scroll cap;
+- each Card Pool row reserves a full second line for its placement control;
 - multi-column setup fields collapse;
 - header labels reduce before controls disappear;
 - Card Pool rows reorganize without hiding placement settings; and

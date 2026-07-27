@@ -90,6 +90,8 @@ See [State and Routing](docs/state-and-routing.md).
   page scrolling.
 - Once the workspace stacks at responsive widths, both sections use independent
   natural heights; do not force equal mobile heights.
+- On mobile, cap the Card Pool list relative to the viewport and give each card
+  row a dedicated full-width second line for its placement selector.
 - Card Pool must support:
   - Enter-to-add
   - visible Add action
