@@ -1625,6 +1625,8 @@ optgroup {
   z-index: 4;
   top: 0;
   left: 50%;
+  /* The animation must decorate this centered anchor, not temporarily own it. */
+  transform: translate(-50%, -50%);
   width: fit-content;
   margin: 0;
   padding: 9px 13px;
@@ -1637,7 +1639,7 @@ optgroup {
   color: var(--accent-dark);
   font-size: 12px;
   white-space: nowrap;
-  animation: win-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  animation: win-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 
 @keyframes win-in {
