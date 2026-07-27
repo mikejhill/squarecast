@@ -94,10 +94,10 @@ See [State and Routing](docs/state-and-routing.md).
   row a dedicated full-width second line for its placement selector.
 - Do not impose a minimum page width. Hide the header wordmark before its
   controls can create horizontal overflow on narrow screens.
-- At stacked widths, keep the application surface itself as the horizontal
-  containment boundary. Do not rely only on root-element overflow behavior.
 - Keep one page-level vertical scroller. Do not turn `<body>` into a nested
   scrolling viewport.
+- Preserve one-pixel dimensions for `.sr-only` form controls with enough
+  specificity to beat generic field-input rules.
 - Board headings must use zero-minimum grid tracks and truncate their contents;
   header text must never contribute intrinsic width beyond the board.
 - Card Pool must support:

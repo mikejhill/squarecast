@@ -199,8 +199,8 @@ content-driven heights and:
 - multi-column setup fields collapse;
 - the Squarecast wordmark yields to header controls before their combined
   minimum width can enlarge the page;
-- the stacked application surface is the horizontal containment boundary, so
-  descendant controls and decorative effects cannot enlarge the document;
+- visually hidden native controls retain one-pixel dimensions even when nested
+  inside broadly styled form fields;
 - board-heading tracks may shrink below their contents' intrinsic widths, with
   long labels truncated inside the board rather than widening the document;
 - Card Pool rows reorganize without hiding placement settings; and
