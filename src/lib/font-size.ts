@@ -1,7 +1,7 @@
 export interface FontFitOptions {
   min: number;
   max: number;
-  tolerance?: number;
+  step?: number;
   fits: (size: number) => boolean;
 }
 
@@ -17,19 +17,19 @@ export class FontSizeOptimizer {
   public findLargest({
     min,
     max,
-    tolerance = 0.125,
+    step = 0.25,
     fits,
   }: FontFitOptions): number {
     if (max <= min || !fits(min)) return min;
 
-    let lower = min;
-    let upper = max;
-    while (upper - lower > tolerance) {
-      const candidate = (lower + upper) / 2;
-      if (fits(candidate)) lower = candidate;
-      else upper = candidate;
+    const increment = Math.max(0.01, step);
+    const candidateCount = Math.ceil((max - min) / increment);
+    for (let index = 0; index < candidateCount; index += 1) {
+      const candidate = Math.max(min, max - index * increment);
+      const renderedSize = Math.round(candidate * 1000) / 1000;
+      if (fits(renderedSize)) return renderedSize;
     }
 
-    return Math.floor(lower * 4) / 4;
+    return min;
   }
 }

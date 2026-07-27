@@ -17,7 +17,7 @@ describe("AutoFontSizePolicy", () => {
 describe("FontSizeOptimizer", () => {
   const optimizer = new FontSizeOptimizer();
 
-  it("finds the largest fitting size to a quarter pixel", () => {
+  it("finds the largest fitting size using rendered quarter-pixel candidates", () => {
     const result = optimizer.findLargest({
       min: 8,
       max: 60,
@@ -34,6 +34,16 @@ describe("FontSizeOptimizer", () => {
     expect(fits).toHaveBeenCalledOnce();
   });
 
+  it("returns the minimum when it is the only fitting candidate", () => {
+    expect(
+      optimizer.findLargest({
+        min: 10,
+        max: 11,
+        fits: (size) => size === 10,
+      }),
+    ).toBe(10);
+  });
+
   it("returns the minimum for an invalid range without measuring", () => {
     const fits = vi.fn(() => true);
 
@@ -41,18 +51,39 @@ describe("FontSizeOptimizer", () => {
     expect(fits).not.toHaveBeenCalled();
   });
 
-  it("honors a custom search tolerance", () => {
+  it("checks larger candidates even when wrapped layout is non-monotonic", () => {
+    const result = optimizer.findLargest({
+      min: 8,
+      max: 24,
+      fits: (size) => size <= 12.25 || (size >= 18.5 && size <= 18.75),
+    });
+
+    expect(result).toBe(18.75);
+  });
+
+  it("honors a custom candidate step", () => {
     const fits = vi.fn((size: number) => size <= 31);
 
     const result = optimizer.findLargest({
       min: 10,
       max: 50,
-      tolerance: 2,
+      step: 2,
       fits,
     });
 
-    expect(result).toBeGreaterThanOrEqual(30);
-    expect(result).toBeLessThanOrEqual(31);
-    expect(fits.mock.calls.length).toBeLessThan(8);
+    expect(result).toBe(30);
+    expect(fits).toHaveBeenCalledWith(32);
+    expect(fits).toHaveBeenCalledWith(30);
+  });
+
+  it("uses a safe increment when given an invalid step", () => {
+    expect(
+      optimizer.findLargest({
+        min: 10,
+        max: 10.02,
+        step: 0,
+        fits: () => true,
+      }),
+    ).toBe(10.02);
   });
 });

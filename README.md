@@ -6,6 +6,8 @@
 
 Squarecast is a static, URL-native bingo board studio. Build a square board, add more cards than it needs, lock important cards to a cell, row, or column, then send a play link. Each player gets a randomized board.
 
+**Live site:** [mikejhill.github.io/squarecast](https://mikejhill.github.io/squarecast/)
+
 No account, database, cookie, local storage, or backend is used. The complete editor or play session is compressed into the URL hash.
 
 ## Use Squarecast
