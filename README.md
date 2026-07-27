@@ -8,16 +8,20 @@ Squarecast is a static, URL-native bingo board studio. Build a square board, add
 
 **Live site:** [mikejhill.github.io/squarecast](https://mikejhill.github.io/squarecast/)
 
+[Open a blank board](https://mikejhill.github.io/squarecast/#new), or open the
+front page to receive a randomly selected sample board.
+
 No account, database, cookie, or backend is used. The complete editor or play session is compressed into the URL hash. Only the device-local light, dark, or system appearance preference uses `localStorage`.
 
 ## Use Squarecast
 
-1. Open the hosted site.
+1. Open the hosted site to start with one of twelve randomly selected sample boards.
 2. Choose a system, light, or dark site appearance from the header, then configure the board size, free-square setting, title, tile font size, and board color.
-3. Add cards with the quick-add field. Press Enter after each card, use **Paste CSV**, or drop one or more CSV files anywhere on the Card Pool.
-4. Optionally constrain a card to a specific cell, row, or column.
-5. Select **Test This Board** to test the board immediately, or select **Create Play Link** to share it.
-6. Each recipient opens the launch link to create a fresh randomized board. Their marks are written back to their URL as they play.
+3. Select **Sample Board** for another curated example or **New Board** for a blank board.
+4. Add cards with the quick-add field. Press Enter after each card, use **Paste CSV**, or drop one or more CSV files anywhere on the Card Pool.
+5. Optionally constrain a card to a specific cell, row, or column.
+6. Select **Test This Board** to test the board immediately, or select **Create Play Link** to share it.
+7. Each recipient opens the launch link to create a fresh randomized board. Their marks are written back to their URL as they play.
 
 The URL can be bookmarked or copied at any point. Editing one URL never changes a previously shared URL.
 
@@ -25,6 +29,8 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 
 - 3×3 through 7×7 square boards
 - Blank one-click board creation with a fresh randomized color
+- Twelve complete, curated sample boards selected randomly on the front page
+- Stable `#new` route for linking directly to fresh blank-board creation
 - Optional centered free square with a custom label
 - Unlimited card pool with live minimum-count validation
 - Exact-cell, row, and column placement rules
@@ -86,6 +92,8 @@ The static output is written to `dist/`.
 - `src/lib/theme.ts` — appearance resolution, color palettes, contrast, and random colors
 - `src/lib/preferences.ts` — device-local site appearance preference
 - `src/lib/logger.ts` — scoped, privacy-conscious browser runtime logging
+- `src/lib/routes.ts` — special front-page and new-board hash routes
+- `src/lib/sample-boards.ts` — curated complete sample-board catalog
 - `src/lib/sorting.ts` — card-pool sorting strategies
 - `tests/` — behavioral tests for state, parsing, color logic, sorting, randomization, constraints, and wins
 - `.github/workflows/deploy-pages.yml` — tested GitHub Pages deployment
@@ -93,6 +101,12 @@ The static output is written to `dist/`.
 ## State and privacy
 
 Squarecast writes all board, editor, and play-session state to `window.location.hash` using the History API. Shared URLs therefore contain the complete board and never depend on state from another device.
+
+The special `#new` fragment is an action route rather than persisted board
+state. Opening it creates a fresh blank board with default settings and a new
+random color. The first board edit replaces that action route with the complete
+encoded editor state. Opening the hash-free front page similarly chooses a
+random sample, then writes that complete sample state into the URL.
 
 The sole browser-storage exception is `squarecast:appearance` in `localStorage`. It stores only `system`, `light`, or `dark`. Appearance is a device-local UI preference rather than board data, so it follows the user across every Squarecast screen without changing shared links. Squarecast does not use `sessionStorage`, cookies, tracking scripts, or network APIs.
 

@@ -186,7 +186,8 @@ optgroup {
   outline-offset: 1px;
 }
 
-.new-board-button {
+.new-board-button,
+.sample-board-button {
   min-height: 36px;
   padding: 0 12px;
   display: inline-flex;
@@ -200,11 +201,19 @@ optgroup {
   font-weight: 800;
 }
 
-.new-board-button:hover {
+.sample-board-button {
+  border-color: rgba(31, 30, 28, 0.16);
+  background: #fffefa;
+  color: #4d4943;
+}
+
+.new-board-button:hover,
+.sample-board-button:hover {
   filter: saturate(1.12) brightness(1.02);
 }
 
-.new-board-button:focus-visible {
+.new-board-button:focus-visible,
+.sample-board-button:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
   outline-offset: 2px;
 }
@@ -1608,6 +1617,12 @@ optgroup {
     color: #cbc7c0;
   }
 
+  .sample-board-button {
+    border-color: #494850;
+    background: #28282d;
+    color: #d4d0c9;
+  }
+
   .intro h1,
   .play-title h1 {
     color: #f7f4ee;
@@ -1970,13 +1985,15 @@ optgroup {
     display: none;
   }
 
-  .new-board-button {
+  .new-board-button,
+  .sample-board-button {
     width: 36px;
     padding: 0;
     justify-content: center;
   }
 
-  .new-board-button span {
+  .new-board-button span,
+  .sample-board-button span {
     display: none;
   }
 
@@ -2111,6 +2128,12 @@ optgroup {
   .link-field button {
     min-height: 39px;
     justify-content: center;
+  }
+}
+
+@media (max-width: 350px) {
+  .brand > span:last-child {
+    display: none;
   }
 }
 

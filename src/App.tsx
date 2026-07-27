@@ -8,6 +8,7 @@ import {
   Dices,
   ExternalLink,
   FileUp,
+  LayoutTemplate,
   Github,
   Link2,
   LockKeyhole,
@@ -44,6 +45,8 @@ import { AutoFontSizePolicy, FontSizeOptimizer } from "./lib/font-size";
 import { BoardGenerator, type ValidationResult } from "./lib/generator";
 import { UrlHistoryService, type HistoryWriteMode } from "./lib/history";
 import { RuntimeLogger } from "./lib/logger";
+import { ApplicationRoutes } from "./lib/routes";
+import { SampleBoardCatalog } from "./lib/sample-boards";
 import {
   BoardModel,
   IdFactory,
@@ -63,6 +66,7 @@ type ActiveState = EditorState | PlayState;
 type StateChangeHandler = (
   state: ActiveState,
   historyMode?: HistoryWriteMode,
+  routeHash?: string,
 ) => void;
 
 const logger = new RuntimeLogger("application");
@@ -115,10 +119,19 @@ class ApplicationStateService {
     private readonly codec: StateCodec,
     private readonly generator: BoardGenerator,
     private readonly boardFactory: BoardFactory,
+    private readonly sampleBoards: SampleBoardCatalog,
   ) {}
 
   /** Restores edit/play state or creates a safe new session when restoration fails. */
   public load(hash: string): ActiveState {
+    if (ApplicationRoutes.isNewBoard(hash)) {
+      logger.info("Started a fresh editor from the special new-board route.");
+      return this.boardFactory.createNewEditor();
+    }
+    if (ApplicationRoutes.isFrontPage(hash)) {
+      logger.info("Opened a random sample from the front page.");
+      return this.sampleBoards.createRandomEditor();
+    }
     const decoded = this.codec.decode(hash);
     if (decoded?.mode === "launch") {
       try {
@@ -142,6 +155,7 @@ class ApplicationStateService {
 const codec = new StateCodec();
 const generator = new BoardGenerator();
 const boardFactory = new BoardFactory();
+const sampleBoards = new SampleBoardCatalog();
 const csvParser = new CsvAnswerParser();
 const csvFileImporter = new CsvFileImporter(csvParser);
 const sorter = new AnswerPoolSorter();
@@ -150,7 +164,12 @@ const fontSizeOptimizer = new FontSizeOptimizer();
 const autoFontSizePolicy = new AutoFontSizePolicy();
 const duplicateCardDetector = new DuplicateCardDetector();
 const clipboard = new ClipboardService();
-const stateService = new ApplicationStateService(codec, generator, boardFactory);
+const stateService = new ApplicationStateService(
+  codec,
+  generator,
+  boardFactory,
+  sampleBoards,
+);
 const urlHistory = new UrlHistoryService(window.history);
 const appearancePreferences = AppearancePreferenceStore.createBrowserStore();
 
@@ -169,11 +188,22 @@ export function App() {
     appearancePreferences.read(),
   );
   const historyMode = useRef<HistoryWriteMode>("replace");
-  const navigate: StateChangeHandler = (nextState, mode = "replace") => {
+  const routeHash = useRef<string | null>(
+    ApplicationRoutes.isNewBoard(window.location.hash)
+      ? ApplicationRoutes.newBoardHash
+      : null,
+  );
+  const navigate: StateChangeHandler = (
+    nextState,
+    mode = "replace",
+    nextRouteHash,
+  ) => {
     historyMode.current = mode;
+    routeHash.current = nextRouteHash ?? null;
     logger.debug("Scheduled an application state change.", {
       destinationMode: nextState.mode,
       historyMode: mode,
+      specialRoute: nextRouteHash !== undefined,
     });
     setState(nextState);
   };
@@ -181,8 +211,12 @@ export function App() {
   // Every state mutation is encoded immediately; the pending mode decides
   // whether this is a major Back-button checkpoint or a replacement edit.
   useEffect(() => {
-    urlHistory.write(codec.encode(state), historyMode.current);
+    urlHistory.write(
+      routeHash.current ?? codec.encode(state),
+      historyMode.current,
+    );
     historyMode.current = "replace";
+    routeHash.current = null;
   }, [state]);
 
   useEffect(() => {
@@ -240,7 +274,16 @@ export function App() {
         mode={state.mode}
         appearance={appearance}
         onAppearanceChange={changeAppearance}
-        onNewBoard={() => navigate(boardFactory.createNewEditor(), "push")}
+        onSampleBoard={() =>
+          navigate(sampleBoards.createRandomEditor(), "push")
+        }
+        onNewBoard={() =>
+          navigate(
+            boardFactory.createNewEditor(),
+            "push",
+            ApplicationRoutes.newBoardHash,
+          )
+        }
       />
       {state.mode === "edit" ? (
         <Editor state={state} onChange={navigate} />
@@ -256,11 +299,13 @@ function SiteHeader({
   mode,
   appearance,
   onAppearanceChange,
+  onSampleBoard,
   onNewBoard,
 }: {
   mode: "edit" | "play";
   appearance: Appearance;
   onAppearanceChange: (appearance: Appearance) => void;
+  onSampleBoard: () => void;
   onNewBoard: () => void;
 }) {
   return (
@@ -303,7 +348,21 @@ function SiteHeader({
             </button>
           ))}
         </div>
-        <button type="button" className="new-board-button" onClick={onNewBoard}>
+        <button
+          type="button"
+          className="sample-board-button"
+          onClick={onSampleBoard}
+          title="Open a random sample board"
+        >
+          <LayoutTemplate size={16} />
+          <span>Sample Board</span>
+        </button>
+        <button
+          type="button"
+          className="new-board-button"
+          onClick={onNewBoard}
+          title="Create a blank board"
+        >
           <Plus size={16} />
           <span>New Board</span>
         </button>

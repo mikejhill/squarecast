@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { UrlHistoryService } from "../src/lib/history";
+import { ApplicationRoutes } from "../src/lib/routes";
 
 describe("URL history service", () => {
   const createHistory = () => ({
@@ -13,6 +14,16 @@ describe("URL history service", () => {
 
     expect(history.pushState).toHaveBeenCalledWith(null, "", "#sq1:new-board");
     expect(history.replaceState).not.toHaveBeenCalled();
+  });
+
+  it("pushes the special new-board route as a Back-button checkpoint", () => {
+    const history = createHistory();
+    new UrlHistoryService(history).write(
+      ApplicationRoutes.newBoardHash,
+      "push",
+    );
+
+    expect(history.pushState).toHaveBeenCalledWith(null, "", "#new");
   });
 
   it("updates the current entry for routine state changes", () => {
