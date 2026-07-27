@@ -1,5 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import { FontSizeOptimizer } from "../src/lib/font-size";
+import { AutoFontSizePolicy, FontSizeOptimizer } from "../src/lib/font-size";
+
+describe("AutoFontSizePolicy", () => {
+  const policy = new AutoFontSizePolicy();
+
+  it("caps large tiles at the readable Auto maximum", () => {
+    expect(policy.maximumForHeight(200)).toBe(24);
+  });
+
+  it("scales down for small tiles and retains a usable lower boundary", () => {
+    expect(policy.maximumForHeight(20)).toBeCloseTo(18.4);
+    expect(policy.maximumForHeight(0)).toBe(1);
+  });
+});
 
 describe("FontSizeOptimizer", () => {
   const optimizer = new FontSizeOptimizer();

@@ -6,6 +6,7 @@ import {
   type PlayCell,
   type PlayState,
 } from "./model";
+import { DuplicateCardDetector } from "./duplicates";
 
 export type ValidationResult = {
   valid: boolean;
@@ -14,6 +15,8 @@ export type ValidationResult = {
 };
 
 export class BoardGenerator {
+  private readonly duplicateDetector = new DuplicateCardDetector();
+
   public validate(editor: EditorState): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -49,10 +52,7 @@ export class BoardGenerator {
       );
     }
 
-    const normalized = answers.map((answer) =>
-      answer.text.trim().toLowerCase(),
-    );
-    if (new Set(normalized).size !== normalized.length) {
+    if (this.duplicateDetector.findDuplicateIds(answers).size > 0) {
       warnings.push("Duplicate card text will appear as separate squares.");
     }
     if (encodeURIComponent(JSON.stringify(editor)).length > 7000) {

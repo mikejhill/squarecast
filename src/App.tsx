@@ -19,6 +19,7 @@ import {
   Shuffle,
   Sparkles,
   Sun,
+  TriangleAlert,
   Trash2,
   Type,
   X,
@@ -34,7 +35,8 @@ import {
 } from "react";
 import { StateCodec } from "./lib/codec";
 import { CsvAnswerParser } from "./lib/csv";
-import { FontSizeOptimizer } from "./lib/font-size";
+import { DuplicateCardDetector } from "./lib/duplicates";
+import { AutoFontSizePolicy, FontSizeOptimizer } from "./lib/font-size";
 import { BoardGenerator, type ValidationResult } from "./lib/generator";
 import {
   BoardModel,
@@ -89,6 +91,8 @@ const csvParser = new CsvAnswerParser();
 const sorter = new AnswerPoolSorter();
 const appearanceResolver = new AppearanceResolver();
 const fontSizeOptimizer = new FontSizeOptimizer();
+const autoFontSizePolicy = new AutoFontSizePolicy();
+const duplicateCardDetector = new DuplicateCardDetector();
 const clipboard = new ClipboardService();
 const stateService = new ApplicationStateService(codec, generator);
 
@@ -193,6 +197,10 @@ function Editor({
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState<"edit" | "play" | null>(null);
   const validation = useMemo(() => generator.validate(state), [state]);
+  const duplicateCardIds = useMemo(
+    () => duplicateCardDetector.findDuplicateIds(state.answers),
+    [state.answers],
+  );
   const needed = BoardModel.blankSquareCount(state);
   const answerCount = state.answers.filter((answer) => answer.text.trim()).length;
 
@@ -545,6 +553,7 @@ function Editor({
               <AnswerRow
                 key={answer.id}
                 answer={answer}
+                duplicate={duplicateCardIds.has(answer.id)}
                 index={index}
                 size={state.config.size}
                 freeIndex={BoardModel.freeCellIndex(
@@ -596,17 +605,17 @@ function Editor({
         <ValidationCard validation={validation} />
         <button
           type="button"
-          className="primary-action"
+          className="share-play-action"
           disabled={!validation.valid}
           onClick={playBoard}
         >
           <Sparkles size={19} />
-          Play This Board
+          Test This Board
           <span aria-hidden="true">→</span>
         </button>
         <button
           type="button"
-          className="share-play-action"
+          className="primary-action"
           disabled={!validation.valid}
           onClick={createPlayLink}
         >
@@ -707,6 +716,7 @@ function Panel({
 
 function AnswerRow({
   answer,
+  duplicate,
   index,
   size,
   freeIndex,
@@ -715,6 +725,7 @@ function AnswerRow({
   onEnter,
 }: {
   answer: Answer;
+  duplicate: boolean;
   index: number;
   size: number;
   freeIndex: number | null;
@@ -746,12 +757,25 @@ function AnswerRow({
   return (
     <div className="answer-row">
       <span className="answer-number">{index + 1}</span>
-      <input
-        value={answer.text}
-        onChange={(event) => onChange({ text: event.target.value })}
-        onKeyDown={handleKey}
-        aria-label={`Card ${index + 1}`}
-      />
+      <div className="card-text-field">
+        <input
+          value={answer.text}
+          onChange={(event) => onChange({ text: event.target.value })}
+          onKeyDown={handleKey}
+          aria-label={`Card ${index + 1}`}
+        />
+        {duplicate && (
+          <span
+            className="duplicate-card-warning"
+            role="img"
+            tabIndex={0}
+            title="Duplicate card text. This card appears more than once."
+            aria-label="Warning: duplicate card text. This card appears more than once."
+          >
+            <TriangleAlert size={17} />
+          </span>
+        )}
+      </div>
       <div className={`placement ${answer.placement.kind !== "any" ? "locked" : ""}`}>
         {answer.placement.kind !== "any" && <LockKeyhole size={13} />}
         <select
@@ -991,7 +1015,7 @@ class RenderedTextFitter {
     const availableHeight = this.container.clientHeight;
     if (availableWidth <= 0 || availableHeight <= 0) return;
 
-    const maximum = Math.max(1, Math.min(96, availableHeight * 0.92));
+    const maximum = autoFontSizePolicy.maximumForHeight(availableHeight);
     const fitted = this.optimizer.findLargest({
       min: 1,
       max: maximum,

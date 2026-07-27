@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/og.png" alt="Squarecast — Build it. Cast it. Bingo." width="900">
+</p>
+
 # Squarecast
 
 Squarecast is a static, URL-native bingo board studio. Build a square board, add more cards than it needs, lock important cards to a cell, row, or column, then send a play link. Each player gets a randomized board.
@@ -10,7 +14,7 @@ No account, database, cookie, local storage, or backend is used. The complete ed
 2. Choose a system, light, or dark appearance; board size; free-square setting; title; tile font size; and board color.
 3. Add cards with the quick-add field. Press Enter after each card, or use **Paste CSV** to import multiple values.
 4. Optionally constrain a card to a specific cell, row, or column.
-5. Select **Play This Board** to test the board immediately, or select **Create Play Link** to share it.
+5. Select **Test This Board** to test the board immediately, or select **Create Play Link** to share it.
 6. Each recipient opens the launch link to create a fresh randomized board. Their marks are written back to their URL as they play.
 
 The URL can be bookmarked or copied at any point. Editing one URL never changes a previously shared URL.

@@ -5,6 +5,14 @@ export interface FontFitOptions {
   fits: (size: number) => boolean;
 }
 
+export class AutoFontSizePolicy {
+  public constructor(private readonly maximum = 24) {}
+
+  public maximumForHeight(availableHeight: number): number {
+    return Math.max(1, Math.min(this.maximum, availableHeight * 0.92));
+  }
+}
+
 export class FontSizeOptimizer {
   public findLargest({
     min,

@@ -659,13 +659,35 @@ button:disabled {
   text-align: center;
 }
 
-.answer-row > input {
+.card-text-field {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.card-text-field input {
+  width: 100%;
   min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
   color: #29292c;
   font-size: 14px;
+}
+
+.duplicate-card-warning {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #b86113;
+  cursor: help;
+}
+
+.duplicate-card-warning:focus-visible {
+  outline: 2px solid #b86113;
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 .placement {
@@ -1480,8 +1502,12 @@ button:disabled {
     color: var(--accent-dark);
   }
 
+  .duplicate-card-warning {
+    color: #f0a45e;
+  }
+
   .quick-add input,
-  .answer-row > input {
+  .card-text-field input {
     color: #f0ede7;
   }
 
