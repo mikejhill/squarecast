@@ -7,16 +7,17 @@ describe("sample board catalog", () => {
   const catalog = new SampleBoardCatalog();
   const generator = new BoardGenerator();
 
-  it("provides twelve distinct, complete, valid board themes", () => {
+  it("provides sixteen distinct, complete, valid 5×5 board themes", () => {
     const editors = catalog.createAllEditors();
 
-    expect(editors).toHaveLength(12);
-    expect(new Set(editors.map((editor) => editor.config.title)).size).toBe(12);
+    expect(editors).toHaveLength(16);
+    expect(new Set(editors.map((editor) => editor.config.title)).size).toBe(16);
     expect(new Set(editors.map((editor) => editor.config.accentColor)).size).toBe(
-      12,
+      16,
     );
 
     for (const editor of editors) {
+      expect(editor.config.size).toBe(5);
       expect(editor.answers).toHaveLength(BoardModel.blankSquareCount(editor));
       expect(new Set(editor.answers.map((card) => card.text)).size).toBe(
         editor.answers.length,
@@ -30,7 +31,7 @@ describe("sample board catalog", () => {
       });
 
       const play = generator.generate(editor, "sample-validation");
-      expect(play.cells).toHaveLength(editor.config.size ** 2);
+      expect(play.cells).toHaveLength(25);
       expect(play.cells.every((cell) => cell.text.trim().length > 0)).toBe(true);
     }
   });
@@ -41,7 +42,7 @@ describe("sample board catalog", () => {
     const defaultSelection = catalog.createRandomEditor();
 
     expect(first.config.title).toBe("Weekend Adventure Bingo");
-    expect(last.config.title).toBe("Stargazing Evening");
+    expect(last.config.title).toBe("Community Festival");
     expect(defaultSelection.answers.length).toBeGreaterThan(0);
   });
 

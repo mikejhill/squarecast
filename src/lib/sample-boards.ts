@@ -12,6 +12,9 @@ const logger = new RuntimeLogger("sample-boards");
  * no runtime IDs, so repeated selections remain independent URL documents.
  */
 export class SampleBoardCatalog {
+  /** Samples use one familiar geometry so random selection never changes scale. */
+  public static readonly boardSize = 5;
+
   /** Returns a fresh editor for every curated sample in catalog order. */
   public createAllEditors(): EditorState[] {
     return sampleBoardDefinitions.map((definition) =>
@@ -50,7 +53,7 @@ export class SampleBoardCatalog {
       mode: "edit",
       config: {
         title: definition.title,
-        size: definition.size,
+        size: SampleBoardCatalog.boardSize,
         free: definition.free,
         freeLabel: "FREE",
         theme: definition.theme,

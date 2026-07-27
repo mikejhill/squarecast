@@ -15,7 +15,7 @@ No account, database, cookie, or backend is used. The complete editor or play se
 
 ## Use Squarecast
 
-1. Open the hosted site to start with one of twelve randomly selected sample boards.
+1. Open the hosted site to start with one of sixteen randomly selected 5×5 sample boards.
 2. Choose a system, light, or dark site appearance from the header, then configure the board size, free-square setting, title, tile font size, and board color.
 3. Select **Sample Board** for another curated example or **New Board** for a blank board.
 4. Add cards with the quick-add field. Press Enter after each card, use **Paste CSV**, or drop one or more CSV files anywhere on the Card Pool.
@@ -30,7 +30,7 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 
 - 3×3 through 7×7 square boards
 - Blank one-click board creation with a fresh randomized color
-- Twelve complete, curated sample boards selected randomly on the front page
+- Sixteen complete, curated 5×5 sample boards selected randomly on the front page
 - Stable `#new` route for linking directly to fresh blank-board creation
 - Optional centered free square with a custom label
 - Unlimited card pool with live minimum-count validation
