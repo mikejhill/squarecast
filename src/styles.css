@@ -189,13 +189,6 @@ button:disabled {
   max-width: 610px;
 }
 
-.editor-actions {
-  margin-top: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .panel {
   margin-top: 18px;
   border: 1px solid rgba(31, 30, 28, 0.11);
@@ -237,7 +230,7 @@ button:disabled {
   background: #f0ede7;
   color: #67635e;
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -764,9 +757,56 @@ button:disabled {
   justify-content: space-between;
   color: #79746e;
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.copy-editor-action {
+  width: 100%;
+  min-height: 58px;
+  margin: 0 0 16px;
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, currentColor);
+  border-radius: 13px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  text-align: left;
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--accent) 48%, #17171a);
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.copy-editor-action:hover {
+  filter: saturate(1.12) brightness(1.02);
+}
+
+.copy-editor-action:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 48%, #17171a);
+}
+
+.copy-editor-action:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  outline-offset: 3px;
+}
+
+.copy-editor-action > span {
+  display: grid;
+  gap: 2px;
+}
+
+.copy-editor-action strong {
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.copy-editor-action small {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.78;
 }
 
 .board-frame {
@@ -801,9 +841,9 @@ button:disabled {
 
 .board-heading span {
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
+  font-size: clamp(12px, 1.35vw, 14px);
+  font-weight: 650;
+  letter-spacing: 0.09em;
 }
 
 .board-heading span:last-child {
@@ -833,12 +873,24 @@ button:disabled {
   text-align: center;
 }
 
+.auto-fit-slot {
+  position: absolute;
+  inset: 9px;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
 .auto-fit {
   display: block;
+  width: 100%;
   max-width: 100%;
-  max-height: 100%;
-  padding: 8px;
+  padding: 0;
+  white-space: normal;
   overflow-wrap: anywhere;
+  word-break: normal;
   line-height: 1.08;
   font-weight: 700;
   letter-spacing: -0.035em;
@@ -1676,8 +1728,8 @@ button:disabled {
     box-shadow: 5px 5px 0 color-mix(in srgb, var(--accent) 65%, #111);
   }
 
-  .auto-fit {
-    padding: 5px;
+  .auto-fit-slot {
+    inset: 5px;
   }
 
   .play-shell {

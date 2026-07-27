@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -33,6 +34,7 @@ import {
 } from "react";
 import { StateCodec } from "./lib/codec";
 import { CsvAnswerParser } from "./lib/csv";
+import { FontSizeOptimizer } from "./lib/font-size";
 import { BoardGenerator, type ValidationResult } from "./lib/generator";
 import {
   BoardModel,
@@ -86,6 +88,7 @@ const generator = new BoardGenerator();
 const csvParser = new CsvAnswerParser();
 const sorter = new AnswerPoolSorter();
 const appearanceResolver = new AppearanceResolver();
+const fontSizeOptimizer = new FontSizeOptimizer();
 const clipboard = new ClipboardService();
 const stateService = new ApplicationStateService(codec, generator);
 
@@ -291,16 +294,6 @@ function Editor({
             Add a generous answer pool, pin the non-negotiables, then share one
             self-contained link.
           </p>
-          <div className="editor-actions">
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => doCopy("edit", window.location.href)}
-            >
-              {copied === "edit" ? <Check size={17} /> : <Link2 size={17} />}
-              {copied === "edit" ? "Editor Link Copied" : "Copy Editor Link"}
-            </button>
-          </div>
         </div>
 
         <Panel
@@ -581,6 +574,19 @@ function Editor({
             Shuffle Preview
           </button>
         </div>
+        <button
+          type="button"
+          className="copy-editor-action"
+          onClick={() => doCopy("edit", window.location.href)}
+        >
+          {copied === "edit" ? <Check size={21} /> : <Link2 size={21} />}
+          <span>
+            <strong>
+              {copied === "edit" ? "Editor Link Copied" : "Copy Editor Link"}
+            </strong>
+            <small>Save or share this editable board</small>
+          </span>
+        </button>
         <BoardPreview editor={state} />
         <ValidationCard validation={validation} />
         <button
@@ -958,6 +964,43 @@ function Player({
   );
 }
 
+class RenderedTextFitter {
+  public constructor(
+    private readonly element: HTMLSpanElement,
+    private readonly container: HTMLElement,
+    private readonly optimizer: FontSizeOptimizer,
+  ) {}
+
+  public fit(): void {
+    const availableWidth = this.container.clientWidth;
+    const availableHeight = this.container.clientHeight;
+    if (availableWidth <= 0 || availableHeight <= 0) return;
+
+    const maximum = Math.max(1, Math.min(96, availableHeight * 0.92));
+    const fitted = this.optimizer.findLargest({
+      min: 1,
+      max: maximum,
+      fits: (size) => this.fitsAt(size, availableWidth, availableHeight),
+    });
+    this.element.style.fontSize = `${fitted}px`;
+  }
+
+  private fitsAt(size: number, availableWidth: number, availableHeight: number): boolean {
+    this.element.style.fontSize = `${size}px`;
+
+    const range = document.createRange();
+    range.selectNodeContents(this.element);
+    const rendered = range.getBoundingClientRect();
+
+    return (
+      this.element.scrollWidth <= availableWidth + 0.5 &&
+      this.element.scrollHeight <= availableHeight + 0.5 &&
+      rendered.width <= availableWidth + 0.5 &&
+      rendered.height <= availableHeight + 0.5
+    );
+  }
+}
+
 function AutoFitText({
   text,
   mode,
@@ -969,41 +1012,44 @@ function AutoFitText({
 }) {
   const ref = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
     if (mode === "fixed") {
       element.style.fontSize = `${fixedSize}px`;
       return;
     }
-    const parent = element.parentElement;
-    if (!parent) return;
+    const container = element.parentElement;
+    if (!container) return;
 
+    const fitter = new RenderedTextFitter(element, container, fontSizeOptimizer);
+    let active = true;
+    let frame = 0;
     const fit = () => {
-      let low = 10;
-      let high = 38;
-      for (let step = 0; step < 7; step += 1) {
-        const mid = (low + high) / 2;
-        element.style.fontSize = `${mid}px`;
-        if (
-          element.scrollWidth <= parent.clientWidth - 18 &&
-          element.scrollHeight <= parent.clientHeight - 18
-        ) {
-          low = mid;
-        } else {
-          high = mid;
-        }
-      }
-      element.style.fontSize = `${low}px`;
+      if (active) fitter.fit();
+    };
+    const scheduleFit = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(fit);
     };
 
     fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(parent);
-    return () => observer.disconnect();
+    const observer = new ResizeObserver(scheduleFit);
+    observer.observe(container);
+    void document.fonts.ready.then(scheduleFit);
+
+    return () => {
+      active = false;
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [fixedSize, mode, text]);
 
-  return <span ref={ref} className="auto-fit">{text}</span>;
+  return (
+    <span className="auto-fit-slot">
+      <span ref={ref} className="auto-fit">{text}</span>
+    </span>
+  );
 }
 
 function Modal({
