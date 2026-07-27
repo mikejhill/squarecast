@@ -7,6 +7,7 @@ import {
   type PlayState,
 } from "./model";
 import { DuplicateCardDetector } from "./duplicates";
+import { RuntimeLogger } from "./logger";
 
 export type ValidationResult = {
   valid: boolean;
@@ -14,9 +15,23 @@ export type ValidationResult = {
   warnings: string[];
 };
 
+const logger = new RuntimeLogger("board-generator");
+
+/**
+ * Validates editor rules, produces deterministic randomized boards, and
+ * evaluates completed bingo lines.
+ *
+ * A caller-provided seed makes every generated board reproducible from its URL.
+ * Placement uses constrained backtracking before flexible cards are shuffled
+ * into the remaining cells.
+ */
 export class BoardGenerator {
   private readonly duplicateDetector = new DuplicateCardDetector();
 
+  /**
+   * Checks user-correctable conditions without throwing. Validation errors
+   * block publishing; warnings describe safe but potentially surprising output.
+   */
   public validate(editor: EditorState): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -61,12 +76,29 @@ export class BoardGenerator {
       );
     }
 
-    return { valid: errors.length === 0, errors, warnings };
+    const result = { valid: errors.length === 0, errors, warnings };
+    logger.debug("Validated editor state.", {
+      valid: result.valid,
+      errorCount: errors.length,
+      warningCount: warnings.length,
+      cardCount: answers.length,
+    });
+    return result;
   }
 
+  /**
+   * Creates a complete immutable play session from a valid editor state.
+   * Throws only when a caller bypasses validation or an internal invariant fails.
+   */
   public generate(editor: EditorState, seed: string): PlayState {
     const validation = this.validate(editor);
-    if (!validation.valid) throw new Error(validation.errors.join(" "));
+    if (!validation.valid) {
+      const error = new Error(validation.errors.join(" "));
+      logger.error("Refused to generate an invalid board.", error, {
+        errorCount: validation.errors.length,
+      });
+      throw error;
+    }
 
     const size = editor.config.size;
     const freeIndex = BoardModel.freeCellIndex(size, editor.config.free);
@@ -81,7 +113,11 @@ export class BoardGenerator {
       (answer) => answer.placement.kind === "any",
     );
     const placed = this.placeMandatory(mandatory, size, freeIndex, random);
-    if (!placed) throw new Error("The placement rules conflict.");
+    if (!placed) {
+      const error = new Error("The placement rules conflict.");
+      logger.error("Validated placement rules became unsatisfiable.", error);
+      throw error;
+    }
 
     const openCells = this.shuffle(
       Array.from({ length: size ** 2 }, (_, index) => index).filter(
@@ -109,11 +145,20 @@ export class BoardGenerator {
           };
         }
         const answer = placed.get(index);
-        if (!answer) throw new Error("Not enough cards to fill the board.");
+        if (!answer) {
+          const error = new Error("Not enough cards to fill the board.");
+          logger.error("Board generation left an open cell.", error, { index });
+          throw error;
+        }
         return { id: answer.id, text: answer.text };
       },
     );
 
+    logger.info("Generated a play board.", {
+      size,
+      freeSquare: freeIndex !== null,
+      constrainedCardCount: mandatory.length,
+    });
     return {
       v: 1,
       mode: "play",
@@ -130,6 +175,11 @@ export class BoardGenerator {
     };
   }
 
+  /**
+   * Generates a live preview even while the editor is incomplete. Valid boards
+   * use the production algorithm; partial boards randomize available cards and
+   * fill the rest with placeholders.
+   */
   public generatePreview(editor: EditorState, seed: string): PlayCell[] {
     if (this.validate(editor).valid) {
       return this.generate(editor, seed).cells;
@@ -172,6 +222,7 @@ export class BoardGenerator {
     });
   }
 
+  /** Returns every checked cell belonging to any completed row, column, or diagonal. */
   public winningCells(play: PlayState): Set<number> {
     const checked = new Set(play.checked);
     const lines: number[][] = [];
@@ -208,9 +259,15 @@ export class BoardGenerator {
     lines
       .filter((line) => line.every((cell) => checked.has(cell)))
       .forEach((line) => line.forEach((cell) => result.add(cell)));
+    if (result.size > 0) {
+      logger.info("Detected a completed bingo line.", {
+        winningCellCount: result.size,
+      });
+    }
     return result;
   }
 
+  /** Folds an arbitrary seed string into the unsigned integer used by the PRNG. */
   private hashString(input: string): number {
     let hash = 2166136261;
     for (let index = 0; index < input.length; index += 1) {
@@ -220,6 +277,7 @@ export class BoardGenerator {
     return hash >>> 0;
   }
 
+  /** Creates a deterministic Mulberry32-style pseudorandom number source. */
   private createRandom(seedValue: number): () => number {
     let seed = seedValue;
     return () => {
@@ -232,6 +290,7 @@ export class BoardGenerator {
     };
   }
 
+  /** Returns a Fisher-Yates shuffled copy and never mutates the supplied array. */
   private shuffle<T>(items: T[], random: () => number): T[] {
     const result = [...items];
     for (let index = result.length - 1; index > 0; index -= 1) {
@@ -244,6 +303,7 @@ export class BoardGenerator {
     return result;
   }
 
+  /** Enumerates cells allowed by one exact-cell, row, column, or flexible rule. */
   private allowedCells(
     placement: Placement,
     size: number,
@@ -269,6 +329,10 @@ export class BoardGenerator {
     }
   }
 
+  /**
+   * Places constrained cards with smallest-domain-first backtracking. Returning
+   * `null` proves that no collision-free assignment exists.
+   */
   private placeMandatory(
     answers: Answer[],
     size: number,

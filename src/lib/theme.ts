@@ -8,6 +8,10 @@ export type ThemePreset = {
   color: string;
 };
 
+/**
+ * Owns board accent generation and contrast decisions. Site appearance remains
+ * independent so a shared board color never forces another user's light/dark UI.
+ */
 export class ColorTheme {
   public static readonly presets: readonly ThemePreset[] = [
     { id: "ink", label: "Ink", color: "#34343a" },
@@ -22,6 +26,7 @@ export class ColorTheme {
     { id: "orange", label: "Orange", color: "#e86f18" },
   ];
 
+  /** Produces the CSS custom properties consumed by editor and play surfaces. */
   public static style(color: string): CSSProperties {
     return {
       "--accent": color,
@@ -30,6 +35,7 @@ export class ColorTheme {
     } as CSSProperties;
   }
 
+  /** Generates a saturated mid-lightness color that remains usable in both modes. */
   public static random(random: () => number = Math.random): string {
     const hue = Math.floor(random() * 360);
     const saturation = 58 + Math.floor(random() * 25);
@@ -37,6 +43,7 @@ export class ColorTheme {
     return this.hslToHex(hue, saturation, lightness);
   }
 
+  /** Chooses dark or light foreground ink from relative RGB luminance. */
   public static contrastColor(color: string): "#17171a" | "#ffffff" {
     const normalized = color.replace("#", "");
     const red = Number.parseInt(normalized.slice(0, 2), 16);
@@ -46,6 +53,7 @@ export class ColorTheme {
     return luminance > 0.62 ? "#17171a" : "#ffffff";
   }
 
+  /** Converts the randomized HSL channels to the six-digit state schema format. */
   private static hslToHex(
     hue: number,
     saturationPercent: number,
@@ -79,7 +87,9 @@ export class ColorTheme {
   }
 }
 
+/** Resolves the local appearance preference against the live OS color scheme. */
 export class AppearanceResolver {
+  /** Returns a concrete mode suitable for CSS classes and `color-scheme`. */
   public resolve(appearance: Appearance, systemIsDark: boolean): "light" | "dark" {
     return appearance === "system"
       ? systemIsDark

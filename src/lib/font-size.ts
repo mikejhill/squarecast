@@ -1,3 +1,4 @@
+/** Inputs for a rendered-size search; `fits` performs the actual DOM measurement. */
 export interface FontFitOptions {
   min: number;
   max: number;
@@ -5,15 +6,25 @@ export interface FontFitOptions {
   fits: (size: number) => boolean;
 }
 
+/**
+ * Caps automatic type growth according to available tile height. The cap keeps
+ * short labels visually balanced with longer cards on the same board.
+ */
 export class AutoFontSizePolicy {
   public constructor(private readonly maximum = 24) {}
 
+  /** Returns the smaller of the product cap and the tile's safe line-height cap. */
   public maximumForHeight(availableHeight: number): number {
     return Math.max(1, Math.min(this.maximum, availableHeight * 0.92));
   }
 }
 
+/**
+ * Searches measured font sizes from largest to smallest instead of estimating
+ * text length. This delegates wrapping and glyph width decisions to the browser.
+ */
 export class FontSizeOptimizer {
+  /** Returns the largest candidate for which the caller's rendered fit test passes. */
   public findLargest({
     min,
     max,

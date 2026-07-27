@@ -1,4 +1,13 @@
+import { RuntimeLogger } from "./logger";
+
+const logger = new RuntimeLogger("csv-import");
+
+/**
+ * Parses the subset of RFC-style CSV needed by the card importer, including
+ * quoted commas, escaped quotes, mixed line endings, and multiple columns.
+ */
 export class CsvAnswerParser {
+  /** Converts every non-empty CSV field into one trimmed card value. */
   public parse(input: string): string[] {
     const values: string[] = [];
     let field = "";
@@ -30,19 +39,33 @@ export class CsvAnswerParser {
       }
     }
     push();
+    if (quoted) {
+      // The modal parses while the user types, so an unfinished quote is
+      // diagnostic detail rather than a runtime warning.
+      logger.debug("CSV input currently has an unclosed quoted field.", {
+        inputLength: input.length,
+      });
+    }
+    logger.debug("Parsed CSV card values.", {
+      inputLength: input.length,
+      cardCount: values.length,
+    });
     return values;
   }
 }
 
+/** Minimal File contract used to keep browser file reads unit-testable. */
 export interface CsvFileLike {
   readonly name: string;
   readonly type: string;
   text(): Promise<string>;
 }
 
+/** Filters dropped files and combines accepted CSV content into one card list. */
 export class CsvFileImporter {
   public constructor(private readonly parser: CsvAnswerParser) {}
 
+  /** Accepts conventional CSV extensions and the two common browser MIME types. */
   public accepts(file: CsvFileLike): boolean {
     const type = file.type.toLowerCase();
     return (
@@ -52,12 +75,28 @@ export class CsvFileImporter {
     );
   }
 
+  /** Reads accepted files concurrently, preserving the browser's drop order. */
   public async parse(files: readonly CsvFileLike[]): Promise<string[]> {
-    const contents = await Promise.all(
-      files
-        .filter((file) => this.accepts(file))
-        .map((file) => file.text()),
-    );
-    return contents.flatMap((content) => this.parser.parse(content));
+    const accepted = files.filter((file) => this.accepts(file));
+    const ignoredCount = files.length - accepted.length;
+    if (ignoredCount > 0) {
+      logger.warn("Ignored non-CSV files from a Card Pool drop.", {
+        ignoredCount,
+      });
+    }
+    try {
+      const contents = await Promise.all(accepted.map((file) => file.text()));
+      const cards = contents.flatMap((content) => this.parser.parse(content));
+      logger.info("Imported dropped CSV files.", {
+        fileCount: accepted.length,
+        cardCount: cards.length,
+      });
+      return cards;
+    } catch (error) {
+      logger.error("Could not read a dropped CSV file.", error, {
+        fileCount: accepted.length,
+      });
+      throw error;
+    }
   }
 }

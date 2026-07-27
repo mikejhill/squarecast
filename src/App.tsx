@@ -43,6 +43,7 @@ import { DuplicateCardDetector } from "./lib/duplicates";
 import { AutoFontSizePolicy, FontSizeOptimizer } from "./lib/font-size";
 import { BoardGenerator, type ValidationResult } from "./lib/generator";
 import { UrlHistoryService, type HistoryWriteMode } from "./lib/history";
+import { RuntimeLogger } from "./lib/logger";
 import {
   BoardModel,
   IdFactory,
@@ -64,23 +65,51 @@ type StateChangeHandler = (
   historyMode?: HistoryWriteMode,
 ) => void;
 
+const logger = new RuntimeLogger("application");
+const clipboardLogger = new RuntimeLogger("clipboard");
+
+/**
+ * Copies generated links while retaining a legacy DOM fallback for browsers or
+ * security contexts where the asynchronous Clipboard API is unavailable.
+ */
 class ClipboardService {
+  /** Copies text or throws after both the modern and fallback strategies fail. */
   public async copy(text: string): Promise<void> {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return;
+      try {
+        await navigator.clipboard.writeText(text);
+        clipboardLogger.info("Copied a Squarecast URL with the Clipboard API.");
+        return;
+      } catch (error) {
+        clipboardLogger.warn("Clipboard API failed; trying the DOM fallback.", {
+          errorType: error instanceof Error ? error.name : "UnknownError",
+        });
+      }
     }
     const input = document.createElement("textarea");
-    input.value = text;
-    input.style.position = "fixed";
-    input.style.opacity = "0";
-    document.body.appendChild(input);
-    input.select();
-    document.execCommand("copy");
-    input.remove();
+    try {
+      input.value = text;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      if (!document.execCommand("copy")) {
+        throw new Error("The browser rejected the copy command.");
+      }
+      clipboardLogger.info("Copied a Squarecast URL with the DOM fallback.");
+    } catch (error) {
+      clipboardLogger.error("Could not copy a Squarecast URL.", error);
+      throw error;
+    } finally {
+      input.remove();
+    }
   }
 }
 
+/**
+ * Interprets the initial URL state and converts launch links into a fresh,
+ * randomized play session. Invalid launch semantics fall back to a clean editor.
+ */
 class ApplicationStateService {
   public constructor(
     private readonly codec: StateCodec,
@@ -88,12 +117,24 @@ class ApplicationStateService {
     private readonly boardFactory: BoardFactory,
   ) {}
 
+  /** Restores edit/play state or creates a safe new session when restoration fails. */
   public load(hash: string): ActiveState {
     const decoded = this.codec.decode(hash);
     if (decoded?.mode === "launch") {
-      return this.generator.generate(decoded.source, IdFactory.seed());
+      try {
+        const play = this.generator.generate(decoded.source, IdFactory.seed());
+        logger.info("Generated a play session from a launch link.");
+        return play;
+      } catch (error) {
+        logger.error("Launch-link generation failed; opened a new editor.", error);
+        return this.boardFactory.createNewEditor();
+      }
     }
-    if (decoded?.mode === "edit" || decoded?.mode === "play") return decoded;
+    if (decoded?.mode === "edit" || decoded?.mode === "play") {
+      logger.info("Restored application state.", { mode: decoded.mode });
+      return decoded;
+    }
+    logger.info("Started a fresh editor session.");
     return this.boardFactory.createNewEditor();
   }
 }
@@ -113,6 +154,10 @@ const stateService = new ApplicationStateService(codec, generator, boardFactory)
 const urlHistory = new UrlHistoryService(window.history);
 const appearancePreferences = AppearancePreferenceStore.createBrowserStore();
 
+/**
+ * Coordinates URL-backed application state, browser history, local appearance,
+ * and the edit/play view boundary.
+ */
 export function App() {
   const [state, setState] = useState<ActiveState>(() =>
     stateService.load(window.location.hash),
@@ -126,9 +171,15 @@ export function App() {
   const historyMode = useRef<HistoryWriteMode>("replace");
   const navigate: StateChangeHandler = (nextState, mode = "replace") => {
     historyMode.current = mode;
+    logger.debug("Scheduled an application state change.", {
+      destinationMode: nextState.mode,
+      historyMode: mode,
+    });
     setState(nextState);
   };
 
+  // Every state mutation is encoded immediately; the pending mode decides
+  // whether this is a major Back-button checkpoint or a replacement edit.
   useEffect(() => {
     urlHistory.write(codec.encode(state), historyMode.current);
     historyMode.current = "replace";
@@ -138,6 +189,7 @@ export function App() {
     const restoreHistoryState = () => {
       historyMode.current = "none";
       setState(stateService.load(window.location.hash));
+      logger.info("Restored state from browser navigation.");
     };
     window.addEventListener("popstate", restoreHistoryState);
     return () => window.removeEventListener("popstate", restoreHistoryState);
@@ -160,8 +212,12 @@ export function App() {
   const changeAppearance = (nextAppearance: Appearance) => {
     appearancePreferences.write(nextAppearance);
     setAppearance(nextAppearance);
+    logger.info("Changed the local appearance.", {
+      appearance: nextAppearance,
+    });
   };
 
+  // Update native browser controls and surrounding page chrome alongside CSS.
   useEffect(() => {
     document.documentElement.style.colorScheme = resolvedAppearance;
     document.body.style.backgroundColor =
@@ -195,6 +251,7 @@ export function App() {
   );
 }
 
+/** Renders global navigation and the device-local appearance controls. */
 function SiteHeader({
   mode,
   appearance,
@@ -268,6 +325,10 @@ function SiteHeader({
   );
 }
 
+/**
+ * Owns editor-only interaction state while delegating shareable board changes
+ * to the URL-backed application state handler.
+ */
 function Editor({
   state,
   onChange,
@@ -366,6 +427,10 @@ function Editor({
       },
       "push",
     );
+    logger.info("Added imported cards to the Card Pool.", {
+      importedCardCount: values.length,
+      resultingCardCount: imported.length,
+    });
   };
 
   const importCsv = () => {
@@ -403,9 +468,13 @@ function Editor({
     event.preventDefault();
     cardPoolDragDepth.current = 0;
     setIsCardPoolDragging(false);
-    appendImportedCards(
-      await csvFileImporter.parse(Array.from(event.dataTransfer.files)),
-    );
+    try {
+      appendImportedCards(
+        await csvFileImporter.parse(Array.from(event.dataTransfer.files)),
+      );
+    } catch (error) {
+      logger.error("The dropped CSV import did not complete.", error);
+    }
   };
 
   const createPlayLink = () => {
@@ -416,17 +485,23 @@ function Editor({
         window.location.href,
       ),
     );
+    logger.info("Created a shareable play link.");
   };
 
   const playBoard = () => {
     if (!validation.valid) return;
     onChange(generator.generate(state, IdFactory.seed()), "push");
+    logger.info("Opened a test play session.");
   };
 
   const doCopy = async (kind: "edit" | "play", text: string) => {
-    await clipboard.copy(text);
-    setCopied(kind);
-    window.setTimeout(() => setCopied(null), 1600);
+    try {
+      await clipboard.copy(text);
+      setCopied(kind);
+      window.setTimeout(() => setCopied(null), 1600);
+    } catch (error) {
+      logger.error("A link copy action failed.", error, { kind });
+    }
   };
 
   const sortAnswers = (mode: AnswerSort) => {
@@ -438,6 +513,7 @@ function Editor({
       },
       "push",
     );
+    logger.info("Changed the persistent Card Pool sort.", { mode });
   };
 
   return (
@@ -839,6 +915,7 @@ function Editor({
   );
 }
 
+/** Provides the shared accessible heading/body structure for editor sections. */
 function Panel({
   icon,
   title,
@@ -878,6 +955,7 @@ function Panel({
   );
 }
 
+/** Edits one card's text and placement constraint without owning board state. */
 function AnswerRow({
   answer,
   duplicate,
@@ -986,6 +1064,7 @@ function AnswerRow({
   );
 }
 
+/** Renders the current seeded preview, including partial-board placeholders. */
 function BoardPreview({ editor }: { editor: EditorState }) {
   const cells = generator.generatePreview(
     editor,
@@ -1022,6 +1101,7 @@ function BoardPreview({ editor }: { editor: EditorState }) {
   );
 }
 
+/** Surfaces the highest-priority validation result beside publishing actions. */
 function ValidationCard({
   validation,
 }: {
@@ -1044,6 +1124,7 @@ function ValidationCard({
   );
 }
 
+/** Runs a URL-persisted play session and records marked cells and reshuffles. */
 function Player({
   state,
   onChange,
@@ -1061,16 +1142,25 @@ function Player({
     if (checked.has(index)) checked.delete(index);
     else checked.add(index);
     onChange({ ...state, checked: [...checked].sort((a, b) => a - b) });
+    logger.debug("Changed a play-cell mark.", {
+      cellIndex: index,
+      checked: checked.has(index),
+    });
   };
 
   const reshuffle = () => {
     onChange(generator.generate(state.source, IdFactory.seed()), "push");
+    logger.info("Generated a new play-session shuffle.");
   };
 
   const copySession = async () => {
-    await clipboard.copy(window.location.href);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    try {
+      await clipboard.copy(window.location.href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch (error) {
+      logger.error("The play-session copy action failed.", error);
+    }
   };
 
   return (
@@ -1155,6 +1245,10 @@ function Player({
   );
 }
 
+/**
+ * Measures actual browser layout to fit each tile independently. Range bounds
+ * catch partial-glyph overflow that scroll dimensions can round away.
+ */
 class RenderedTextFitter {
   public constructor(
     private readonly element: HTMLSpanElement,
@@ -1162,6 +1256,7 @@ class RenderedTextFitter {
     private readonly optimizer: FontSizeOptimizer,
   ) {}
 
+  /** Measures the tile and applies the largest verified font size. */
   public fit(): void {
     const availableWidth = this.container.clientWidth;
     const availableHeight = this.container.clientHeight;
@@ -1176,6 +1271,7 @@ class RenderedTextFitter {
     this.element.style.fontSize = `${fitted}px`;
   }
 
+  /** Tests one candidate against both layout boxes and rendered glyph bounds. */
   private fitsAt(size: number, availableWidth: number, availableHeight: number): boolean {
     this.element.style.fontSize = `${size}px`;
 
@@ -1194,6 +1290,7 @@ class RenderedTextFitter {
   }
 }
 
+/** Connects rendered text measurement to font readiness and tile resizes. */
 function AutoFitText({
   text,
   mode,
@@ -1245,6 +1342,7 @@ function AutoFitText({
   );
 }
 
+/** Provides dismissible dialog behavior shared by CSV import and link sharing. */
 function Modal({
   title,
   onClose,

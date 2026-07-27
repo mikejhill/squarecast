@@ -21,6 +21,14 @@ describe("URL state codec", () => {
     ).toBeNull();
   });
 
+  it("rejects valid JSON that does not match the application-state schema", () => {
+    const incompatible = LZString.compressToEncodedURIComponent(
+      JSON.stringify({ mode: "edit", unsupported: true }),
+    );
+
+    expect(codec.decode(`#sq1:${incompatible}`)).toBeNull();
+  });
+
   it("replaces an existing hash when creating a shareable URL", () => {
     const state = BoardModel.createDefaultEditor();
     const url = codec.createUrl(state, "https://example.test/squarecast/#old");

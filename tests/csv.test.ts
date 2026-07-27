@@ -25,6 +25,10 @@ describe("CSV card parser", () => {
       "Gamma",
     ]);
   });
+
+  it("retains a final value when a quoted field is not closed", () => {
+    expect(parser.parse('Alpha,"Beta')).toEqual(["Alpha", "Beta"]);
+  });
 });
 
 describe("CSV file importer", () => {
@@ -56,5 +60,18 @@ describe("CSV file importer", () => {
         file("export", "application/vnd.ms-excel", "Alpha\nBeta"),
       ]),
     ).resolves.toEqual(["Alpha", "Beta"]);
+  });
+
+  it("surfaces browser file-read failures to the drop handler", async () => {
+    const failure = new Error("read blocked");
+    const unreadable: CsvFileLike = {
+      name: "cards.csv",
+      type: "text/csv",
+      text: async () => {
+        throw failure;
+      },
+    };
+
+    await expect(importer.parse([unreadable])).rejects.toBe(failure);
   });
 });

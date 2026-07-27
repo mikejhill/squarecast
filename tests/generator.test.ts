@@ -78,6 +78,9 @@ describe("board generator", () => {
     expect(result.warnings).toContain(
       "Duplicate card text will appear as separate squares.",
     );
+    expect(() => generator.generate(editor, "invalid")).toThrow(
+      "Add a board title.",
+    );
   });
 
   it("fills a board without a free square", () => {

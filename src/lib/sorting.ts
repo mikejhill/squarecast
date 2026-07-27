@@ -1,14 +1,26 @@
 import type { Answer, AnswerSort } from "./model";
+import { RuntimeLogger } from "./logger";
 
 export type { AnswerSort } from "./model";
 
+const logger = new RuntimeLogger("card-sorter");
+
+/** Applies the editor's persistent card-pool ordering without mutating state. */
 export class AnswerPoolSorter {
+  /**
+   * Returns a new array using the selected strategy. A supplied random source
+   * makes Fisher-Yates shuffling deterministic in tests.
+   */
   public sort(
     answers: readonly Answer[],
     mode: AnswerSort,
     random: () => number = Math.random,
   ): Answer[] {
     const result = [...answers];
+    logger.debug("Sorted the Card Pool.", {
+      mode,
+      cardCount: result.length,
+    });
     switch (mode) {
       case "alphabetical":
         return result.sort((left, right) =>

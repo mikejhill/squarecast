@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+// These schemas are the trust boundary for state restored from a shared URL.
+// Defaults keep links created by earlier compatible versions readable.
 export const themeSchema = z.enum([
   "ink",
   "coral",
@@ -137,7 +139,9 @@ const starterAnswers = [
   "End the day with ice cream",
 ];
 
+/** Creates compact identifiers for cards and high-entropy seeds for board order. */
 export class IdFactory {
+  /** Returns a short card identity, preferring collision-resistant Web Crypto. */
   public static create(): string {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
       return crypto.randomUUID().slice(0, 8);
@@ -145,6 +149,7 @@ export class IdFactory {
     return Math.random().toString(36).slice(2, 10);
   }
 
+  /** Returns a fresh randomization seed without exposing board content. */
   public static seed(): string {
     if (typeof crypto !== "undefined" && "getRandomValues" in crypto) {
       const bytes = new Uint32Array(2);
@@ -155,7 +160,9 @@ export class IdFactory {
   }
 }
 
+/** Provides canonical board-state calculations shared by editor and generator. */
 export class BoardModel {
+  /** Builds the populated example board used by tests and legacy default links. */
   public static createDefaultEditor(): EditorState {
     return {
       v: 1,
@@ -180,10 +187,12 @@ export class BoardModel {
     };
   }
 
+  /** Returns the center index when the free square is enabled. */
   public static freeCellIndex(size: number, enabled: boolean): number | null {
     return enabled ? Math.floor(size / 2) * size + Math.floor(size / 2) : null;
   }
 
+  /** Calculates the number of card-backed cells required for a complete board. */
   public static blankSquareCount(editor: EditorState): number {
     return editor.config.size ** 2 - (editor.config.free ? 1 : 0);
   }
