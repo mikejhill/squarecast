@@ -51,6 +51,10 @@ import {
 } from "./lib/model";
 import { AnswerPoolSorter, type AnswerSort } from "./lib/sorting";
 import { AppearanceResolver, ColorTheme } from "./lib/theme";
+import {
+  AppearancePreferenceStore,
+  type Appearance,
+} from "./lib/preferences";
 
 type ActiveState = EditorState | PlayState;
 type StateChangeHandler = (
@@ -104,6 +108,7 @@ const duplicateCardDetector = new DuplicateCardDetector();
 const clipboard = new ClipboardService();
 const stateService = new ApplicationStateService(codec, generator, boardFactory);
 const urlHistory = new UrlHistoryService(window.history);
+const appearancePreferences = AppearancePreferenceStore.createBrowserStore();
 
 export function App() {
   const [state, setState] = useState<ActiveState>(() =>
@@ -111,6 +116,9 @@ export function App() {
   );
   const [systemIsDark, setSystemIsDark] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+  const [appearance, setAppearance] = useState<Appearance>(() =>
+    appearancePreferences.read(),
   );
   const historyMode = useRef<HistoryWriteMode>("replace");
   const navigate: StateChangeHandler = (nextState, mode = "replace") => {
@@ -142,9 +150,14 @@ export function App() {
 
   const config = state.mode === "edit" ? state.config : state.source.config;
   const resolvedAppearance = appearanceResolver.resolve(
-    config.appearance,
+    appearance,
     systemIsDark,
   );
+
+  const changeAppearance = (nextAppearance: Appearance) => {
+    appearancePreferences.write(nextAppearance);
+    setAppearance(nextAppearance);
+  };
 
   useEffect(() => {
     document.documentElement.style.colorScheme = resolvedAppearance;
@@ -160,12 +173,14 @@ export function App() {
   return (
     <div
       className={`app is-${resolvedAppearance}`}
-      data-appearance={config.appearance}
+      data-appearance={appearance}
       data-theme={config.theme}
       style={ColorTheme.style(config.accentColor)}
     >
       <SiteHeader
         mode={state.mode}
+        appearance={appearance}
+        onAppearanceChange={changeAppearance}
         onNewBoard={() => navigate(boardFactory.createNewEditor(), "push")}
       />
       {state.mode === "edit" ? (
@@ -179,9 +194,13 @@ export function App() {
 
 function SiteHeader({
   mode,
+  appearance,
+  onAppearanceChange,
   onNewBoard,
 }: {
   mode: "edit" | "play";
+  appearance: Appearance;
+  onAppearanceChange: (appearance: Appearance) => void;
   onNewBoard: () => void;
 }) {
   return (
@@ -199,6 +218,31 @@ function SiteHeader({
         </span>
       </a>
       <div className="header-actions">
+        <div
+          className="appearance-switcher"
+          role="group"
+          aria-label="Site appearance"
+        >
+          {(
+            [
+              ["system", "System", <Monitor size={16} />],
+              ["light", "Light", <Sun size={16} />],
+              ["dark", "Dark", <Moon size={16} />],
+            ] as const
+          ).map(([option, label, icon]) => (
+            <button
+              type="button"
+              key={option}
+              className={appearance === option ? "active" : ""}
+              aria-label={`${label} appearance`}
+              aria-pressed={appearance === option}
+              title={`${label} appearance`}
+              onClick={() => onAppearanceChange(option)}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
         <button type="button" className="new-board-button" onClick={onNewBoard}>
           <Plus size={16} />
           <span>New Board</span>
@@ -422,30 +466,6 @@ function Editor({
               />
             </label>
           )}
-
-          <div className="field field-wide">
-            <span>Appearance</span>
-            <div className="appearance-options" aria-label="Site appearance">
-              {(
-                [
-                  ["system", "System", <Monitor size={16} />],
-                  ["light", "Light", <Sun size={16} />],
-                  ["dark", "Dark", <Moon size={16} />],
-                ] as const
-              ).map(([appearance, label, icon]) => (
-                <button
-                  type="button"
-                  key={appearance}
-                  className={state.config.appearance === appearance ? "active" : ""}
-                  aria-pressed={state.config.appearance === appearance}
-                  onClick={() => patchConfig({ appearance })}
-                >
-                  {icon}
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="field field-wide">
             <span>Board Color</span>

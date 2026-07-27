@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import type { Appearance, Theme } from "./model";
+import type { Theme } from "./model";
+import type { Appearance } from "./preferences";
 
 export type ThemePreset = {
   id: Exclude<Theme, "custom">;

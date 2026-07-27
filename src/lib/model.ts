@@ -1,8 +1,5 @@
 import { z } from "zod";
 
-export const appearanceSchema = z.enum(["system", "light", "dark"]);
-export type Appearance = z.infer<typeof appearanceSchema>;
-
 export const themeSchema = z.enum([
   "ink",
   "coral",
@@ -54,7 +51,6 @@ export const boardConfigSchema = z.object({
     .string()
     .regex(/^#[0-9a-f]{6}$/i)
     .default("#ff6b45"),
-  appearance: appearanceSchema.default("system"),
   fontMode: fontModeSchema.default("auto"),
   fontSize: z.number().int().min(10).max(32).default(18),
   sortMode: answerSortSchema.default("alphabetical"),
@@ -94,7 +90,6 @@ export const playStateSchema = z.object({
     .string()
     .regex(/^#[0-9a-f]{6}$/i)
     .default("#ff6b45"),
-  appearance: appearanceSchema.default("system"),
   fontMode: fontModeSchema.default("auto"),
   fontSize: z.number().int().min(10).max(32).default(18),
   cells: z.array(playCellSchema),
@@ -172,7 +167,6 @@ export class BoardModel {
         freeLabel: "FREE",
         theme: "coral",
         accentColor: "#ff6b45",
-        appearance: "system",
         fontMode: "auto",
         fontSize: 18,
         sortMode: "alphabetical",

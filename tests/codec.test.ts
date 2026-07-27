@@ -32,9 +32,10 @@ describe("URL state codec", () => {
     const { sortMode: _sortMode, ...legacyConfig } = editor.config;
     const restored = editorStateSchema.parse({
       ...editor,
-      config: legacyConfig,
+      config: { ...legacyConfig, appearance: "dark" },
     });
 
     expect(restored.config.sortMode).toBe("alphabetical");
+    expect("appearance" in restored.config).toBe(false);
   });
 });

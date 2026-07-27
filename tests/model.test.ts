@@ -10,7 +10,6 @@ describe("board model", () => {
   it("creates a harmless casual example with system and automatic defaults", () => {
     const editor = BoardModel.createDefaultEditor();
     expect(editor.config.title).toBe("Weekend Adventure Bingo");
-    expect(editor.config.appearance).toBe("system");
     expect(editor.config.fontMode).toBe("auto");
     expect(editor.config.sortMode).toBe("alphabetical");
     expect(editor.answers).toHaveLength(28);

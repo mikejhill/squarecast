@@ -13,7 +13,6 @@ describe("new board factory", () => {
       free: true,
       freeLabel: "FREE",
       theme: "custom",
-      appearance: "system",
       fontMode: "auto",
       fontSize: 18,
       sortMode: "alphabetical",

@@ -8,12 +8,12 @@ Squarecast is a static, URL-native bingo board studio. Build a square board, add
 
 **Live site:** [mikejhill.github.io/squarecast](https://mikejhill.github.io/squarecast/)
 
-No account, database, cookie, local storage, or backend is used. The complete editor or play session is compressed into the URL hash.
+No account, database, cookie, or backend is used. The complete editor or play session is compressed into the URL hash. Only the device-local light, dark, or system appearance preference uses `localStorage`.
 
 ## Use Squarecast
 
 1. Open the hosted site.
-2. Choose a system, light, or dark appearance; board size; free-square setting; title; tile font size; and board color.
+2. Choose a system, light, or dark site appearance from the header, then configure the board size, free-square setting, title, tile font size, and board color.
 3. Add cards with the quick-add field. Press Enter after each card, or use **Paste CSV** to import multiple values.
 4. Optionally constrain a card to a specific cell, row, or column.
 5. Select **Test This Board** to test the board immediately, or select **Create Play Link** to share it.
@@ -35,7 +35,7 @@ The URL can be bookmarked or copied at any point. Editing one URL never changes 
 - CSV import with quoted-value support
 - Persistent card sorting, locked-card prioritization, and shuffling
 - Win detection for rows, columns, and diagonals
-- System, light, and dark site appearances
+- Header-level system, light, and dark site appearances on every screen
 - Ten named board colors, a custom color picker, and color randomization
 - Responsive editor and play layouts
 - Compressed, schema-validated URL state
@@ -84,13 +84,16 @@ The static output is written to `dist/`.
 - `src/lib/generator.ts` — validation, constrained randomization, and win detection
 - `src/lib/csv.ts` — CSV card parser
 - `src/lib/theme.ts` — appearance resolution, color palettes, contrast, and random colors
+- `src/lib/preferences.ts` — device-local site appearance preference
 - `src/lib/sorting.ts` — card-pool sorting strategies
 - `tests/` — behavioral tests for state, parsing, color logic, sorting, randomization, constraints, and wins
 - `.github/workflows/deploy-pages.yml` — tested GitHub Pages deployment
 
 ## State and privacy
 
-Squarecast writes application state only to `window.location.hash` with `history.replaceState`. It does not use `localStorage`, `sessionStorage`, cookies, tracking scripts, or network APIs.
+Squarecast writes all board, editor, and play-session state to `window.location.hash` using the History API. Shared URLs therefore contain the complete board and never depend on state from another device.
+
+The sole browser-storage exception is `squarecast:appearance` in `localStorage`. It stores only `system`, `light`, or `dark`. Appearance is a device-local UI preference rather than board data, so it follows the user across every Squarecast screen without changing shared links. Squarecast does not use `sessionStorage`, cookies, tracking scripts, or network APIs.
 
 Anyone who receives a Squarecast URL can read the board data embedded in it. Do not place secrets or sensitive information in a board.
 
@@ -102,13 +105,13 @@ Anyone who receives a Squarecast URL can read the board data embedded in it. Do 
 4. Run `npm run check`.
 5. Open a pull request describing the behavior change and test coverage.
 
-Keep the project fully static and URL-native. Do not add server state or browser storage.
+Keep the project fully static and URL-native. Do not add server state or browser storage beyond the documented site-appearance preference.
 
 ## Architecture
 
 Squarecast uses strict TypeScript and class-based application and domain
-services. State encoding, parsing, board generation, sorting, appearance
-resolution, identifiers, clipboard behavior, and application bootstrapping are
+services. State encoding, parsing, board generation, sorting, local appearance
+preferences, appearance resolution, identifiers, clipboard behavior, and application bootstrapping are
 encapsulated behind typed classes. React components remain declarative views
 and delegate stateful behavior to those services.
 

@@ -14,7 +14,6 @@ export class BoardFactory {
         freeLabel: "FREE",
         theme: "custom",
         accentColor,
-        appearance: "system",
         fontMode: "auto",
         fontSize: 18,
         sortMode: "alphabetical",

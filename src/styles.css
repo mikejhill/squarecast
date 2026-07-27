@@ -117,6 +117,42 @@ button:disabled {
   gap: 16px;
 }
 
+.appearance-switcher {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 30px);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(31, 30, 28, 0.12);
+  border-radius: 10px;
+  background: #eae6df;
+}
+
+.appearance-switcher button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #77716a;
+}
+
+.appearance-switcher button:hover {
+  color: #242427;
+}
+
+.appearance-switcher button.active {
+  background: #fffefa;
+  color: var(--accent-dark);
+  box-shadow: 0 1px 5px rgba(28, 26, 23, 0.16);
+}
+
+.appearance-switcher button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  outline-offset: 1px;
+}
+
 .new-board-button {
   min-height: 36px;
   padding: 0 12px;
@@ -420,33 +456,6 @@ button:disabled {
 
 .theme-swatch.selected {
   box-shadow: 0 0 0 2px currentColor;
-}
-
-.appearance-options {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
-}
-
-.appearance-options button {
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border: 1px solid #d9d5ce;
-  border-radius: 10px;
-  background: #fff;
-  color: #5d5953;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.appearance-options button.active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .custom-color {
@@ -1511,7 +1520,6 @@ button:disabled {
     box-shadow: 0 0 0 1px #56545d;
   }
 
-  .appearance-options button,
   .random-color-button,
   .sort-control {
     border-color: #494850;
@@ -1519,11 +1527,23 @@ button:disabled {
     color: #d4d0c9;
   }
 
-  .appearance-options button.active {
-    border-color: var(--accent);
-    background: var(--accent-soft);
+  .appearance-switcher {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: #202024;
+  }
+
+  .appearance-switcher button {
+    color: #99949d;
+  }
+
+  .appearance-switcher button:hover {
+    color: #f0ede7;
+  }
+
+  .appearance-switcher button.active {
+    background: #37373d;
     color: var(--accent-dark);
-    box-shadow: 0 0 0 1px var(--accent);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
   }
 
   .font-slider,
@@ -1754,6 +1774,7 @@ button:disabled {
 @media (max-width: 620px) {
   .site-header {
     height: 62px;
+    padding: 0 12px;
   }
 
   .brand small {
@@ -1761,10 +1782,20 @@ button:disabled {
   }
 
   .header-actions {
-    gap: 10px;
+    gap: 8px;
   }
 
-  .github-link span {
+  .github-link {
+    display: none;
+  }
+
+  .new-board-button {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .new-board-button span {
     display: none;
   }
 

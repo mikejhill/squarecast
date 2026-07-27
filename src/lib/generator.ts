@@ -121,7 +121,6 @@ export class BoardGenerator {
       size,
       theme: editor.config.theme,
       accentColor: editor.config.accentColor,
-      appearance: editor.config.appearance,
       fontMode: editor.config.fontMode,
       fontSize: editor.config.fontSize,
       cells,
