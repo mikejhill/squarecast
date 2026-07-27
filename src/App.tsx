@@ -413,7 +413,25 @@ function Editor({
         <Panel
           icon={<Settings2 size={18} />}
           title="Board Setup"
-          aside={`${state.config.size} × ${state.config.size}`}
+          aside={
+            <label className="panel-size-select">
+              <span className="sr-only">Board Size</span>
+              <select
+                value={state.config.size}
+                aria-label="Board Size"
+                onChange={(event) =>
+                  patchConfig({ size: Number(event.target.value) })
+                }
+              >
+                {[3, 4, 5, 6, 7].map((size) => (
+                  <option value={size} key={size}>
+                    {size} × {size}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} aria-hidden="true" />
+            </label>
+          }
         >
           <label className="field field-wide">
             <span>Board Title</span>
@@ -425,47 +443,39 @@ function Editor({
             />
           </label>
 
-          <div className="field">
-            <span>Board Size</span>
-            <div className="segmented" aria-label="Board size">
-              {[3, 4, 5, 6, 7].map((size) => (
-                <button
-                  type="button"
-                  className={state.config.size === size ? "active" : ""}
-                  aria-pressed={state.config.size === size}
-                  onClick={() => patchConfig({ size })}
-                  key={size}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <label className="toggle-row">
-            <span>
-              <strong>Centered free square</strong>
-              <small>Automatically marked for every player</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={state.config.free}
-              onChange={(event) => patchConfig({ free: event.target.checked })}
-            />
-            <span className="toggle" aria-hidden="true" />
-          </label>
-
-          {state.config.free && (
-            <label className="field">
-              <span>Free-Square Label</span>
+          <div
+            className={`free-square-section ${
+              state.config.free ? "" : "without-label"
+            }`}
+          >
+            <label className="free-square-toggle">
+              <span>
+                <strong>Centered Free Square</strong>
+                <small>Automatically marked for every player</small>
+              </span>
               <input
-                value={state.config.freeLabel}
-                onChange={(event) => patchConfig({ freeLabel: event.target.value })}
-                placeholder="FREE"
-                maxLength={36}
+                type="checkbox"
+                checked={state.config.free}
+                onChange={(event) => patchConfig({ free: event.target.checked })}
               />
+              <span className="toggle" aria-hidden="true" />
             </label>
-          )}
+
+            {state.config.free && (
+              <label className="free-square-label">
+                <span>Label</span>
+                <input
+                  value={state.config.freeLabel}
+                  onChange={(event) =>
+                    patchConfig({ freeLabel: event.target.value })
+                  }
+                  placeholder="FREE"
+                  maxLength={36}
+                  aria-label="Free-Square Label"
+                />
+              </label>
+            )}
+          </div>
 
           <div className="field field-wide">
             <span>Board Color</span>
@@ -772,7 +782,7 @@ function Panel({
 }: {
   icon: ReactNode;
   title: string;
-  aside: string;
+  aside: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -780,7 +790,7 @@ function Panel({
       <div className="panel-heading">
         <span className="panel-icon">{icon}</span>
         <h2>{title}</h2>
-        <span className="panel-aside">{aside}</span>
+        <div className="panel-aside">{aside}</div>
       </div>
       <div className="panel-body">{children}</div>
     </section>
