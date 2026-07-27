@@ -186,10 +186,12 @@ cues.
 
 The desktop editor uses a full-width setup band followed by a two-column
 workspace. Card Pool and Live Preview share the same outer height while they
-are side by side. The Card Pool list consumes the remaining panel height and
-scrolls internally; the page itself must not gain horizontal overflow from
-editor content, floating tooltips, or decorative effects. At narrower widths,
-both sections return to their natural content-driven heights and:
+are side by side, with Live Preview acting as the height reference. Card Pool
+contents must not make that shared row taller. Its list consumes only the
+remaining bounded panel height and scrolls internally; the page itself must not
+gain horizontal overflow from editor content, floating tooltips, or decorative
+effects. At narrower widths, both sections return to their natural
+content-driven heights and:
 
 - Card Pool and Live Preview stack;
 - multi-column setup fields collapse;

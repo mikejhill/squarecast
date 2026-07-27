@@ -81,9 +81,11 @@ See [State and Routing](docs/state-and-routing.md).
 - Field labels use one consistent treatment. Secondary explanation belongs in
   accessible hover/focus tooltips.
 - Card Pool and Live Preview are equal-width desktop columns.
-- Card Pool and Live Preview must have equal outer height on desktop.
+- Card Pool and Live Preview must have equal outer height on desktop, with Live
+  Preview as the height reference.
 - The Card Pool list fills the remaining desktop panel height and scrolls
-  internally; do not leave a blank region below it.
+  internally; it must neither leave a blank region below it nor make the shared
+  editor row taller.
 - Editor controls, tooltips, and decorative effects must not create horizontal
   page scrolling.
 - Once the workspace stacks at responsive widths, both sections use independent

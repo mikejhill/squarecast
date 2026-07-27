@@ -972,10 +972,14 @@ optgroup {
 
 @media (min-width: 981px) {
   /*
-   * The preview determines the shared desktop row height. Convert the Card
-   * Pool into a bounded flex/grid stack so its list receives every remaining
-   * pixel instead of leaving unused space below the previous fixed cap.
+   * Exclude Card Pool contents from the grid row's intrinsic height calculation
+   * so the preview remains the height reference. The stretched wrapper then
+   * gives the bounded panel and its internal list an exact available height.
    */
+  .editor-panel {
+    contain: size;
+  }
+
   .card-pool-panel {
     min-height: 0;
     display: flex;
