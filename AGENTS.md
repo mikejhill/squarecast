@@ -82,6 +82,10 @@ See [State and Routing](docs/state-and-routing.md).
   accessible hover/focus tooltips.
 - Card Pool and Live Preview are equal-width desktop columns.
 - Card Pool and Live Preview must have equal outer height on desktop.
+- The Card Pool list fills the remaining desktop panel height and scrolls
+  internally; do not leave a blank region below it.
+- Editor controls, tooltips, and decorative effects must not create horizontal
+  page scrolling.
 - Once the workspace stacks at responsive widths, both sections use independent
   natural heights; do not force equal mobile heights.
 - Card Pool must support:
