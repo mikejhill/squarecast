@@ -5,13 +5,8 @@
   background: #f4f1eb;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-}
-
-html {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior-x: none;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 * {
@@ -20,24 +15,13 @@ html {
 
 body {
   margin: 0;
-  width: 100%;
-  max-width: 100%;
   min-width: 0;
-  height: 100%;
-  min-height: 100%;
+  min-height: 100vh;
   /*
-   * Keep the document root locked to the viewport and make body the sole
-   * vertical scroller. Descendant overflow can no longer enlarge `<html>` and
-   * expose an unthemed canvas beside the application.
+   * Floating tooltips and decorative board shadows may cross a viewport edge,
+   * but they must never enlarge the page's horizontal scrolling area.
    */
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-x: none;
-}
-
-#root {
-  width: 100%;
-  min-height: 100%;
+  overflow-x: clip;
 }
 
 .fatal-error {
@@ -1248,13 +1232,19 @@ optgroup {
   min-height: 52px;
   padding: 9px 14px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /*
+   * Zero-minimum tracks prevent the title and monospace edge labels from
+   * contributing a combined intrinsic width wider than a mobile board.
+   */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   border-bottom: 2px solid #242427;
 }
 
 .board-heading h2 {
+  min-width: 0;
+  width: 100%;
   margin: 0;
   max-width: 290px;
   overflow: hidden;
@@ -1267,10 +1257,14 @@ optgroup {
 }
 
 .board-heading span {
+  min-width: 0;
+  overflow: hidden;
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   font-size: clamp(12px, 1.35vw, 14px);
   font-weight: 650;
   letter-spacing: 0.09em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .board-heading span:last-child {
@@ -2218,6 +2212,16 @@ optgroup {
 }
 
 @media (max-width: 620px) {
+  :root,
+  body {
+    /*
+     * Some mobile engines do not enforce `clip` on the root scrolling box.
+     * `hidden` is the compatible fallback at widths where sticky preview
+     * behavior is disabled, so it cannot alter the desktop sticky container.
+     */
+    overflow-x: hidden;
+  }
+
   .site-header {
     height: 62px;
     padding: 0 12px;
