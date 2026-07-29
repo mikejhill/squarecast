@@ -107,6 +107,13 @@ Zod schemas in `src/lib/model.ts` form the trust boundary for decoded URL
 state. The portable board-file format applies the same configuration and
 placement schemas.
 
+`CompactStateSerializer` is the transport adapter between the model and the URL
+codec. It removes repeated property names, encodes small enums numerically, and
+references generated play cells by Card Pool index. Decoding first validates
+the compact tuple, reconstructs the normal model, and then validates that model
+again. The codec still accepts the earlier object-based payload for existing
+links.
+
 ## Board Generation
 
 ```mermaid

@@ -1,6 +1,7 @@
 import LZString from "lz-string";
 import { appStateSchema, type AppState } from "./model";
 import { RuntimeLogger } from "./logger";
+import { CompactStateSerializer } from "./compact-state";
 
 const logger = new RuntimeLogger("state-codec");
 
@@ -14,9 +15,15 @@ const logger = new RuntimeLogger("state-codec");
 export class StateCodec {
   private static readonly hashPrefix = "#sq1:";
 
+  public constructor(
+    private readonly compactState = new CompactStateSerializer(),
+  ) {}
+
   /** Serializes and compresses a validated in-memory state into a URL hash. */
   public encode(state: AppState): string {
-    const payload = LZString.compressToEncodedURIComponent(JSON.stringify(state));
+    const payload = LZString.compressToEncodedURIComponent(
+      JSON.stringify(this.compactState.serialize(state)),
+    );
     logger.debug("Encoded application state.", {
       mode: state.mode,
       encodedLength: payload.length,
@@ -43,7 +50,17 @@ export class StateCodec {
         });
         return null;
       }
-      const result = appStateSchema.safeParse(JSON.parse(raw));
+      const parsed: unknown = JSON.parse(raw);
+      let restored = parsed;
+      if (Array.isArray(parsed)) {
+        try {
+          restored = this.compactState.deserialize(parsed);
+        } catch {
+          logger.warn("Decoded URL state failed compact transport validation.");
+          return null;
+        }
+      }
+      const result = appStateSchema.safeParse(restored);
       if (!result.success) {
         logger.warn("Decoded URL state failed schema validation.", {
           issueCount: result.error.issues.length,

@@ -52,6 +52,8 @@ The repository is:
 
 - Keep state schemas versioned and runtime-validated with Zod.
 - Keep encoded board state under the `#sq1:` fragment prefix.
+- Encode new links with the compact versioned tuple transport and retain
+  decoding support for legacy object payloads.
 - Preserve `#new` as an action route that creates fresh defaults and a random
   board color.
 - The hash-free front page must open a random curated sample.

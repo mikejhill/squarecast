@@ -133,9 +133,18 @@ describe("board generator", () => {
 
   it("warns when a valid board creates an unusually long URL", () => {
     const editor = BoardModel.createDefaultEditor();
+    let seed = 0x5a17c9e3;
+    const uniqueText = () => {
+      let value = "";
+      while (value.length < 900) {
+        seed = (Math.imul(seed, 1_664_525) + 1_013_904_223) >>> 0;
+        value += seed.toString(36);
+      }
+      return value;
+    };
     editor.answers = editor.answers.map((answer, index) => ({
       ...answer,
-      text: `${index}-${"long card ".repeat(400)}`,
+      text: `${index}-${uniqueText()}`,
     }));
     expect(generator.validate(editor).warnings).toContain(
       "This board creates a long URL that some messaging apps may truncate.",

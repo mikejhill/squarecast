@@ -8,6 +8,7 @@ import {
 } from "./model";
 import { DuplicateCardDetector } from "./duplicates";
 import { RuntimeLogger } from "./logger";
+import { StateCodec } from "./codec";
 
 export type ValidationResult = {
   valid: boolean;
@@ -27,6 +28,7 @@ const logger = new RuntimeLogger("board-generator");
  */
 export class BoardGenerator {
   private readonly duplicateDetector = new DuplicateCardDetector();
+  private readonly stateCodec = new StateCodec();
 
   /**
    * Checks user-correctable conditions without throwing. Validation errors
@@ -70,7 +72,7 @@ export class BoardGenerator {
     if (this.duplicateDetector.findDuplicateIds(answers).size > 0) {
       warnings.push("Duplicate card text will appear as separate squares.");
     }
-    if (encodeURIComponent(JSON.stringify(editor)).length > 7000) {
+    if (this.stateCodec.encode(editor).length > 7000) {
       warnings.push(
         "This board creates a long URL that some messaging apps may truncate.",
       );

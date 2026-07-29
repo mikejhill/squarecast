@@ -18,8 +18,11 @@ service.
 
 ## Encoded State
 
-`StateCodec` serializes a versioned state object as JSON, compresses it with
-LZ-String, and writes it beneath the `#sq1:` prefix.
+`StateCodec` converts state into a versioned compact tuple, compresses that
+tuple with LZ-String, and writes it beneath the `#sq1:` prefix. Tuple fields use
+numeric codes and positional structure to avoid repeating object-property
+names. Generated play cells normally store Card Pool indexes instead of
+duplicating Card IDs and text.
 
 ```text
 https://mikejhill.github.io/squarecast/#sq1:<compressed-state>
@@ -33,11 +36,14 @@ Decoding follows a fail-closed sequence:
 1. verify the `#sq1:` prefix;
 2. decompress the payload;
 3. parse JSON;
-4. validate the complete object with Zod; and
-5. accept only a supported state mode and version.
+4. validate the compact transport tuple;
+5. reconstruct the ordinary application state;
+6. validate the complete application object with Zod; and
+7. accept only a supported state mode and version.
 
 Malformed or incompatible data falls back to a new editor instead of entering
-runtime state.
+runtime state. Object-based `#sq1:` links issued by earlier Squarecast versions
+remain readable.
 
 ## Application Modes
 
@@ -165,10 +171,10 @@ Operational rules:
 
 ## Compatibility
 
-The `sq1` prefix and state field `v: 1` establish the current compatibility
-boundary. A future incompatible format should receive a new prefix or an
-explicit migration path. Existing schemas use defaults for compatible field
-additions where practical.
+The `sq1` prefix and state field `v: 1` establish the application compatibility
+boundary. The transport tuple has its own version, allowing its representation
+to evolve without changing the application model or public route. Existing
+object payloads and schema defaults preserve compatible older links.
 
 The compressed URL representation is an application format, not a public
 hand-editing format. Use the documented JSON board file for external tooling.

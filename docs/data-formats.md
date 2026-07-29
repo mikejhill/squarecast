@@ -157,8 +157,8 @@ If the title cannot produce a usable filename, Squarecast uses
 ## URL State Is a Separate Format
 
 The compressed `#sq1:` representation is optimized for sharing and restoration.
-It contains editor, launch, or play state and should be treated as an internal
-application format.
+It uses a versioned positional tuple internally, including Card Pool indexes for
+generated play cells, and should be treated as an internal application format.
 
 Do not build integrations by editing compressed fragments. Use the versioned
 JSON format for complete boards or CSV for Card Pools.
