@@ -3,6 +3,7 @@ import { Cloud, Copy, Database, ExternalLink, Trash2 } from "lucide-react";
 import type { BoardSummary } from "../lib/board-repository";
 import { ApplicationRoutes } from "../lib/routes";
 import { Modal } from "./Modal";
+import { RouteLink } from "./RouteLink";
 
 type BoardLists = {
   device: readonly BoardSummary[];
@@ -120,9 +121,13 @@ function BoardSection({
                 <span>{board.permission} · {new Date(board.updatedAt).toLocaleString()}</span>
               </div>
               <div className="board-library-actions">
-                <button
-                  type="button"
-                  onClick={() =>
+                <RouteLink
+                  href={
+                    board.storageKind === "device"
+                      ? ApplicationRoutes.deviceBoard(board.id)
+                      : ApplicationRoutes.cloudBoard(board.id)
+                  }
+                  onNavigate={() =>
                     onOpenRoute(
                       board.storageKind === "device"
                         ? ApplicationRoutes.deviceBoard(board.id)
@@ -132,7 +137,7 @@ function BoardSection({
                   aria-label={`Open ${board.title}`}
                 >
                   <ExternalLink size={15} /> Open
-                </button>
+                </RouteLink>
                 <button type="button" onClick={() => onDuplicate(board)} aria-label={`Duplicate ${board.title}`}>
                   <Copy size={15} />
                 </button>

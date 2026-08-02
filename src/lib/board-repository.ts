@@ -33,8 +33,14 @@ export type BoardSummary = {
 export type SavedBoard = BoardSummary & {
   editor: EditorState;
   createdAt: number;
+  cloudAccess?: CloudAccessSnapshot;
   lastOperationTargets?: readonly string[];
   lastEditorUid?: string;
+};
+
+export type CloudAccessSnapshot = {
+  shareTokens: Readonly<Partial<Record<"view" | "play" | "invite", string>>>;
+  members: Readonly<Record<string, "owner" | "editor">>;
 };
 
 export type BoardCheckpoint = {
@@ -73,6 +79,7 @@ export type WorkspaceReadySession = {
   readOnly: boolean;
   historicalRevision?: number;
   editorToken?: string;
+  cloudAccess?: CloudAccessSnapshot;
 };
 
 export type WorkspaceSession =

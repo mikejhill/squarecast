@@ -230,9 +230,9 @@ export class BoardModel {
   ): readonly number[] {
     const patterns: Record<number, readonly number[]> = {
       3: [4, 0],
-      4: [0, 6, 11],
+      4: [5, 3, 8],
       5: [12, 1, 5, 19],
-      6: [0, 10, 13, 23, 26],
+      6: [14, 5, 6, 22, 27],
       7: [24, 1, 7, 19, 34, 37],
     };
     const pattern = patterns[size] ?? [];

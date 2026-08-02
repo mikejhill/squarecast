@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CloudShareDialog } from "../src/components/CloudShareDialog";
@@ -22,11 +22,8 @@ function deferred<T>() {
 
 function harness(tokens: { view?: string; play?: string; invite?: string } = {}) {
   const repository = {
-    activeShareTokens: vi.fn(async () => tokens),
-    members: vi.fn(async () => ({ owner: "owner" as const })),
     createEditorInvite: vi.fn(async () => "invite-token"),
     createPublicShare: vi.fn(async () => "public-token"),
-    isShareActive: vi.fn(async () => true),
     revokeShare: vi.fn(async () => undefined),
     transferOwnership: vi.fn(async () => undefined),
     removeMember: vi.fn(async () => undefined),
@@ -39,6 +36,7 @@ function harness(tokens: { view?: string; play?: string; invite?: string } = {})
       boardId="board"
       repository={repository}
       clipboard={clipboard}
+      access={{ shareTokens: tokens, members: { owner: "owner" } }}
       onClose={vi.fn()}
     />,
   );
@@ -69,33 +67,27 @@ describe("cloud share dialog", () => {
   it("waits for clipboard confirmation and reports a successful copy", async () => {
     const user = userEvent.setup();
     const copied = deferred<void>();
-    const { repository, clipboard } = harness({ invite: "active-invite" });
+    const { clipboard } = harness({ invite: "active-invite" });
     vi.mocked(clipboard.copy).mockReturnValue(copied.promise);
 
     const copyButtons = await screen.findAllByRole("button", { name: "Copy" });
     await user.click(copyButtons[0]!);
 
     expect((screen.getByRole("button", { name: "Copying…" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(repository.isShareActive).toHaveBeenCalledWith(
-      "board",
-      "invite",
-      "active-invite",
-    );
     copied.resolve();
     expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toContain("Editor Link copied.");
   });
 
-  it("does not report success when the displayed invitation is inactive", async () => {
+  it("copies displayed links without backend validation reads", async () => {
     const user = userEvent.setup();
     const { repository, clipboard } = harness({ invite: "stale-invite" });
-    vi.mocked(repository.isShareActive).mockResolvedValue(false);
 
     const copyButtons = await screen.findAllByRole("button", { name: "Copy" });
     await user.click(copyButtons[0]!);
 
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("changed or expired"));
-    expect(clipboard.copy).not.toHaveBeenCalled();
+    expect(clipboard.copy).toHaveBeenCalledOnce();
+    expect(repository.createEditorInvite).not.toHaveBeenCalled();
   });
 
   it("uses explicit rotation for an existing invitation", async () => {

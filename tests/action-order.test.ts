@@ -30,6 +30,8 @@ describe("action ordering", () => {
     );
 
     expectBefore(markup, "New Board", "Sample Board");
+    expect(markup).toContain('href="#new"');
+    expect(markup).toContain('href="/"');
   });
 
   it("places CSV import before its cancellation action", () => {

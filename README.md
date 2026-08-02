@@ -43,6 +43,7 @@ the URL, which can be copied or bookmarked at any time.
 - Complete-board JSON import and export
 - Card Pool CSV import, export, paste, and drag-and-drop
 - URL-aware Back and Forward navigation
+- Native new-tab and link-menu behavior for board navigation
 - URL-only, device, and optional account storage
 - Mutable public view/play links and perpetual, account-optional editor links
 - Automatically named guest collaborators with no sign-in prompt

@@ -8,6 +8,7 @@ import {
   type Answer,
   type BoardConfig,
   type EditorState,
+  type PlayState,
 } from "../lib/model";
 import type { AnswerSort } from "../lib/sorting";
 
@@ -235,12 +236,16 @@ export class EditorController {
     );
   }
 
-  public openTestBoard(): void {
-    if (!this.validation.valid) return;
-    this.onChange(
-      this.services.generator.generate(this.editor, IdFactory.seed()),
-      "push",
-    );
+  /** Creates one concrete test board that can also back a native link. */
+  public createTestBoard(): PlayState | null {
+    return this.validation.valid
+      ? this.services.generator.generate(this.editor, IdFactory.seed())
+      : null;
+  }
+
+  public openTestBoard(play = this.createTestBoard()): void {
+    if (!play) return;
+    this.onChange(play, "push");
     logger.info("Opened a test play session.");
   }
 

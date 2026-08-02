@@ -5,6 +5,7 @@ import type {
 } from "../lib/board-repository";
 import type { AuthUser } from "../services/cloud-auth-service";
 import type { BoardPresence } from "../services/cloud-board-repository";
+import { RouteLink } from "./RouteLink";
 
 type StorageStatusBarProps = {
   session: WorkspaceReadySession;
@@ -12,6 +13,8 @@ type StorageStatusBarProps = {
   guestUser?: AuthUser | null;
   preferredStorage: StorageKind;
   statusMessage: string;
+  urlOnlyHref: string;
+  currentBoardHref?: string;
   presence: readonly BoardPresence[];
   onPreferredStorageChange: (kind: StorageKind) => void;
   onCopyToDevice: () => void;
@@ -36,6 +39,8 @@ export function StorageStatusBar({
   guestUser = null,
   preferredStorage,
   statusMessage,
+  urlOnlyHref,
+  currentBoardHref,
   presence,
   onPreferredStorageChange,
   onCopyToDevice,
@@ -97,9 +102,12 @@ export function StorageStatusBar({
             <button type="button" onClick={onRestoreHistorical}>
               <RotateCcw size={15} /> Restore This Version
             </button>
-            <button type="button" onClick={onReturnToCurrent}>
+            <RouteLink
+              href={currentBoardHref}
+              onNavigate={onReturnToCurrent}
+            >
               <History size={15} /> Return To Current
-            </button>
+            </RouteLink>
           </>
         )}
         {session.storageKind === "url" ? (
@@ -120,9 +128,9 @@ export function StorageStatusBar({
           </label>
         ) : (
           <>
-            <button type="button" onClick={onUseUrlOnly}>
+            <RouteLink href={urlOnlyHref} onNavigate={onUseUrlOnly}>
               <Link2 size={15} /> URL-Only Copy
-            </button>
+            </RouteLink>
             {session.storageKind !== "device" && (
               <button type="button" onClick={onCopyToDevice}>
                 <Database size={15} /> Device Copy

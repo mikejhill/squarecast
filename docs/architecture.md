@@ -128,17 +128,27 @@ capture structural Board Setup changes and meaningful Card Pool actions;
 routine typing and position-control visibility do not create checkpoint rows.
 
 `CloudSyncCoordinator` applies operations optimistically, persists only
-unacknowledged operations in IndexedDB, coalesces same-target typing for 750 ms,
-and commits major changes immediately. Firestore transactions read the current
+unacknowledged operations in IndexedDB, coalesces same-target typing after 1.5
+seconds idle with a five-second maximum delay, and commits major changes immediately. Firestore transactions read the current
 head, apply one semantic operation, increment the revision, update active
 published copies, and retry concurrent writes. Different targets merge. An edit
 against a deleted target becomes a recoverable conflict. Recent operation IDs
 make reconnect replay safe.
 
-Cloud board listeners reapply local pending operations over the latest remote
-head. Presence uses a board subcollection, one visible-session heartbeat per
-minute, immediate cleanup when a page hides or exits, and a two-minute freshness
-cutoff for abandoned sessions. Multiple sessions with the same Firebase UID are
+Cloud board listeners provide the initial private-board load and then reapply
+local pending operations over the latest remote head. The first public-view
+share-listener snapshot likewise resolves that route without a preliminary
+read. Owner-visible member roles and active tokens travel on the listener-backed
+workspace session, so opening Share and copying an existing link do not read
+Firestore. `EditorPresentationMerger` retains the current browser session's
+Board Setup disclosure and preview seed when saved editor state arrives; shared
+position-control visibility still follows the saved state.
+
+Presence uses a board subcollection, one application-lifetime session ID, one
+visible-session heartbeat per minute, idempotent cleanup when a page hides or
+exits, and a two-minute freshness cutoff for abandoned sessions. The active
+query is freshness-bounded. Owners run one bounded batch cleanup after the
+board becomes interactive. Multiple sessions with the same Firebase UID are
 shown as one editor. Presence deliberately excludes cursors and character-level
 CRDT behavior.
 
@@ -161,7 +171,9 @@ URL snapshot copy and JSON export when Firebase is unavailable or quota-limited.
 
 Firebase Spark is the primary account provider because the browser can use
 managed Authentication, Firestore transactions/listeners, Security Rules, and
-App Check while GitHub Pages remains the only web host.
+App Check while GitHub Pages remains the only web host. Firestore construction
+initializes App Check lazily; URL-only and device-only use never requests a
+token. Persistent Firestore caching remains disabled.
 
 Documented alternatives remain:
 

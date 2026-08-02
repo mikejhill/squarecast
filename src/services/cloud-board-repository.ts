@@ -138,15 +138,18 @@ export class CloudPayloadTooLargeError extends Error {
 
 /** Firestore implementation for account boards and live collaboration. */
 export class CloudBoardRepository implements BoardRepository {
-  private readonly database: Firestore;
+  private firestoreClient: Firestore | null = null;
 
   public constructor(
-    firebase: FirebaseClient,
+    private readonly firebase: FirebaseClient,
     private readonly codec: StateCodec,
     private readonly editorState: EditorStateService,
     private readonly getUser: () => AuthUser | null,
-  ) {
-    this.database = firebase.firestore();
+  ) {}
+
+  private get database(): Firestore {
+    this.firestoreClient ??= this.firebase.firestore();
+    return this.firestoreClient;
   }
 
   public async list(): Promise<readonly BoardSummary[]> {
@@ -688,35 +691,14 @@ export class CloudBoardRepository implements BoardRepository {
     boardId: string,
     listener: (presence: readonly BoardPresence[]) => void,
   ): Unsubscribe {
-    const user = this.requireSignedInUser();
-    let canClean = false;
-    let staleReferences: Array<ReturnType<typeof doc>> = [];
-    let entries: Array<{
-      reference: ReturnType<typeof doc>;
-      presence: BoardPresence;
-    }> = [];
+    this.requireSignedInUser();
+    let entries: BoardPresence[] = [];
     let expiryTimer: ReturnType<typeof setTimeout> | null = null;
-    const clean = () => {
-      if (!canClean || staleReferences.length === 0) return;
-      const references = staleReferences;
-      staleReferences = [];
-      for (const reference of references) {
-        void deleteDoc(reference).catch(() => undefined);
-      }
-    };
     const publish = () => {
       if (expiryTimer) clearTimeout(expiryTimer);
       expiryTimer = null;
       const now = Date.now();
-      const cutoff = now - PRESENCE_TTL_MS;
-      staleReferences = entries
-        .filter((entry) => entry.presence.lastSeen < cutoff)
-        .map((entry) => entry.reference);
-      clean();
-      const active = activeBoardPresence(
-        entries.map((entry) => entry.presence),
-        now,
-      );
+      const active = activeBoardPresence(entries, now);
       listener(active);
       const nextExpiry = active.reduce(
         (earliest, entry) => Math.min(earliest, entry.lastSeen + PRESENCE_TTL_MS + 1),
@@ -726,22 +708,16 @@ export class CloudBoardRepository implements BoardRepository {
         expiryTimer = setTimeout(publish, Math.max(1, nextExpiry - now));
       }
     };
-    void this.requireRecord(boardId)
-      .then((board) => {
-        canClean = board.ownerUid === user.uid;
-        clean();
-      })
-      .catch(() => undefined);
     const unsubscribe = onSnapshot(
-      collection(this.database, "boards", boardId, "presence"),
+      query(
+        collection(this.database, "boards", boardId, "presence"),
+        where("lastSeen", ">=", Timestamp.fromMillis(Date.now() - PRESENCE_TTL_MS)),
+      ),
       (snapshot) => {
         entries = snapshot.docs.map((entry) => ({
-          reference: entry.ref,
-          presence: {
             uid: String(entry.data().uid),
             displayName: String(entry.data().displayName),
             lastSeen: this.toMillis(entry.data().lastSeen),
-          },
         }));
         publish();
       },
@@ -758,36 +734,19 @@ export class CloudBoardRepository implements BoardRepository {
     };
   }
 
-  public async activeShareTokens(boardId: string): Promise<CloudRecord["shareTokens"]> {
-    return (await this.requireRecord(boardId)).shareTokens;
-  }
-
-  /** Confirms that a displayed token is still the board's active, readable share. */
-  public async isShareActive(
-    boardId: string,
-    kind: PublicShareKind | "invite",
-    token: string,
-  ): Promise<boolean> {
-    const board = await this.requireRecord(boardId);
-    if (board.shareTokens[kind] !== token) return false;
-    const snapshot = await getDoc(
-      doc(
-        this.database,
-        kind === "invite" ? "editorInvites" : "publicShares",
-        token,
+  /** Deletes a bounded stale-presence page without delaying board interaction. */
+  public async cleanupStalePresence(boardId: string): Promise<void> {
+    const stale = await getDocs(
+      query(
+        collection(this.database, "boards", boardId, "presence"),
+        where("lastSeen", "<", Timestamp.fromMillis(Date.now() - PRESENCE_TTL_MS)),
+        limit(100),
       ),
     );
-    if (!snapshot.exists()) return false;
-    if (kind === "invite") {
-      const invite = inviteSchema.parse(snapshot.data());
-      return invite.boardId === boardId;
-    }
-    const share = publicShareSchema.parse(snapshot.data());
-    return share.boardId === boardId && share.kind === kind;
-  }
-
-  public async members(boardId: string): Promise<Readonly<Record<string, "owner" | "editor">>> {
-    return (await this.requireRecord(boardId)).roles;
+    if (stale.empty) return;
+    const batch = writeBatch(this.database);
+    for (const snapshot of stale.docs) batch.delete(snapshot.ref);
+    await batch.commit();
   }
 
   private async requireRecord(id: string): Promise<CloudRecord> {
@@ -856,10 +815,17 @@ export class CloudBoardRepository implements BoardRepository {
     uid: string,
     permissionOverride?: BoardPermission,
   ): SavedBoard {
+    const permission = permissionOverride ?? record.roles[uid] ?? "viewer";
     return {
       ...this.toSummary(id, record, uid),
-      permission: permissionOverride ?? record.roles[uid] ?? "viewer",
+      permission,
       editor: this.decodeEditor(record.stateHash),
+      cloudAccess: permission === "owner"
+        ? {
+            shareTokens: { ...record.shareTokens },
+            members: { ...record.roles },
+          }
+        : undefined,
       createdAt: this.toMillis(record.createdAt),
       lastOperationTargets: record.lastOperation?.targets,
       lastEditorUid: record.lastOperation?.uid,

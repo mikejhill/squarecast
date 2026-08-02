@@ -28,7 +28,16 @@ export class PlayerController {
   }
 
   public reshuffle(): void {
-    this.onChange(this.services.playerSession.reshuffle(this.play), "push");
+    this.openShuffle(this.createShuffle());
+  }
+
+  /** Creates one concrete reshuffle suitable for same- or new-tab navigation. */
+  public createShuffle(): PlayState {
+    return this.services.playerSession.reshuffle(this.play);
+  }
+
+  public openShuffle(play: PlayState): void {
+    this.onChange(play, "push");
     logger.info("Generated a new play-session shuffle.");
   }
 

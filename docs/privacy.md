@@ -68,7 +68,9 @@ never enter account or device libraries.
 ## Retention And Deletion
 
 Saved boards retain at most 25 meaningful checkpoints. Cloud presence records
-are treated as expired after two minutes and cleaned opportunistically.
+are treated as expired after two minutes. The active listener is
+freshness-bounded, and owner cleanup deletes at most one bounded stale batch
+after board interaction starts.
 
 Deleting an owner-managed account board removes public links, editor links,
 anonymous editor sessions, checkpoints, presence, and the board. Deleting a
@@ -81,7 +83,10 @@ and retry remain available.
 
 Firebase configuration is public by design. Firestore Security Rules and App
 Check protect access; configuration values are not credentials. App Check must
-be monitored before enforcement. Squarecast keeps production logging at
+be monitored before enforcement and initializes only when Firestore is first
+used. URL and device boards do not request App Check tokens. Firestore's
+persistent local cache is disabled; only explicitly pending cloud operations
+use IndexedDB. Squarecast keeps production logging at
 `warn` and never logs board titles, card text, state payloads, tokens, or URLs.
 
 Do not place secrets or regulated sensitive information in any Squarecast

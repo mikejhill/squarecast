@@ -55,6 +55,7 @@ export class FirebaseClient {
   }
 
   public firestore(): Firestore {
+    this.initializeAppCheck();
     if (!this.firestoreClient) {
       this.firestoreClient = getFirestore(this.application());
     }

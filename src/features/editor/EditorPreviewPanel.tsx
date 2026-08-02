@@ -8,10 +8,14 @@ import {
 import { BoardPreview } from "../../components/BoardPreview";
 import { ValidationCard } from "../../components/ValidationCard";
 import type { EditorController } from "../../controllers/EditorController";
+import type { PlayState } from "../../lib/model";
+import { RouteLink } from "../../components/RouteLink";
 
 type EditorPreviewPanelProps = {
   controller: EditorController;
   copied: "edit" | "play" | null;
+  testBoard: PlayState | null;
+  testBoardUrl?: string;
   onCopyEditor: () => void;
   onCreatePlayLink: () => void;
 };
@@ -20,6 +24,8 @@ type EditorPreviewPanelProps = {
 export function EditorPreviewPanel({
   controller,
   copied,
+  testBoard,
+  testBoardUrl,
   onCopyEditor,
   onCreatePlayLink,
 }: EditorPreviewPanelProps) {
@@ -39,16 +45,16 @@ export function EditorPreviewPanel({
       </div>
       <BoardPreview editor={controller.editor} />
       <ValidationCard validation={validation} />
-      <button
-        type="button"
+      <RouteLink
+        href={testBoardUrl}
+        disabled={!testBoard}
         className="share-play-action"
-        disabled={!validation.valid}
-        onClick={() => controller.openTestBoard()}
+        onNavigate={() => controller.openTestBoard(testBoard)}
       >
         <Sparkles size={19} />
         Test This Board
         <span aria-hidden="true">→</span>
-      </button>
+      </RouteLink>
       <button
         type="button"
         className="copy-editor-action"

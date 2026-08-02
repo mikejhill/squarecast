@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Copy, Link2, LoaderCircle, RefreshCw, Trash2, UserPlus } from "lucide-react";
 import type { ClipboardService } from "../services/clipboard-service";
 import type { CloudBoardRepository } from "../services/cloud-board-repository";
+import type { CloudAccessSnapshot } from "../lib/board-repository";
 import { ApplicationRoutes } from "../lib/routes";
 import { Modal } from "./Modal";
 
@@ -9,13 +10,13 @@ type CloudShareDialogProps = {
   boardId: string;
   repository: CloudBoardRepository;
   clipboard: ClipboardService;
+  access: CloudAccessSnapshot;
   onClose: () => void;
 };
 
 type ShareTokens = { view?: string; play?: string; invite?: string };
 type ShareKind = "view" | "play" | "invite";
 type PendingAction =
-  | "loading"
   | `${"copy" | "create" | "rotate" | "revoke"}:${ShareKind}`
   | `remove:${string}`
   | `transfer:${string}`;
@@ -26,41 +27,19 @@ export function CloudShareDialog({
   boardId,
   repository,
   clipboard,
+  access,
   onClose,
 }: CloudShareDialogProps) {
-  const [tokens, setTokens] = useState<ShareTokens>({});
-  const [members, setMembers] = useState<Readonly<Record<string, "owner" | "editor">>>({});
+  const [tokens, setTokens] = useState<ShareTokens>(access.shareTokens);
+  const [members, setMembers] = useState(access.members);
   const [message, setMessage] = useState<StatusMessage | null>(null);
-  const [pending, setPending] = useState<PendingAction | null>("loading");
+  const [pending, setPending] = useState<PendingAction | null>(null);
   const [copied, setCopied] = useState<ShareKind | null>(null);
 
-  const refresh = async () => {
-    const [nextTokens, nextMembers] = await Promise.all([
-      repository.activeShareTokens(boardId),
-      repository.members(boardId),
-    ]);
-    setTokens(nextTokens);
-    setMembers(nextMembers);
-  };
-
   useEffect(() => {
-    let active = true;
-    void refresh()
-      .catch((error: unknown) => {
-        if (active) {
-          setMessage({
-            text: error instanceof Error ? error.message : "Sharing could not load.",
-            error: true,
-          });
-        }
-      })
-      .finally(() => {
-        if (active) setPending(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [boardId, repository]);
+    setTokens(access.shareTokens);
+    setMembers(access.members);
+  }, [access]);
 
   const act = async (
     actionKey: PendingAction,
@@ -105,10 +84,6 @@ export function CloudShareDialog({
 
   const copy = async (kind: ShareKind, token: string) => {
     await act(`copy:${kind}`, async () => {
-      if (!(await repository.isShareActive(boardId, kind, token))) {
-        await refresh();
-        throw new Error("This link changed or expired. Copy the current link again.");
-      }
       await clipboard.copy(url(kind, token));
       setCopied(kind);
     }, `${label(kind)} copied.`);
@@ -184,11 +159,9 @@ export function CloudShareDialog({
                 <div>
                   <button type="button" disabled={busy} onClick={() => void act(`transfer:${uid}`, async () => {
                     await repository.transferOwnership(boardId, uid);
-                    await refresh();
                   }, "Ownership transferred.")}>{pending === `transfer:${uid}` ? "Transferring…" : "Make Owner"}</button>
                   <button type="button" className="danger-icon" disabled={busy} onClick={() => void act(`remove:${uid}`, async () => {
                     await repository.removeMember(boardId, uid);
-                    await refresh();
                   }, "Editor removed.")} aria-label={`Remove editor ${uid}`}>
                     {pending === `remove:${uid}` ? <LoaderCircle className="route-spinner" size={14} /> : <Trash2 size={14} />}
                   </button>
@@ -198,7 +171,6 @@ export function CloudShareDialog({
           ))}
         </ul>
       </section>
-      {pending === "loading" && <p className="account-message" role="status">Loading sharing settings…</p>}
       {message && (
         <p className={message.error ? "form-error" : "account-message"} role={message.error ? "alert" : "status"}>
           {message.text}

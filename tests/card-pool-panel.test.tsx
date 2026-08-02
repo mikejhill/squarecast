@@ -47,6 +47,9 @@ describe("Card Pool position controls", () => {
     expect(screen.queryByRole("combobox", { name: /Position for card/ })).toBeNull();
     const toggle = screen.getByRole("button", { name: "Show Positions" });
     expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    expect(toggle.getAttribute("aria-describedby")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Paste CSV" }).textContent).toBe("");
+    expect(screen.queryByText(/extra cards add variety/i)).toBeNull();
     await user.click(toggle);
     expect(hidden.setPlacementControlsVisible).toHaveBeenCalledWith(true);
   });

@@ -63,6 +63,20 @@ export function App() {
     appearance,
     systemIsDark,
   );
+  const publicPlay = useMemo(() => {
+    const current = workspace.session;
+    return current.status === "ready" &&
+      current.readOnly &&
+      current.state.mode === "edit"
+      ? applicationServices.generator.generate(current.state, IdFactory.seed())
+      : null;
+  }, [workspace.session]);
+  const publicPlayUrl = useMemo(
+    () => publicPlay
+      ? applicationServices.codec.createUrl(publicPlay, window.location.href)
+      : "",
+    [publicPlay],
+  );
 
   useEffect(() => {
     const surfaceColor =
@@ -121,17 +135,8 @@ export function App() {
       ) : workspace.session.readOnly && workspace.session.state.mode === "edit" ? (
         <PublicBoardPage
           editor={workspace.session.state}
-          onPlay={() =>
-            workspace.startUrlState(
-              applicationServices.generator.generate(
-                workspace.session.status === "ready" &&
-                  workspace.session.state.mode === "edit"
-                  ? workspace.session.state
-                  : applicationServices.boardFactory.createNewEditor(),
-                IdFactory.seed(),
-              ),
-            )
-          }
+          playUrl={publicPlayUrl}
+          onPlay={() => workspace.startUrlState(publicPlay!)}
           onEditCopy={() =>
             void workspace.makeCopy(
               workspace.authUser?.emailVerified && applicationServices.cloudBoards
@@ -149,6 +154,7 @@ export function App() {
           guestUser={workspace.guestUser}
           preferredStorage={workspace.preferredStorage}
           statusMessage={workspace.statusMessage}
+          currentBoardHref={workspace.currentBoardHref}
           presence={workspace.presence}
           editorUrl={workspace.copyEditorUrl}
           onPreferredStorageChange={workspace.setPreferredStorage}
@@ -191,11 +197,13 @@ export function App() {
         workspace.session.status === "ready" &&
         workspace.session.storageKind === "cloud" &&
         workspace.session.recordId &&
+        workspace.session.cloudAccess &&
         applicationServices.cloudBoards && (
           <CloudShareDialog
             boardId={workspace.session.recordId}
             repository={applicationServices.cloudBoards}
             clipboard={applicationServices.clipboard}
+            access={workspace.session.cloudAccess}
             onClose={() => setShareOpen(false)}
           />
         )}

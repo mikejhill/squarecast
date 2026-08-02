@@ -9,6 +9,7 @@ import {
 } from "../lib/csv";
 import { DuplicateCardDetector } from "../lib/duplicates";
 import { EditorStateService } from "../lib/editor-state";
+import { EditorPresentationMerger } from "../lib/editor-presentation";
 import { AutoFontSizePolicy, FontSizeOptimizer } from "../lib/font-size";
 import { BoardGenerator } from "../lib/generator";
 import { UrlHistoryService } from "../lib/history";
@@ -41,6 +42,7 @@ export class ApplicationServices {
   public readonly csvFileImporter = new CsvFileImporter(this.csvParser);
   public readonly sorter = new AnswerPoolSorter();
   public readonly editorState = new EditorStateService(this.sorter);
+  public readonly editorPresentation = new EditorPresentationMerger();
   public readonly playerSession = new PlayerSessionService(this.generator);
   public readonly appearanceResolver = new AppearanceResolver();
   public readonly fontSizeOptimizer = new FontSizeOptimizer();

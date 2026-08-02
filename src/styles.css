@@ -56,6 +56,16 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+.route-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.route-link[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 button {
   cursor: pointer;
 }
@@ -634,12 +644,13 @@ optgroup {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #d9d5ce;
+  border: 3px solid #fff;
   border-radius: 10px;
   background:
     linear-gradient(135deg, #ff6b45, #d94f70 35%, #7559d9 65%, #20a679);
   color: #fff;
   cursor: pointer;
+  box-shadow: 0 0 0 1px #d9d5ce;
 }
 
 .custom-color.selected {
@@ -856,12 +867,67 @@ optgroup {
   margin-top: -7px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 15px;
+  justify-content: flex-end;
 }
 
 .answer-toolbar-actions {
+  flex-wrap: nowrap;
   justify-content: flex-end;
+}
+
+.pool-tool-button.icon-only {
+  width: 34px;
+  min-width: 34px;
+  padding: 0;
+}
+
+.pool-tool-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  outline-offset: 1px;
+}
+
+.control-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+.control-tooltip > [role="tooltip"] {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  width: max-content;
+  max-width: min(220px, calc(100vw - 24px));
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #242427;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(20, 18, 16, 0.2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  transform: translate(-50%, 4px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.14s, transform 0.14s, visibility 0.14s;
+}
+
+.control-tooltip:hover > [role="tooltip"],
+.control-tooltip:focus-within > [role="tooltip"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+.answer-toolbar-actions .control-tooltip:first-child > [role="tooltip"] {
+  left: 0;
+  transform: translate(0, 4px);
+}
+
+.answer-toolbar-actions .control-tooltip:first-child:hover > [role="tooltip"],
+.answer-toolbar-actions .control-tooltip:first-child:focus-within > [role="tooltip"] {
+  transform: translate(0, 0);
 }
 
 .card-pool-panel {
@@ -1480,15 +1546,15 @@ optgroup {
   font-size: 20px;
 }
 
-.share-play-action:not(:disabled):hover {
+.share-play-action:not([aria-disabled="true"]):hover {
   filter: saturate(1.12) brightness(1.02);
 }
 
-.share-play-action:not(:disabled):active {
+.share-play-action:not([aria-disabled="true"]):active {
   transform: translateY(2px);
 }
 
-.share-play-action:disabled {
+.share-play-action[aria-disabled="true"] {
   opacity: 0.35;
 }
 
@@ -1921,6 +1987,15 @@ optgroup {
     box-shadow: 0 0 0 1px #56545d;
   }
 
+  .custom-color {
+    border-color: #202024;
+    box-shadow: 0 0 0 1px #56545d;
+  }
+
+  .custom-color.selected {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
   .random-color-button,
   .panel-collapse-button,
   .board-file-actions button,
@@ -2280,10 +2355,12 @@ optgroup {
 }
 
 .storage-actions button,
+.storage-actions a,
 .storage-actions select,
 .cloud-share-list button,
 .member-list button,
-.board-library-actions button {
+.board-library-actions button,
+.board-library-actions a {
   min-height: 32px;
   padding: 0 9px;
   display: inline-flex;
@@ -2606,10 +2683,12 @@ optgroup {
 .app.is-dark .account-button,
 .app.is-dark .storage-status,
 .app.is-dark .storage-actions button,
+.app.is-dark .storage-actions a,
 .app.is-dark .storage-actions select,
 .app.is-dark .cloud-share-list button,
 .app.is-dark .member-list button,
 .app.is-dark .board-library-actions button,
+.app.is-dark .board-library-actions a,
 .app.is-dark .google-signin-button,
 .app.is-dark .auth-form input {
   border-color: #494850;
@@ -2859,8 +2938,7 @@ optgroup {
   }
 
   .answer-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
   }
 
   .quick-add {
@@ -2874,6 +2952,16 @@ optgroup {
   .answer-toolbar-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .answer-toolbar-actions .sort-control {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .answer-toolbar-actions .sort-control-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .board-file-tools {

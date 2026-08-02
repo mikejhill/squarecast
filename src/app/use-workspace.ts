@@ -42,6 +42,12 @@ type StoredHistoryState = {
   };
 };
 
+type CloudSessionOptions = {
+  ready?: WorkspaceReadySession;
+  editorToken?: string;
+  replaceInviteRoute?: boolean;
+};
+
 function checkpointReasonFor(
   operation: EditorOperation,
   historyMode: HistoryWriteMode,
@@ -92,6 +98,11 @@ export function useWorkspace(services: ApplicationServices) {
   const startsWithStoredRoute = useRef(
     storedRoute !== null || ApplicationRoutes.hasStoredRoutePrefix(initialHash),
   ).current;
+  const authIndependentRoute = useRef(
+    storedRoute?.kind === "device" ||
+      storedRoute?.kind === "view" ||
+      storedRoute?.kind === "play",
+  ).current;
   const [session, setSession] = useState<WorkspaceSession>(() =>
     storedRoute
       ? { status: "loading", route: initialHash }
@@ -115,7 +126,9 @@ export function useWorkspace(services: ApplicationServices) {
   const deviceUnsubscribe = useRef<(() => void) | null>(null);
   const presenceUnsubscribe = useRef<Unsubscribe | null>(null);
   const presenceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const presenceSessionId = useRef(createOperationId()).current;
   const collaborationConflictTarget = useRef<string | null>(null);
+  const authRouteResolutionInFlight = useRef(false);
   const sessionRef = useRef(session);
   const authRef = useRef(authUser);
   const promotionInFlight = useRef<{
@@ -158,10 +171,14 @@ export function useWorkspace(services: ApplicationServices) {
             setSession((current) =>
               current.status === "ready" &&
               current.storageKind === "device" &&
-              current.recordId === boardId
+              current.recordId === boardId &&
+              current.state.mode === "edit"
                 ? {
                     ...current,
-                    state: board.editor,
+                    state: services.editorPresentation.merge(
+                      board.editor,
+                      current.state,
+                    ),
                     revision: board.revision,
                     syncStatus: "saved",
                   }
@@ -201,9 +218,11 @@ export function useWorkspace(services: ApplicationServices) {
   );
 
   const startCloudSession = useCallback(
-    (boardId: string, user: AuthUser) => {
+    (boardId: string, user: AuthUser, options: CloudSessionOptions = {}) => {
       if (!services.cloudBoards) return;
       stopCloudSession();
+      let initialized = Boolean(options.ready);
+      let presenceStarted = false;
       const sync = new CloudSyncCoordinator(
         services.cloudBoards,
         services.deviceBoards,
@@ -226,12 +245,17 @@ export function useWorkspace(services: ApplicationServices) {
             setSession((current) =>
               current.status === "ready" &&
               current.storageKind === "cloud" &&
-              current.recordId === board.id
+              current.recordId === board.id &&
+              current.state.mode === "edit"
                 ? {
                     ...current,
-                    state: editor,
+                    state: services.editorPresentation.merge(
+                      editor,
+                      current.state,
+                    ),
                     revision: board.revision,
                     syncStatus: "saved",
+                    cloudAccess: board.cloudAccess,
                   }
                 : current,
             );
@@ -255,6 +279,52 @@ export function useWorkspace(services: ApplicationServices) {
       );
       cloudSync.current = sync;
       void sync.restorePending();
+      const startPresence = (permission: WorkspaceReadySession["permission"]) => {
+        if (presenceStarted || !services.cloudBoards) return;
+        presenceStarted = true;
+        let present = false;
+        let stopped = false;
+        const refreshPresence = () => {
+          if (stopped || document.visibilityState !== "visible") return;
+          present = true;
+          void services.cloudBoards
+            ?.heartbeatPresence(boardId, presenceSessionId)
+            .catch(() => undefined);
+        };
+        const enterPresence = () => {
+          if (!present) refreshPresence();
+        };
+        const leavePresence = () => {
+          if (!present) return;
+          present = false;
+          void services.cloudBoards
+            ?.clearPresence(boardId, presenceSessionId)
+            .catch(() => undefined);
+        };
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === "visible") enterPresence();
+          else leavePresence();
+        };
+        enterPresence();
+        presenceTimer.current = setInterval(refreshPresence, 60_000);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("pagehide", leavePresence);
+        window.addEventListener("pageshow", enterPresence);
+        const stopPresence = services.cloudBoards.subscribePresence(boardId, setPresence);
+        if (permission === "owner") {
+          void services.cloudBoards.cleanupStalePresence(boardId).catch(() => undefined);
+        }
+        presenceUnsubscribe.current = () => {
+          if (stopped) return;
+          stopped = true;
+          stopPresence();
+          document.removeEventListener("visibilitychange", handleVisibilityChange);
+          window.removeEventListener("pagehide", leavePresence);
+          window.removeEventListener("pageshow", enterPresence);
+          leavePresence();
+        };
+      };
+      if (options.ready) startPresence(options.ready.permission);
       cloudUnsubscribe.current = services.cloudBoards.subscribe(
         boardId,
         (board, error) => {
@@ -275,6 +345,17 @@ export function useWorkspace(services: ApplicationServices) {
               return;
             }
             setStatusMessage(error.message);
+            if (!initialized) {
+              setSession({
+                status: "error",
+                route: options.editorToken
+                  ? ApplicationRoutes.editorInvite(options.editorToken)
+                  : ApplicationRoutes.cloudBoard(boardId),
+                reason: isPermissionDenied(error) ? "access-removed" : "unavailable",
+                message: error.message,
+              });
+              return;
+            }
             setSession((current) =>
               current.status === "ready" && current.recordId === boardId
                 ? { ...current, syncStatus: "unavailable" }
@@ -290,6 +371,27 @@ export function useWorkspace(services: ApplicationServices) {
               message: "This board was deleted or your access was removed.",
             });
             return;
+          }
+          if (!initialized) {
+            const ready: WorkspaceReadySession = {
+              status: "ready",
+              state: board.editor,
+              storageKind: "cloud",
+              recordId: board.id,
+              permission: board.permission,
+              revision: board.revision,
+              syncStatus: "saved",
+              readOnly: false,
+              editorToken: options.editorToken,
+              cloudAccess: board.cloudAccess,
+            };
+            initialized = true;
+            setSession(ready);
+            setPreferredStorage(user.emailVerified ? "cloud" : "device");
+            if (options.replaceInviteRoute) {
+              writeHistory(ready, "replace", ApplicationRoutes.cloudBoard(board.id));
+            }
+            startPresence(board.permission);
           }
           const overlappingOperations =
             board.lastEditorUid &&
@@ -337,54 +439,25 @@ export function useWorkspace(services: ApplicationServices) {
             }
           }
           setSession((current) =>
-            current.status === "ready" && current.recordId === boardId
+            current.status === "ready" &&
+            current.recordId === boardId &&
+            current.state.mode === "edit"
               ? {
                   ...current,
-                  state: editor,
+                  state: services.editorPresentation.merge(
+                    editor,
+                    current.state,
+                  ),
                   permission: board.permission,
                   revision: board.revision,
+                  cloudAccess: board.cloudAccess,
                 }
               : current,
           );
         },
       );
-      const sessionId = createOperationId();
-      let presenceStopped = false;
-      const heartbeat = () => {
-        if (!presenceStopped && document.visibilityState === "visible") {
-          void services.cloudBoards
-            ?.heartbeatPresence(boardId, sessionId)
-            .catch(() => undefined);
-        }
-      };
-      const clearPresence = () => {
-        void services.cloudBoards
-          ?.clearPresence(boardId, sessionId)
-          .catch(() => undefined);
-      };
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === "visible") heartbeat();
-        else clearPresence();
-      };
-      heartbeat();
-      presenceTimer.current = setInterval(heartbeat, 60_000);
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-      window.addEventListener("pagehide", clearPresence);
-      window.addEventListener("pageshow", heartbeat);
-      const stopPresence = services.cloudBoards.subscribePresence(
-        boardId,
-        setPresence,
-      );
-      presenceUnsubscribe.current = () => {
-        presenceStopped = true;
-        stopPresence();
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-        window.removeEventListener("pagehide", clearPresence);
-        window.removeEventListener("pageshow", heartbeat);
-        clearPresence();
-      };
     },
-    [services, stopCloudSession],
+    [presenceSessionId, services, stopCloudSession, writeHistory],
   );
 
   const resolveRoute = useCallback(
@@ -447,17 +520,17 @@ export function useWorkspace(services: ApplicationServices) {
         }
         if (route.kind === "view" || route.kind === "play") {
           stopCloudSession();
-          const share = await services.cloudBoards.loadPublicShare(route.id);
-          if (!share || share.kind !== route.kind) {
-            setSession({
-              status: "error",
-              route: hash,
-              reason: "not-found",
-              message: "This public link was revoked or does not exist.",
-            });
-            return;
-          }
           if (route.kind === "play") {
+            const share = await services.cloudBoards.loadPublicShare(route.id);
+            if (!share || share.kind !== "play") {
+              setSession({
+                status: "error",
+                route: hash,
+                reason: "not-found",
+                message: "This public link was revoked or does not exist.",
+              });
+              return;
+            }
             const play = services.generator.generate(
               share.editor,
               createOperationId(),
@@ -467,16 +540,7 @@ export function useWorkspace(services: ApplicationServices) {
             writeHistory(ready, "replace", services.codec.encode(play));
             return;
           }
-          setSession({
-            status: "ready",
-            state: share.editor,
-            storageKind: "cloud",
-            recordId: share.boardId,
-            permission: "viewer",
-            revision: share.revision,
-            syncStatus: "saved",
-            readOnly: true,
-          });
+          let initialized = false;
           cloudUnsubscribe.current = services.cloudBoards.subscribePublicShare(
             route.id,
             (latest, error) => {
@@ -490,6 +554,20 @@ export function useWorkspace(services: ApplicationServices) {
                   route: hash,
                   reason: "not-found",
                   message: "This public link was revoked or does not exist.",
+                });
+                return;
+              }
+              if (!initialized) {
+                initialized = true;
+                setSession({
+                  status: "ready",
+                  state: latest.editor,
+                  storageKind: "cloud",
+                  recordId: latest.boardId,
+                  permission: "viewer",
+                  revision: latest.revision,
+                  syncStatus: "saved",
+                  readOnly: true,
                 });
                 return;
               }
@@ -530,36 +608,13 @@ export function useWorkspace(services: ApplicationServices) {
           route.kind === "invite"
             ? await services.cloudBoards.acceptInvite(route.id)
             : route.id;
-        const board = await services.cloudBoards.load(boardId);
-        if (!board) {
-          setSession({
-            status: "error",
-            route: hash,
-            reason: "not-found",
-            message: "This account board does not exist.",
-          });
-          return;
-        }
-        const ready: WorkspaceReadySession = {
-          status: "ready",
-          state: board.editor,
-          storageKind: "cloud",
-          recordId: board.id,
-          permission: board.permission,
-          revision: board.revision,
-          syncStatus: "saved",
-          readOnly: false,
+        startCloudSession(boardId, routeUser, {
           editorToken:
             route.kind === "invite" && routeUser.isAnonymous
               ? route.id
               : undefined,
-        };
-        setSession(ready);
-        setPreferredStorage(routeUser.emailVerified ? "cloud" : "device");
-        if (route.kind === "invite" && !routeUser.isAnonymous) {
-          writeHistory(ready, "replace", ApplicationRoutes.cloudBoard(board.id));
-        }
-        startCloudSession(board.id, routeUser);
+          replaceInviteRoute: route.kind === "invite" && !routeUser.isAnonymous,
+        });
       } catch (error) {
         setSession({
           status: "error",
@@ -573,13 +628,25 @@ export function useWorkspace(services: ApplicationServices) {
   );
 
   useEffect(() => {
-    services.firebase.initializeAppCheck();
+    if (authIndependentRoute) {
+      void resolveRoute(initialHash, null);
+    }
+  }, [authIndependentRoute, initialHash, resolveRoute]);
+
+  useEffect(() => {
     const unsubscribe = services.auth.subscribe((user) => {
       authRef.current = user;
       setAuthUser(user);
       setAuthKnown(true);
-      if (sessionRef.current.status !== "ready" || startsWithStoredRoute) {
-        void resolveRoute(window.location.hash, user);
+      if (
+        !authIndependentRoute &&
+        (sessionRef.current.status !== "ready" || startsWithStoredRoute)
+      ) {
+        if (authRouteResolutionInFlight.current) return;
+        authRouteResolutionInFlight.current = true;
+        void resolveRoute(window.location.hash, user).finally(() => {
+          authRouteResolutionInFlight.current = false;
+        });
       } else {
         setPreferredStorage(
           user?.emailVerified && services.cloudBoards ? "cloud" : "device",
@@ -587,7 +654,7 @@ export function useWorkspace(services: ApplicationServices) {
       }
     });
     return unsubscribe;
-  }, [resolveRoute, services, startsWithStoredRoute]);
+  }, [authIndependentRoute, resolveRoute, services, startsWithStoredRoute]);
 
   useEffect(() => {
     const restore = (event: PopStateEvent) => {
@@ -684,6 +751,7 @@ export function useWorkspace(services: ApplicationServices) {
             revision: board.revision,
             syncStatus: "saved",
             readOnly: false,
+            cloudAccess: board.cloudAccess,
           };
           setSession(ready);
           writeHistory(
@@ -694,7 +762,7 @@ export function useWorkspace(services: ApplicationServices) {
               : ApplicationRoutes.deviceBoard(board.id),
           );
           if (board.storageKind === "cloud" && authRef.current) {
-            startCloudSession(board.id, authRef.current);
+            startCloudSession(board.id, authRef.current, { ready });
           } else if (board.storageKind === "device") {
             startDeviceSession(board.id);
           }
@@ -765,7 +833,13 @@ export function useWorkspace(services: ApplicationServices) {
                 latest.status === "ready" && latest.recordId === board.id
                   ? {
                       ...latest,
-                      state: board.editor,
+                      state:
+                        latest.state.mode === "edit"
+                          ? services.editorPresentation.merge(
+                              board.editor,
+                              latest.state,
+                            )
+                          : board.editor,
                       revision: board.revision,
                       syncStatus: "saved",
                     }
@@ -803,6 +877,7 @@ export function useWorkspace(services: ApplicationServices) {
       preferredStorage,
       persistNewEditor,
       services.deviceBoards,
+      services.editorPresentation,
       stopCloudSession,
       writeHistory,
     ],
@@ -916,12 +991,13 @@ export function useWorkspace(services: ApplicationServices) {
         syncStatus: "saved",
         readOnly: false,
         editorToken: current.status === "ready" ? current.editorToken : undefined,
+        cloudAccess: board.cloudAccess,
       };
       setSession(ready);
       setStatusMessage("");
       writeHistory(ready, "push");
       if (board.storageKind === "cloud" && authRef.current) {
-        startCloudSession(board.id, authRef.current);
+        startCloudSession(board.id, authRef.current, { ready });
       }
     },
     [startCloudSession, writeHistory],
@@ -1042,6 +1118,22 @@ export function useWorkspace(services: ApplicationServices) {
     if (session.status !== "ready" || session.state.mode !== "edit") return "";
     return services.codec.createUrl(session.state, window.location.href);
   }, [services.codec, session]);
+  const currentBoardHref = useMemo(() => {
+    if (
+      session.status !== "ready" ||
+      !session.recordId ||
+      session.historicalRevision === undefined
+    ) {
+      return undefined;
+    }
+    return session.editorToken
+      ? ApplicationRoutes.editorInvite(session.editorToken)
+      : session.storageKind === "device"
+      ? ApplicationRoutes.deviceBoard(session.recordId)
+      : session.storageKind === "cloud"
+        ? ApplicationRoutes.cloudBoard(session.recordId)
+        : undefined;
+  }, [session]);
 
   const signOut = useCallback(async () => {
     await cloudSync.current?.flush();
@@ -1103,6 +1195,7 @@ export function useWorkspace(services: ApplicationServices) {
     restoreHistorical,
     returnToCurrent,
     copyEditorUrl,
+    currentBoardHref,
     signOut,
     deleteAccount,
   };

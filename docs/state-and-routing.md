@@ -121,6 +121,14 @@ therefore show an older saved revision without rewriting storage. Historical
 views reject edits until **Restore This Version** writes a new head revision.
 **Return To Current** discards the preview without changing storage.
 
+Deterministic, non-destructive transitions render as real `<a href>` links:
+New Board, Sample Board, Test This Board, Play This Board, Edit This Board, New
+Shuffle, My Boards Open, URL-Only Copy, and Return To Current. Squarecast
+intercepts only an unmodified primary activation for SPA history handling.
+Modified clicks, middle clicks, context menus, and browser link commands retain
+native behavior. Generated Test, Play, Shuffle, and Edit destinations are
+concrete `#sq1:` snapshots reused by both same-tab and new-tab activation.
+
 Device and cloud boards retain up to 25 saved versions. New boards begin with a
 **Board Created** baseline. Card additions, deletions, sorting, imports, and
 structural Board Setup changes create named versions; routine typing remains
@@ -134,6 +142,12 @@ per minute, removes the entry when the page hides or exits when possible, and
 ignores abandoned entries after two minutes. The UI collapses simultaneous
 sessions with the same Firebase UID into one displayed editor. Anonymous guests
 receive a deterministic **Guest Adjective Creature NNN** name.
+
+Private cloud pointers resolve from the first board-listener snapshot instead
+of a read followed by a listener. Public views resolve from one share listener.
+Public play retains one single share read before replacing itself with a
+self-contained play session. Device and public routes do not wait for Firebase
+Authentication state.
 
 ## Seeds And Reproducibility
 

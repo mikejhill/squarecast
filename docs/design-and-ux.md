@@ -90,8 +90,10 @@ restorable editor URL.
 
 Free-square counts range from zero through one less than the board size. A
 board-size reduction clamps the count immediately. Odd boards place the first
-free square at center; later squares follow a predetermined balanced pattern
-that prefers unused rows, columns, and diagonals.
+free square at center. Even boards start at the upper-left cell of the central
+four: index 5 for 4×4 and index 14 for 6×6. Later squares follow predetermined
+balanced patterns that prefer unused rows, columns, and diagonals without
+creating an opening win.
 
 ### Card Pool
 
@@ -111,6 +113,12 @@ without changing existing constraints; **Hide Positions** removes the controls
 while retaining every saved row, column, and exact-cell rule. The toggle is
 part of saved editor state and is shared through URL, device, cloud, history,
 and complete-board JSON persistence.
+
+Show/Hide Positions, Paste CSV, and Export CSV are 34-pixel icon-only controls
+with accessible names, hover/focus tooltips, visible focus, and active/disabled
+states. The textual sort selector follows them on the same toolbar row at
+desktop and mobile widths. The toolbar does not repeat card-count guidance;
+the panel heading's current/required count is authoritative.
 
 Manual Order is the default. New cards append to the pool; choosing a
 deterministic sort mode reapplies that ordering after additions and edits.
@@ -149,6 +157,10 @@ Same-target collaboration notices name the affected Board Setup field, Card,
 Card Pool operation, or complete Board. They state that the local operation is
 queued automatically, require no manual submission, and change to a resolved
 message after the local operation saves.
+
+Unselected custom board color uses the same neutral frame as preset swatches in
+light and dark appearances. Only the selected accent ring communicates
+selection.
 
 ### My Boards and account
 

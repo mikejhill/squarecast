@@ -158,6 +158,9 @@ Examples of meaningful tests include:
 - first-edit storage promotion and asynchronous saved-route failures;
 - IndexedDB reload, duplicate, deletion, quota, and cross-tab behavior;
 - operation coalescing, replay, idempotency, and conflict recovery;
+- 1.5-second idle and five-second maximum cloud-operation timing;
+- listener-backed initial-load and Share-dialog Firestore call budgets;
+- native route-link destinations and modified-click behavior;
 - Firestore owner/editor/public/guest-link rules in the emulator;
 - perpetual editor-link rotation/revocation and guest save access;
 - presence cleanup, duplicate-UID collapsing, and generated guest names;

@@ -129,6 +129,26 @@ exempting state payloads and role/token maps from unnecessary indexing. Every
 rule change requires an emulator test covering the allowed path and adjacent
 denied paths.
 
+## Firestore Request Budget
+
+- Private board opening uses one board subscription; its initial snapshot is
+  the load. Do not precede it with `getDoc()`.
+- Public live view uses one share subscription. Public play uses one share read
+  before becoming a self-contained URL session.
+- Share opens from owner access metadata already carried by the board listener.
+  Copying a displayed link performs no validation read.
+- Presence writes once on visible entry, once per existing one-minute interval,
+  and once on visible exit. Overlapping lifecycle events are idempotent. Owner
+  stale cleanup is one non-blocking query plus one bounded batch.
+- Routine typing commits after 1.5 seconds idle and no later than five seconds
+  after the first pending edit. Structural operations commit immediately.
+
+Firestore listeners still incur an initial document read and another read when
+a matching document changes. Transactions read the current board and may retry
+during contention. App Check initializes at the first Firestore operation, not
+at application startup. URL-only and device-only routes must produce no App
+Check request. Firestore persistent caching is intentionally disabled.
+
 ## Runtime Logging
 
 `RuntimeLogger` wraps scoped `loglevel` loggers. Production remains fixed at

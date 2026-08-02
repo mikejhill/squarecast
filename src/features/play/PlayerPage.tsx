@@ -12,6 +12,7 @@ import { AutoFitText } from "../../components/AutoFitText";
 import { PlayerController } from "../../controllers/PlayerController";
 import { RuntimeLogger } from "../../lib/logger";
 import type { PlayState } from "../../lib/model";
+import { RouteLink } from "../../components/RouteLink";
 
 const logger = new RuntimeLogger("player-page");
 
@@ -29,6 +30,15 @@ export function PlayerPage({ state, onChange }: PlayerPageProps) {
   const [copied, setCopied] = useState(false);
   const wins = controller.winningCells;
   const hasWin = wins.size > 0;
+  const shuffle = useMemo(() => controller.createShuffle(), [controller]);
+  const shuffleUrl = useMemo(
+    () => applicationServices.codec.createUrl(shuffle, window.location.href),
+    [shuffle],
+  );
+  const editorUrl = useMemo(
+    () => applicationServices.codec.createUrl(state.source, window.location.href),
+    [state.source],
+  );
 
   const copySession = async () => {
     try {
@@ -43,23 +53,23 @@ export function PlayerPage({ state, onChange }: PlayerPageProps) {
   return (
     <main className="play-shell">
       <div className="play-toolbar">
-        <button
-          type="button"
+        <RouteLink
+          href={editorUrl}
           className="text-button"
-          onClick={() => controller.editSource()}
+          onNavigate={() => controller.editSource()}
         >
           <ArrowLeft size={16} />
           Edit This Board
-        </button>
+        </RouteLink>
         <div className="play-actions">
-          <button
-            type="button"
+          <RouteLink
+            href={shuffleUrl}
             className="secondary-button compact-button"
-            onClick={() => controller.reshuffle()}
+            onNavigate={() => controller.openShuffle(shuffle)}
           >
             <RotateCcw size={16} />
             New Shuffle
-          </button>
+          </RouteLink>
           <button
             type="button"
             className="secondary-button compact-button"

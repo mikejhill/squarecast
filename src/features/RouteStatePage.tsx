@@ -1,5 +1,7 @@
 import { AlertTriangle, LoaderCircle } from "lucide-react";
 import type { WorkspaceSession } from "../lib/board-repository";
+import { ApplicationRoutes } from "../lib/routes";
+import { RouteLink } from "../components/RouteLink";
 
 type RouteStatePageProps = {
   session: Exclude<WorkspaceSession, { status: "ready" }>;
@@ -33,7 +35,13 @@ export function RouteStatePage({
           <button type="button" className="primary-button" onClick={onSignIn}>Sign In</button>
         )}
         <button type="button" className="secondary-button" onClick={onMyBoards}>My Boards</button>
-        <button type="button" className="secondary-button" onClick={onNewBoard}>New Board</button>
+        <RouteLink
+          href={ApplicationRoutes.newBoardHash}
+          className="secondary-button"
+          onNavigate={onNewBoard}
+        >
+          New Board
+        </RouteLink>
       </div>
     </main>
   );

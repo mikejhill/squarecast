@@ -28,6 +28,7 @@ describe("storage interface", () => {
   it("identifies anonymous bearer-link collaboration without presenting account storage", () => {
     render(
       <StorageStatusBar
+        urlOnlyHref="#sq1:test"
         session={{
           ...urlSession,
           storageKind: "cloud",
@@ -65,6 +66,7 @@ describe("storage interface", () => {
   it("counts multiple presence sessions for one collaborator once", () => {
     render(
       <StorageStatusBar
+        urlOnlyHref="#sq1:test"
         session={{ ...urlSession, storageKind: "cloud", recordId: "cloud-board" }}
         authUser={null}
         preferredStorage="device"
@@ -93,6 +95,7 @@ describe("storage interface", () => {
     const onPreferredStorageChange = vi.fn();
     render(
       <StorageStatusBar
+        urlOnlyHref="#sq1:test"
         session={urlSession}
         authUser={null}
         preferredStorage="device"
@@ -126,6 +129,8 @@ describe("storage interface", () => {
     const onReturnToCurrent = vi.fn();
     render(
       <StorageStatusBar
+        urlOnlyHref="#sq1:test"
+        currentBoardHref="#sql1:device-board"
         session={{
           ...urlSession,
           storageKind: "device",
@@ -151,7 +156,7 @@ describe("storage interface", () => {
       "Viewing historical revision 4",
     );
     await user.click(screen.getByRole("button", { name: "Restore This Version" }));
-    await user.click(screen.getByRole("button", { name: "Return To Current" }));
+    await user.click(screen.getByRole("link", { name: "Return To Current" }));
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(onRestoreHistorical).toHaveBeenCalledOnce();
     expect(onReturnToCurrent).toHaveBeenCalledOnce();
@@ -187,6 +192,9 @@ describe("storage interface", () => {
     );
     expect(await screen.findByText("Account Board")).toBeTruthy();
     expect(screen.getByText("Device Board")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open Device Board" }).getAttribute("href")).toBe(
+      "#sql1:device-board",
+    );
     await user.click(screen.getByRole("button", { name: "Delete Device Board" }));
     expect(onDelete).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Confirm Delete" }));
@@ -210,6 +218,7 @@ describe("storage interface", () => {
       />,
     );
     expect(screen.getByRole("heading", { name: "Sign In Required" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "New Board" }).getAttribute("href")).toBe("#new");
     await user.click(screen.getByRole("button", { name: "Sign In" }));
     expect(onSignIn).toHaveBeenCalledOnce();
   });

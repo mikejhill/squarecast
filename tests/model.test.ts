@@ -20,9 +20,9 @@ describe("board model", () => {
   it("provides safe, deterministic free-square patterns for every board size", () => {
     const editor = BoardModel.createDefaultEditor();
     expect(BoardModel.freeCellIndexes(3, 2)).toEqual([4, 0]);
-    expect(BoardModel.freeCellIndexes(4, 3)).toEqual([0, 6, 11]);
+    expect(BoardModel.freeCellIndexes(4, 3)).toEqual([5, 3, 8]);
     expect(BoardModel.freeCellIndexes(5, 4)).toEqual([12, 1, 5, 19]);
-    expect(BoardModel.freeCellIndexes(6, 5)).toEqual([0, 10, 13, 23, 26]);
+    expect(BoardModel.freeCellIndexes(6, 5)).toEqual([14, 5, 6, 22, 27]);
     expect(BoardModel.freeCellIndexes(7, 6)).toEqual([24, 1, 7, 19, 34, 37]);
     expect(BoardModel.freeCellIndexes(5, 0)).toEqual([]);
     expect(BoardModel.freeCellIndexes(5, 99)).toHaveLength(4);

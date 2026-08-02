@@ -29,6 +29,7 @@ type EditorPageProps = {
   guestUser: AuthUser | null;
   preferredStorage: StorageKind;
   statusMessage: string;
+  currentBoardHref?: string;
   presence: readonly BoardPresence[];
   editorUrl: string;
   onPreferredStorageChange: (kind: StorageKind) => void;
@@ -53,6 +54,7 @@ export function EditorPage({
   guestUser,
   preferredStorage,
   statusMessage,
+  currentBoardHref,
   presence,
   editorUrl,
   onPreferredStorageChange,
@@ -76,6 +78,13 @@ export function EditorPage({
   const [isCardPoolDragging, setIsCardPoolDragging] = useState(false);
   const cardPoolDragDepth = useRef(0);
   const csvCardCount = applicationServices.csvParser.parse(csvText).length;
+  const testBoard = useMemo(() => controller.createTestBoard(), [controller]);
+  const testBoardUrl = useMemo(
+    () => testBoard
+      ? applicationServices.codec.createUrl(testBoard, window.location.href)
+      : undefined,
+    [testBoard],
+  );
 
   // An invalid-file message belongs only to the state against which that
   // import was attempted. Any successful edit or navigation clears it.
@@ -161,6 +170,8 @@ export function EditorPage({
         guestUser={guestUser}
         preferredStorage={preferredStorage}
         statusMessage={statusMessage}
+        urlOnlyHref={editorUrl}
+        currentBoardHref={currentBoardHref}
         presence={presence}
         onPreferredStorageChange={onPreferredStorageChange}
         onCopyToDevice={onCopyToDevice}
@@ -199,6 +210,8 @@ export function EditorPage({
         <EditorPreviewPanel
           controller={controller}
           copied={copied}
+          testBoard={testBoard}
+          testBoardUrl={testBoardUrl}
           onCopyEditor={() => copyUrl("edit", editorUrl)}
           onCreatePlayLink={createPlayLink}
         />

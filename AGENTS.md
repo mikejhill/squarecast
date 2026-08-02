@@ -91,6 +91,9 @@ The repository is:
   explicit recoverable state. Never silently replace them with a new board.
 - Keep pointer URLs stable. Store revision snapshots in `history.state` so Back
   and Forward can open a read-only historical view without rewriting storage.
+- Render deterministic, non-destructive route transitions as real anchors.
+  Intercept only unmodified primary activation; preserve native new-tab,
+  modified-click, middle-click, context-menu, and browser link behavior.
 
 See [State and Routing](docs/state-and-routing.md).
 
@@ -104,6 +107,8 @@ See [State and Routing](docs/state-and-routing.md).
   zero.
 - Free-square counts range from zero through `size - 1`; reducing board size
   clamps the count automatically.
+- Keep even-board free-square patterns central-first: 4×4 uses `[5, 3, 8]`
+  and 6×6 uses `[14, 5, 6, 22, 27]` as zero-based indexes.
 - Field labels use one consistent treatment. Secondary explanation belongs in
   accessible hover/focus tooltips.
 - Card Pool and Live Preview are equal-width desktop columns.
@@ -142,8 +147,12 @@ See [State and Routing](docs/state-and-routing.md).
   after additions, imports, text edits, and placement changes.
 - Card position selectors are hidden by default. **Show Positions** and **Hide
   Positions** change portable saved editor state without deleting constraints.
-- Board Setup disclosure state is editor-session state and is restored from the
-  URL hash.
+- Keep Show/Hide Positions, Paste CSV, and Export CSV as accessible 34-pixel
+  icon controls with keyboard tooltips. Keep the sort mode visible as text and
+  keep the toolbar on one row without page overflow.
+- Board Setup disclosure and preview seed are editor-session presentation.
+  Preserve them when device/cloud acknowledgements or listeners merge saved
+  state; never preserve shared `placementControlsVisible` during that merge.
 - Live Preview remains available for incomplete boards and uses placeholders
   where necessary.
 - **Shuffle Preview** works on partial boards and appears as a real button.
@@ -182,15 +191,21 @@ See [State and Routing](docs/state-and-routing.md).
   guest access but does not remove account editors.
 - Only owners manage members, links, deletion, and ownership transfer. Keep the
   20-member limit. Transfer ownership only to an existing account editor.
-- Apply cloud operations optimistically. Coalesce same-target typing for 750 ms,
-  commit major operations immediately, transact against the current revision,
-  and replay only unacknowledged operations from IndexedDB.
+- Apply cloud operations optimistically. Coalesce same-target typing after 1.5
+  seconds idle with a five-second maximum delay, commit major operations
+  immediately, transact against the current revision, and replay only
+  unacknowledged operations from IndexedDB.
 - Merge different targets. For same-target overlap, identify the affected field
   or Card, state that the local change is queued automatically, and confirm when
   it saves. Reject edit-after-delete without discarding recoverable local text.
 - Presence uses one visible-session heartbeat per minute, immediate cleanup on
   hide/exit when possible, and a two-minute stale cutoff. Collapse multiple
   sessions with the same Firebase UID in the displayed editor list.
+- Use the cloud board listener as the initial private-board read and the share
+  listener as the initial public-view read. Do not add preliminary reads for
+  either route, Share-dialog initialization, or link copying. Initialize App
+  Check only immediately before the first Firestore operation. URL/device
+  sessions must not request an App Check token.
 - Every asynchronous Share action must disable conflicting actions, show its
   pending state, and report copy success or failure.
 

@@ -105,7 +105,24 @@ describe("cloud sync coordinator", () => {
       cardId: "card",
       patch: { text: "Later" },
     });
-    await vi.advanceTimersByTimeAsync(750);
+    await vi.advanceTimersByTimeAsync(1_499);
+    expect(repository.applyOperation).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(repository.applyOperation).toHaveBeenCalledTimes(1);
+  });
+
+  it("flushes continuous typing by the five-second maximum", async () => {
+    vi.useFakeTimers();
+    const { coordinator, repository } = createHarness();
+    for (let second = 0; second < 5; second += 1) {
+      coordinator.enqueue({
+        id: `typing-${second}`,
+        type: "update-card",
+        cardId: "card",
+        patch: { text: String(second) },
+      });
+      await vi.advanceTimersByTimeAsync(1_000);
+    }
     expect(repository.applyOperation).toHaveBeenCalledTimes(1);
   });
 

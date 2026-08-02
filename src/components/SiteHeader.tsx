@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import type { AuthUser } from "../services/cloud-auth-service";
 import type { Appearance } from "../lib/preferences";
+import { ApplicationRoutes } from "../lib/routes";
+import { RouteLink } from "./RouteLink";
 
 type SiteHeaderProps = {
   mode: "edit" | "play";
@@ -94,24 +96,24 @@ export function SiteHeader({
           <UserRound size={16} />
           <span>{authUser?.displayName || "Sign In"}</span>
         </button>
-        <button
-          type="button"
+        <RouteLink
+          href={ApplicationRoutes.newBoardHash}
           className="new-board-button"
-          onClick={onNewBoard}
+          onNavigate={onNewBoard}
           title="Create a blank board"
         >
           <Plus size={16} />
           <span>New Board</span>
-        </button>
-        <button
-          type="button"
+        </RouteLink>
+        <RouteLink
+          href={import.meta.env.BASE_URL}
           className="sample-board-button"
-          onClick={onSampleBoard}
+          onNavigate={onSampleBoard}
           title="Open a random sample board"
         >
           <LayoutTemplate size={16} />
           <span>Sample Board</span>
-        </button>
+        </RouteLink>
         <div className="mode-label">
           {mode === "edit" ? <Settings2 size={15} /> : <Sparkles size={15} />}
           {mode === "edit" ? "Studio" : "Live Board"}

@@ -12,6 +12,7 @@ import {
   type DragEventHandler,
 } from "react";
 import { Panel } from "../../components/Panel";
+import { ControlTooltip } from "../../components/ControlTooltip";
 import type { EditorController } from "../../controllers/EditorController";
 import { BoardModel } from "../../lib/model";
 import type { AnswerSort } from "../../lib/sorting";
@@ -88,46 +89,47 @@ export function CardPoolPanel({
       </div>
 
       <div className="answer-toolbar">
-        <p>
-          {answerCount >= needed
-            ? `${answerCount - needed} extra card${
-                answerCount - needed === 1 ? "" : "s"
-              } add variety.`
-            : `${needed - answerCount} more required to fill the board.`}
-        </p>
         <div className="answer-toolbar-actions">
-          <button
-            type="button"
-            className={`pool-tool-button ${
-              editor.placementControlsVisible ? "is-active" : ""
-            }`}
-            aria-pressed={editor.placementControlsVisible}
-            onClick={() =>
-              controller.setPlacementControlsVisible(
-                !editor.placementControlsVisible,
-              )
-            }
+          <ControlTooltip
+            label={editor.placementControlsVisible ? "Hide Positions" : "Show Positions"}
           >
-            <MapPin size={15} />
-            {editor.placementControlsVisible ? "Hide Positions" : "Show Positions"}
-          </button>
-          <button
-            type="button"
-            className="pool-tool-button"
-            onClick={onOpenCsv}
-          >
-            <Clipboard size={15} />
-            Paste CSV
-          </button>
-          <button
-            type="button"
-            className="pool-tool-button"
-            onClick={() => controller.exportCardPoolCsv()}
-            disabled={answerCount === 0}
-          >
-            <Download size={15} />
-            Export CSV
-          </button>
+            <button
+              type="button"
+              className={`pool-tool-button icon-only ${
+                editor.placementControlsVisible ? "is-active" : ""
+              }`}
+              aria-label={editor.placementControlsVisible ? "Hide Positions" : "Show Positions"}
+              aria-pressed={editor.placementControlsVisible}
+              onClick={() =>
+                controller.setPlacementControlsVisible(
+                  !editor.placementControlsVisible,
+                )
+              }
+            >
+              <MapPin size={16} />
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Paste CSV">
+            <button
+              type="button"
+              className="pool-tool-button icon-only"
+              aria-label="Paste CSV"
+              onClick={onOpenCsv}
+            >
+              <Clipboard size={16} />
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Export CSV">
+            <button
+              type="button"
+              className="pool-tool-button icon-only"
+              aria-label="Export CSV"
+              onClick={() => controller.exportCardPoolCsv()}
+              disabled={answerCount === 0}
+            >
+              <Download size={16} />
+            </button>
+          </ControlTooltip>
           <label className="sort-control">
             <ArrowUpAZ size={15} />
             <span className="sort-control-value">

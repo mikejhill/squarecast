@@ -22,6 +22,9 @@ type CloudSyncCallbacks = {
   onStatus(status: SyncStatus, message?: string): void;
 };
 
+export const CLOUD_EDIT_IDLE_DELAY_MS = 1_500;
+export const CLOUD_EDIT_MAX_DELAY_MS = 5_000;
+
 /**
  * Coalesces routine cloud edits, serializes transactions, and persists only
  * unacknowledged operations so a network interruption cannot discard work.
@@ -30,6 +33,7 @@ export class CloudSyncCoordinator {
   private readonly queued = new Map<string, QueuedOperation>();
   private readonly immediate: QueuedOperation[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private maxTimer: ReturnType<typeof setTimeout> | null = null;
   private flushPromise: Promise<void> | null = null;
   private disposed = false;
 
@@ -103,7 +107,11 @@ export class CloudSyncCoordinator {
     this.timer = setTimeout(() => {
       this.timer = null;
       void this.flush();
-    }, 750);
+    }, CLOUD_EDIT_IDLE_DELAY_MS);
+    this.maxTimer ??= setTimeout(() => {
+      this.maxTimer = null;
+      void this.flush();
+    }, CLOUD_EDIT_MAX_DELAY_MS);
   }
 
   public async flush(): Promise<void> {
@@ -112,6 +120,10 @@ export class CloudSyncCoordinator {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
+    }
+    if (this.maxTimer) {
+      clearTimeout(this.maxTimer);
+      this.maxTimer = null;
     }
     this.flushPromise = this.flushQueuedOperations();
     try {
@@ -162,6 +174,8 @@ export class CloudSyncCoordinator {
     this.disposed = true;
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
+    if (this.maxTimer) clearTimeout(this.maxTimer);
+    this.maxTimer = null;
   }
 
   private takeCoalesced(): QueuedOperation | undefined {
