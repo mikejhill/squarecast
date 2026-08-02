@@ -1,5 +1,6 @@
 import {
   Github,
+  Library,
   LayoutTemplate,
   Monitor,
   Moon,
@@ -7,7 +8,9 @@ import {
   Settings2,
   Sparkles,
   Sun,
+  UserRound,
 } from "lucide-react";
+import type { AuthUser } from "../services/cloud-auth-service";
 import type { Appearance } from "../lib/preferences";
 
 type SiteHeaderProps = {
@@ -16,6 +19,10 @@ type SiteHeaderProps = {
   onAppearanceChange: (appearance: Appearance) => void;
   onSampleBoard: () => void;
   onNewBoard: () => void;
+  authUser?: AuthUser | null;
+  cloudEnabled?: boolean;
+  onMyBoards?: () => void;
+  onAccount?: () => void;
 };
 
 /** Renders global navigation and the device-local appearance controls. */
@@ -25,6 +32,10 @@ export function SiteHeader({
   onAppearanceChange,
   onSampleBoard,
   onNewBoard,
+  authUser = null,
+  cloudEnabled = false,
+  onMyBoards = () => undefined,
+  onAccount = () => undefined,
 }: SiteHeaderProps) {
   return (
     <header className="site-header">
@@ -70,6 +81,19 @@ export function SiteHeader({
             </button>
           ))}
         </div>
+        <button type="button" className="library-button" onClick={onMyBoards} title="Open saved boards">
+          <Library size={16} />
+          <span>My Boards</span>
+        </button>
+        <button
+          type="button"
+          className="account-button"
+          onClick={onAccount}
+          title={authUser ? "Manage account" : cloudEnabled ? "Sign in" : "Cloud storage unavailable"}
+        >
+          <UserRound size={16} />
+          <span>{authUser?.displayName || "Sign In"}</span>
+        </button>
         <button
           type="button"
           className="new-board-button"

@@ -19,6 +19,10 @@ import { AnswerPoolSorter } from "../lib/sorting";
 import { AppearanceResolver } from "../lib/theme";
 import { ClipboardService } from "../services/clipboard-service";
 import { FileDownloadService } from "../services/file-download-service";
+import { DeviceBoardRepository } from "../services/device-board-repository";
+import { FirebaseClient } from "../services/firebase-client";
+import { CloudAuthService } from "../services/cloud-auth-service";
+import { CloudBoardRepository } from "../services/cloud-board-repository";
 
 /**
  * Constructs and exposes the application's long-lived service graph.
@@ -53,6 +57,20 @@ export class ApplicationServices {
   public readonly history = new UrlHistoryService(window.history);
   public readonly appearancePreferences =
     AppearancePreferenceStore.createBrowserStore();
+  public readonly deviceBoards = new DeviceBoardRepository(
+    this.codec,
+    this.editorState,
+  );
+  public readonly firebase = new FirebaseClient();
+  public readonly auth = new CloudAuthService(this.firebase);
+  public readonly cloudBoards = this.firebase.enabled
+    ? new CloudBoardRepository(
+        this.firebase,
+        this.codec,
+        this.editorState,
+        () => this.auth.currentUser,
+      )
+    : null;
 }
 
 export const applicationServices = new ApplicationServices();

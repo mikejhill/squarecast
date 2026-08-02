@@ -1,14 +1,15 @@
 # Architecture
 
-Squarecast is a static React application. It has no application server, remote
-database, or authenticated API. The browser owns the complete runtime:
-validation, randomization, state restoration, file import and export, and play
-progress.
+Squarecast is a static React application hosted on GitHub Pages. The browser
+owns validation, randomization, state restoration, file import/export, and play
+progress. Optional account persistence uses managed Firebase Authentication and
+Firestore directly from the browser; there is no application server, Cloud
+Function, worker, or server session.
 
 ## Architectural Principles
 
-1. **URL-native state.** A board must remain portable without an account or
-   backend.
+1. **URL compatibility.** A board remains portable and fully usable without an
+   account or reachable cloud service.
 2. **Trusted domain boundaries.** URL and file input must pass schema
    validation before entering application state.
 3. **Deterministic generation.** A stored seed must reproduce the same play
@@ -17,7 +18,9 @@ progress.
    collect transient UI state; controllers and services implement behavior.
 5. **Immutable state transitions.** Domain mutations return new state objects
    and never modify prior browser-history entries.
-6. **Explicit browser adapters.** Clipboard, downloads, rendered text
+6. **Explicit persistence boundaries.** URL, IndexedDB, and Firestore adapters
+   consume the same validated semantic operations.
+7. **Explicit browser adapters.** Clipboard, downloads, rendered text
    measurement, History API access, and local preferences sit behind focused
    classes.
 
@@ -27,19 +30,26 @@ progress.
 flowchart LR
     U["User interaction"] --> V["React feature views"]
     V --> C["EditorController / PlayerController"]
-    C --> D["Domain services"]
+    C --> O["EditorOperation"]
+    O --> D["Domain services"]
     D --> M["Typed state model"]
     M --> K["StateCodec"]
-    K --> H["URL hash + History API"]
-    D --> B["Browser adapters"]
-    B --> X["Clipboard, files, layout, local preference"]
+    K --> R["WorkspaceSession + BoardRepository"]
+    R --> H["URL hash + History API"]
+    R --> I["IndexedDB"]
+    R --> F["Firebase Auth + Firestore"]
+    D --> B["Other browser adapters"]
+    B --> X["Clipboard, files, layout, appearance"]
 ```
 
 ### Application composition
 
-`ApplicationServices` constructs the long-lived service graph. `App` owns the
-active editor or play state, site appearance, and navigation coordination. It
-selects the editor or player feature without implementing either workflow.
+`ApplicationServices` constructs the long-lived service graph. `useWorkspace`
+resolves asynchronous routes and owns the `WorkspaceSession` around active
+editor/play state. The session identifies its storage kind, record, permission,
+revision, synchronization state, and historical-view state. `App` composes the
+workspace, appearance, feature pages, account, library, sharing, and history
+dialogs.
 
 ### Feature views
 
@@ -63,7 +73,8 @@ Controllers provide the use-case boundary between React and the domain:
   session copying.
 
 Controllers decide whether a major action creates a browser-history checkpoint.
-They receive dependencies through `ApplicationServices`.
+They emit a canonical `EditorOperation` for meaningful editor changes and
+receive dependencies through `ApplicationServices`.
 
 ### Domain services
 
@@ -79,6 +90,12 @@ Classes under `src/lib/` implement application rules:
 - JSON and CSV serialization; and
 - runtime logging.
 
+`EditorOperation` is a runtime-validated discriminated union for configuration
+patches, Card Pool additions/edits/deletions, sorting, imports, and complete
+replacement. `applyEditorOperation` is the single immutable interpretation
+path used by device and cloud repositories. Operation IDs make cloud replay
+idempotent.
+
 These classes avoid direct React dependencies and are the primary unit-test
 surface.
 
@@ -88,10 +105,57 @@ Classes under `src/services/` isolate browser-only capabilities:
 
 - clipboard writes;
 - in-memory file downloads; and
-- rendered text measurement.
+- rendered text measurement;
+- IndexedDB device persistence and pending cloud operations;
+- Firebase initialization and authentication; and
+- Firestore board, sharing, presence, and checkpoint access.
 
-Separating adapters keeps domain logic testable in a Node environment and makes
-browser side effects easy to identify during review.
+Separating adapters keeps domain logic testable and makes local versus remote
+side effects explicit during review.
+
+## Persistence And Collaboration
+
+`BoardRepository` defines create, list, load, apply, presentation-save,
+duplicate, delete, checkpoint-list, and restore behavior. The IndexedDB and
+Firestore implementations store independently versioned records containing the
+validated compact `#sq1:` editor payload and metadata.
+
+The device repository performs atomic read/write transactions, retains the
+latest 25 meaningful checkpoints, and announces cross-tab changes with
+`BroadcastChannel`. Appearance remains in `localStorage`; board data never does.
+
+`CloudSyncCoordinator` applies operations optimistically, persists only
+unacknowledged operations in IndexedDB, coalesces same-target typing for 750 ms,
+and commits major changes immediately. Firestore transactions read the current
+head, apply one semantic operation, increment the revision, update active
+published copies, and retry concurrent writes. Different targets merge. An edit
+against a deleted target becomes a recoverable conflict. Recent operation IDs
+make reconnect replay safe.
+
+Cloud board listeners reapply local pending operations over the latest remote
+head. Presence uses a board subcollection, one visible-session heartbeat per
+minute, and a two-minute freshness cutoff. It deliberately excludes cursors and
+character-level CRDT behavior.
+
+Cloud payloads are rejected above 750 KiB. The active editor remains usable for
+URL snapshot copy and JSON export when Firebase is unavailable or quota-limited.
+
+## Managed Provider Decision
+
+Firebase Spark is the primary account provider because the browser can use
+managed Authentication, Firestore transactions/listeners, Security Rules, and
+App Check while GitHub Pages remains the only web host.
+
+Documented alternatives remain:
+
+- Supabase provides a stronger relational permission model, but free projects
+  can pause after low activity and require restoration. See
+  [Free project pausing](https://supabase.com/docs/guides/platform/free-project-pausing).
+- Cloudflare Workers and D1 provide managed runtime and database primitives,
+  but Squarecast would need to build and operate its own identity, invitation,
+  authorization, and realtime collaboration APIs. This is an architectural
+  inference from [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/)
+  and [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/).
 
 ## State Model
 

@@ -15,4 +15,24 @@ describe("application routes", () => {
     expect(ApplicationRoutes.isFrontPage("#new")).toBe(false);
     expect(ApplicationRoutes.isFrontPage("#sq1:state")).toBe(false);
   });
+
+  it("parses and creates every versioned saved-board pointer", () => {
+    const routes = [
+      [ApplicationRoutes.deviceBoard("device-id"), "device"],
+      [ApplicationRoutes.cloudBoard("cloud-id"), "cloud"],
+      [ApplicationRoutes.publicView("view-token"), "view"],
+      [ApplicationRoutes.publicPlay("play-token"), "play"],
+      [ApplicationRoutes.editorInvite("invite-token"), "invite"],
+    ] as const;
+    for (const [hash, kind] of routes) {
+      expect(ApplicationRoutes.parseStoredRoute(hash)).toEqual({
+        kind,
+        id: hash.slice(hash.indexOf(":") + 1),
+      });
+    }
+    expect(ApplicationRoutes.parseStoredRoute("#sqb1:bad/id")).toBeNull();
+    expect(ApplicationRoutes.parseStoredRoute("#sq1:payload")).toBeNull();
+    expect(ApplicationRoutes.hasStoredRoutePrefix("#sql1:short")).toBe(true);
+    expect(ApplicationRoutes.hasStoredRoutePrefix("#sq1:payload")).toBe(false);
+  });
 });

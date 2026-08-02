@@ -25,11 +25,12 @@ Secondary explanations use accessible hover/focus tooltips. Placement rules
 live with individual cards, and validation appears near the preview and
 publishing actions it affects.
 
-### Preserve work in the URL
+### Make storage explicit
 
-Routine edits update the current URL without flooding browser history. Major
-transitions create history checkpoints. Users can copy, bookmark, or navigate
-back to meaningful board states without learning a separate save model.
+Every editor identifies itself as **URL Only**, **On This Device**, or **Saved
+To Account**. First-edit promotion is visible and overridable. Copying between
+modes creates an independent copy. Snapshot links remain available in every
+mode, including cloud failure.
 
 ### Allow imperfect work in progress
 
@@ -63,6 +64,8 @@ The header contains navigation and device-level controls:
 - fresh-board creation;
 - random sample selection;
 - current mode label; and
+- My Boards;
+- Sign In or account management; and
 - repository link.
 
 Appearance belongs here because it is a browser preference, not a board
@@ -116,8 +119,35 @@ The preview combines:
 - a prominent editor-link action;
 - play-link creation.
 
-The editor link is intentionally prominent because the URL is the save and
-collaboration mechanism.
+The editor snapshot link stays prominent because it is the portable recovery
+and immutable-sharing mechanism.
+
+### Storage status
+
+The storage/status bar identifies the active persistence boundary and announces
+**Saved**, **Saving**, **Offline — Changes Pending**, **Conflict**, or **Cloud
+Unavailable** through an accessible status region. It provides independent-copy
+actions, cloud sharing for owners, and version history. A browser-history
+snapshot is visibly historical and cannot be edited until restored as a new
+revision.
+
+### My Boards and account
+
+**My Boards** keeps Account and This Device in separate sections. Each row shows
+title, role, modified time, and Open, Duplicate, and confirmed Delete actions.
+Signing in never absorbs device boards. Account deletion is explicit, removes
+or leaves all memberships before authentication, and is blocked by pending
+changes or failed cleanup.
+
+### Cloud sharing
+
+The owner-only Share dialog separates mutable live view, mutable live play, and
+editor invitation links. Public links can be copied, rotated, or revoked
+independently. Invitations state their seven-day lifetime and verified-account
+requirement. Collaborator removal and ownership transfer remain distinct.
+
+Public view is read-only and offers **Play This Board** and **Edit a Copy**.
+Public play resolves the latest source into a fresh URL-only session.
 
 ## Action Ordering
 

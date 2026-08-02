@@ -1,6 +1,7 @@
 import type { ApplicationServices } from "../app/application-services";
 import type { StateChangeHandler } from "../app/types";
 import { RuntimeLogger } from "../lib/logger";
+import { createOperationId } from "../lib/editor-operation";
 import {
   BoardModel,
   IdFactory,
@@ -44,25 +45,63 @@ export class EditorController {
   /** Applies a typed configuration patch using the mutation's history policy. */
   public patchConfig(patch: Partial<BoardConfig>): void {
     const mutation = this.services.editorState.patchConfig(this.editor, patch);
-    this.onChange(mutation.state, mutation.historyMode);
+    const meaningful = patch.previewSeed === undefined;
+    this.onChange(mutation.state, mutation.historyMode, undefined, {
+      meaningful,
+      operation: meaningful
+        ? { id: createOperationId(), type: "patch-config", patch }
+        : undefined,
+    });
   }
 
   /** Adds one card and reports whether a non-empty value was accepted. */
   public addCard(text: string): boolean {
     const next = this.services.editorState.addCard(this.editor, text);
     if (next === this.editor) return false;
-    this.onChange(next);
+    const previousIds = new Set(this.editor.answers.map((answer) => answer.id));
+    const cards = next.answers.filter((answer) => !previousIds.has(answer.id));
+    this.onChange(next, "replace", undefined, {
+      meaningful: true,
+      operation: {
+        id: createOperationId(),
+        type: "add-cards",
+        cards,
+      },
+    });
     return true;
   }
 
   public updateCard(id: string, patch: Partial<Answer>): void {
-    this.onChange(this.services.editorState.updateCard(this.editor, id, patch));
+    const { id: _ignoredId, ...durablePatch } = patch;
+    this.onChange(
+      this.services.editorState.updateCard(this.editor, id, patch),
+      "replace",
+      undefined,
+      {
+        meaningful: true,
+        operation: {
+          id: createOperationId(),
+          type: "update-card",
+          cardId: id,
+          patch: durablePatch,
+        },
+      },
+    );
   }
 
   public deleteCard(id: string): void {
     this.onChange(
       this.services.editorState.deleteCard(this.editor, id),
       "push",
+      undefined,
+      {
+        meaningful: true,
+        operation: {
+          id: createOperationId(),
+          type: "delete-card",
+          cardId: id,
+        },
+      },
     );
   }
 
@@ -70,7 +109,16 @@ export class EditorController {
   public appendImportedCards(values: readonly string[]): boolean {
     const next = this.services.editorState.appendCards(this.editor, values);
     if (next === this.editor) return false;
-    this.onChange(next, "push");
+    const previousIds = new Set(this.editor.answers.map((answer) => answer.id));
+    const cards = next.answers.filter((answer) => !previousIds.has(answer.id));
+    this.onChange(next, "push", undefined, {
+      meaningful: true,
+      operation: {
+        id: createOperationId(),
+        type: "add-cards",
+        cards,
+      },
+    });
     logger.info("Added imported cards to the Card Pool.", {
       importedCardCount: values.length,
       resultingCardCount: next.answers.length,
@@ -91,7 +139,14 @@ export class EditorController {
   /** Replaces the editor with a validated board file as a history checkpoint. */
   public importBoardJson(input: string): void {
     const imported = this.services.boardDocuments.parse(input);
-    this.onChange(imported, "push");
+    this.onChange(imported, "push", undefined, {
+      meaningful: true,
+      operation: {
+        id: createOperationId(),
+        type: "replace-editor",
+        editor: imported,
+      },
+    });
     logger.info("Imported a complete board configuration.", {
       cardCount: imported.answers.length,
     });
@@ -129,6 +184,15 @@ export class EditorController {
     this.onChange(
       this.services.editorState.sortCards(this.editor, mode),
       "push",
+      undefined,
+      {
+        meaningful: true,
+        operation: {
+          id: createOperationId(),
+          type: "sort-cards",
+          mode,
+        },
+      },
     );
     logger.info("Changed the persistent Card Pool sort.", { mode });
   }
@@ -138,6 +202,8 @@ export class EditorController {
     this.onChange(
       this.services.editorState.setSetupCollapsed(this.editor, collapsed),
       "replace",
+      undefined,
+      { meaningful: false },
     );
   }
 

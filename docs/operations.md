@@ -1,178 +1,176 @@
 # Operations
 
-Squarecast is deployed as static assets on GitHub Pages. Operational concerns
-therefore center on build integrity, browser compatibility, privacy-conscious
-diagnostics, and safe recovery rather than server health.
+Squarecast serves static assets from GitHub Pages. Optional account storage uses
+managed Firebase Authentication and Firestore directly from the browser. There
+is no application server, Cloud Function, Firebase Hosting site, Cloud Storage,
+queue, or remote log collector.
 
 ## Production Topology
 
 ```mermaid
 flowchart LR
     A["Push to main"] --> B["GitHub Actions"]
-    B --> C["npm ci"]
-    C --> D["Coverage-gated tests"]
-    D --> E["Strict TypeScript + Vite build"]
-    E --> F["Upload dist artifact"]
-    F --> G["GitHub Pages deployment"]
-    G --> H["Static browser application"]
+    B --> C["Unit + Firestore emulator tests"]
+    C --> D["Strict TypeScript + Vite build"]
+    D --> E["GitHub Pages"]
+    B --> F["GitHub OIDC"]
+    F --> G["Deploy Firestore rules and indexes"]
+    E --> H["Static browser application"]
+    H --> I["IndexedDB"]
+    H --> J["Firebase Auth + Firestore"]
 ```
 
-There is no application server, worker, database, queue, object store, or
-runtime secret.
+Cloud configuration is public repository/deployment metadata, not a secret.
+Firestore Security Rules, verified identity, random tokens, and App Check form
+the authorization boundary.
 
-## Continuous Integration and Deployment
+## Firebase Project Setup
 
-`.github/workflows/deploy-pages.yml` runs on:
+Use one Firebase Spark project:
 
-- pushes to `main`; and
-- manual workflow dispatch.
+1. create a Firebase project without Analytics;
+2. create a Firestore Standard database in the US multi-region matching the
+   configured rules and indexes;
+3. register a Web app without enabling Firebase Hosting;
+4. enable Google and Email/Password authentication;
+5. add `mikejhill.github.io` and required local-development hosts to authorized
+   Authentication domains;
+6. configure password-reset and verification email templates;
+7. register a reCAPTCHA Enterprise App Check provider for the Web app;
+8. deploy `firestore.rules` and `firestore.indexes.json`; and
+9. observe App Check metrics before enabling enforcement.
 
-The workflow:
+Keep the project on Spark. Quota exhaustion must hard-fail into the existing
+**Cloud Unavailable** state; never attach a billing account solely to avoid an
+application failure. URL/device editing, JSON export, snapshot links, and
+existing play sessions remain functional without Firebase.
 
-1. checks out the repository;
-2. installs the locked dependency graph with `npm ci`;
-3. runs the coverage-gated test suite;
-4. builds with the GitHub Pages base path;
-5. uploads `dist/` as the Pages artifact; and
-6. deploys only after test and build success.
+References: [Firebase pricing plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans),
+[Firestore quotas](https://firebase.google.com/docs/firestore/quotas),
+[Web Authentication](https://firebase.google.com/docs/auth/web/start),
+[Security Rules](https://firebase.google.com/docs/firestore/security/get-started),
+and [App Check for Web](https://firebase.google.com/docs/app-check/web/recaptcha-provider).
 
-The Pages concurrency group cancels an obsolete in-progress deployment when a
-newer commit arrives.
+## Build Configuration
+
+Copy `.env.example` to `.env.local` for local cloud testing. Vite exposes these
+values in the browser bundle:
+
+```text
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+VITE_FIREBASE_APP_CHECK_SITE_KEY
+```
+
+If required Firebase values are absent, `FirebaseClient` stays disabled and the
+site exposes URL/device operation with an explicit cloud-unavailable message.
+Never put service-account keys or private credentials in `VITE_*` values.
+
+Configure the Firebase API key as the GitHub Actions repository secret
+`FIREBASE_API_KEY`. Configure the remaining Firebase values as repository
+variables without the `VITE_` prefix. The Pages build maps them into Vite.
+Also configure:
+
+```text
+GCP_WORKLOAD_IDENTITY_PROVIDER
+GCP_FIREBASE_SERVICE_ACCOUNT
+```
+
+The service account must be impersonable only by this repository/branch through
+GitHub Workload Identity Federation. Give it only the permissions required to
+create Firebase Rules rulesets/releases and manage Firestore indexes. Do not use
+a downloaded service-account key or broad project Owner/Editor role.
+
+## Continuous Delivery
+
+`.github/workflows/deploy-pages.yml` runs on `main` pushes and manual dispatch:
+
+1. install the locked dependency graph;
+2. install Java 21;
+3. start the Firestore emulator and run Security Rules tests;
+4. run coverage-gated unit tests;
+5. run strict TypeScript and build with the GitHub Pages base path;
+6. upload and deploy the static Pages artifact; and
+7. conditionally authenticate through GitHub OIDC and deploy Firestore rules and
+   indexes when cloud variables are configured.
+
+The Firestore policy job never blocks URL/device builds merely because a cloud
+project has not been configured. Once production cloud storage is enabled,
+missing policy-deployment variables are a release-configuration defect and must
+be corrected before advertising cloud storage.
+
+## Security Policy
+
+`firestore.rules` enforces:
+
+- verified authentication for private boards and invitations;
+- owner/editor role boundaries;
+- owner-only access management and deletion;
+- monotonic revision increments and conservative payload size;
+- a maximum of 20 members;
+- restricted field changes for editor writes;
+- get-only, non-listable public token documents;
+- time-bounded invitation acceptance; and
+- member-only checkpoint and presence access.
+
+`firestore.indexes.json` indexes membership and updated-time lookup while
+exempting state payloads and role/token maps from unnecessary indexing. Every
+rule change requires an emulator test covering the allowed path and adjacent
+denied paths.
 
 ## Runtime Logging
 
-Squarecast uses `loglevel` through the `RuntimeLogger` class. Every logger has a
-scope such as:
+`RuntimeLogger` wraps scoped `loglevel` loggers. Production remains fixed at
+`warn`. Logs stay in the local console and may contain counts, encoded length,
+error type, normalized messages, and safe enum values. They must never contain
+Card Pool text, board titles, full state, encoded hashes, public/invite tokens,
+share URLs, clipboard contents, imported content, or Firebase documents.
 
-```text
-squarecast:board-generator
-squarecast:state-codec
-squarecast:editor-controller
-```
-
-The production threshold is fixed at `warn`.
-
-| Level | Intended use | Production console |
-| --- | --- | --- |
-| `debug` | Detailed control flow and measurements | Suppressed |
-| `info` | Successful lifecycle events | Suppressed |
-| `warn` | Recoverable degradation or rejected input | Visible |
-| `error` | Failed operation or violated invariant | Visible |
-
-Passing `false` when configuring loglevel prevents the threshold from becoming
-another stored preference.
-
-### Logging rules
-
-Logs may contain:
-
-- operation name;
-- state mode;
-- item counts;
-- encoded length;
-- error type and normalized message; and
-- safe enum values.
-
-Logs must not contain:
-
-- Card Pool text;
-- board titles;
-- full editor or play state;
-- encoded URL fragments;
-- share URLs;
-- clipboard contents; or
-- imported file contents.
-
-`RuntimeLogger.error` normalizes unknown errors into a serializable name and
-message rather than passing application objects to the sink.
-
-Squarecast has no telemetry endpoint, analytics SDK, remote log transport, or
-error-reporting service. Logs remain in the local browser console.
-
-## Failure Behavior
+## Failure And Recovery
 
 | Failure | Application response |
 | --- | --- |
-| Invalid or corrupt URL state | Open a fresh editor |
-| Invalid JSON board file | Keep current board and show an inline error |
-| Non-CSV dropped file | Ignore the file and emit a warning |
-| Clipboard unavailable | Keep current state and record a local console error |
-| `localStorage` unavailable | Use system appearance in memory |
-| Conflicting placement rules | Keep editing enabled and block publishing |
-| Incomplete Card Pool | Show partial preview and block publishing |
-| Font or container resize | Re-run rendered text fitting |
+| Invalid/corrupt `#sq1:` | Open a fresh editor |
+| Missing `#sql1:` record | Show device Not Found; preserve route |
+| Missing/removed private board | Show Not Found or Access Removed |
+| Signed-out private/invite route | Show Auth Required; preserve route |
+| Revoked public token | Fail closed with Not Found |
+| IndexedDB failure/quota | Keep active URL state and expose snapshot/JSON export |
+| Firestore blocked/offline | Persist unacknowledged operations in IndexedDB |
+| Firestore quota/provider failure | Show Cloud Unavailable; keep active editor |
+| Same-target collaboration conflict | Keep recoverable local text and announce Conflict |
+| Invalid JSON/CSV | Keep current board; reject partial replacement |
 
-Fallbacks must preserve the current board whenever possible. Imported content
-must never partially replace state.
+Before sign-out, checkpoint restore, or account deletion, Squarecast flushes
+pending cloud operations and blocks the destructive action if work remains.
+Account deletion removes/withdraws board memberships before deleting Firebase
+Authentication. Failed cleanup preserves export and retry paths.
 
-## Production Diagnosis
+For production diagnosis, use non-sensitive sample content, inspect local
+`squarecast:*` warnings/errors, check the Pages and policy workflow jobs, verify
+Firebase Auth/Firestore/App Check dashboards, and reproduce with a production
+build. Never request a full private board URL or log a token.
 
-For a reported problem:
+## Deployment Verification And Rollback
 
-1. identify whether it affects edit, launch, or play mode;
-2. record the browser family and approximate viewport;
-3. reproduce with non-sensitive sample content;
-4. inspect `squarecast:*` warnings and errors in the browser console;
-5. check the deployed workflow commit;
-6. compare behavior with a local production build; and
-7. add a behavioral regression test where the affected boundary is testable.
+A green workflow proves rules tests, coverage thresholds, strict compilation,
+the production build, and Pages artifact deployment. When configured, the
+policy job also proves OIDC authentication and rules/index deployment. It does
+not prove provider-console setup, App Check enforcement, quota headroom, or
+multi-browser collaboration; verify those manually.
 
-Do not request a user's complete board URL if it contains private content.
-Prefer a minimal recreated board or exported JSON with sanitized card text.
-
-## Deployment Verification
-
-A successful workflow proves:
-
-- dependencies install from the lockfile;
-- coverage thresholds pass;
-- strict TypeScript compilation passes;
-- the GitHub production base path builds; and
-- GitHub Pages accepted the artifact.
-
-It does not prove every browser layout. UI changes should receive proportionate
-manual testing in supported modern browsers when layout, focus, drag-and-drop,
-or rendered measurement changes.
-
-## Recovery and Rollback
-
-GitHub Pages deploys immutable build artifacts associated with commits. To
-recover from a faulty release:
-
-1. identify the last known-good commit;
-2. revert the faulty commit with a new commit;
-3. push the revert to `main`;
-4. allow the normal workflow to test, build, and deploy it; and
-5. verify the workflow conclusion and live behavior.
-
-Do not bypass the test-and-build job to force a Pages artifact.
-
-## Dependency and Platform Maintenance
-
-- Keep `package-lock.json` committed.
-- Use `npm ci` in automation.
-- Review framework, build-tool, validation, icon, compression, and logging
-  updates for browser and Node engine changes.
-- Treat changes to Zod schemas, LZ-String behavior, Vite base paths, or History
-  API coordination as compatibility-sensitive.
-- Keep GitHub Actions pinned to explicit major versions.
-- Run the complete quality gate after dependency updates.
-
-## Privacy Boundary
-
-The application is operationally private by architecture:
-
-- board state stays in the URL fragment;
-- file import and export remain local;
-- no remote application endpoint receives state;
-- no analytics or telemetry runs; and
-- only appearance uses local storage.
-
-Static hosting does not make shared URLs confidential. The recipient of a full
-URL can restore the board it contains.
+Rollback application code with a normal revert commit. Roll back rules/indexes
+through reviewed repository changes and the same OIDC workflow. Do not edit
+production rules ad hoc in the Firebase console except during an active access
+incident, and immediately reconcile any emergency change into the repository.
 
 ## Related Documents
 
 - [State and Routing](state-and-routing.md)
 - [Architecture](architecture.md)
 - [Development](development.md)
+- [Privacy](privacy.md)

@@ -8,9 +8,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Squarecast is a browser-based bingo board studio for creating, randomizing,
-sharing, and playing custom boards. A board lives entirely in its URL, so
-Squarecast needs no account, database, or server-side application. Add more
-cards than the grid requires to give each generated board a different mix.
+sharing, and playing custom boards. Boards can remain self-contained in a URL,
+be saved privately in the current browser, or sync through an optional account.
+The site remains a static GitHub Pages application.
 
 [Open Squarecast](https://mikejhill.github.io/squarecast/) ·
 [Start with a blank board](https://mikejhill.github.io/squarecast/#new)
@@ -41,23 +41,27 @@ the URL, which can be copied or bookmarked at any time.
 - Complete-board JSON import and export
 - Card Pool CSV import, export, paste, and drag-and-drop
 - URL-aware Back and Forward navigation
+- URL-only, device, and optional account storage
+- Mutable public view/play links and verified editor invitations
+- Optimistic collaboration, offline pending changes, and version history
 - Responsive editing and play layouts
 
 ## Privacy
 
-Squarecast processes board data locally in the browser. Editor state, generated
-boards, and play progress are stored in the URL fragment and are not uploaded
-by the application.
+URL-only boards and play sessions stay in the URL. Device boards and pending
+cloud operations use IndexedDB. Account boards use access-controlled Firebase
+Firestore documents. Cloud content is plaintext to Firebase, not end-to-end
+encrypted. Public view/play links are bearer links readable by anyone holding
+the token.
 
-The site appearance preference is the only value stored in `localStorage`.
-Squarecast does not use cookies, analytics, telemetry, or remote logging.
-
-Shared URLs contain the board data required to restore that board. Do not place
-secrets or sensitive information in a board.
+Appearance is the only value in `localStorage`. Squarecast has no analytics,
+telemetry, remote logging, cookies, or application server. See the
+[privacy model](docs/privacy.md).
 
 ## Local Development
 
-Squarecast requires Node.js 20.19 or newer and npm.
+Squarecast requires Node.js 20.19 or newer, npm, and Java 21 for Firestore
+Security Rules tests.
 
 ```bash
 npm ci
@@ -70,8 +74,8 @@ Run the complete quality gate before submitting a change:
 npm run check
 ```
 
-This runs the coverage-gated test suite, strict TypeScript compilation, and the
-production build.
+This runs Firestore emulator rules tests, the coverage-gated test suite, strict
+TypeScript compilation, and the production build.
 
 ## Documentation
 
@@ -85,11 +89,12 @@ Technical documentation lives in [`docs/`](docs/README.md).
 | [Data Formats](docs/data-formats.md) | JSON board documents, CSV Card Pools, validation, and compatibility |
 | [Development](docs/development.md) | Repository structure, coding conventions, testing, and contribution workflow |
 | [Operations](docs/operations.md) | Logging, CI/CD, deployment, diagnostics, and recovery |
+| [Privacy](docs/privacy.md) | Storage boundaries, cloud access, public links, and deletion |
 
 ## Contributing
 
 Issues and pull requests are welcome. Keep changes focused, preserve the
-static and URL-native architecture, add meaningful tests for behavioral
+static and URL-compatible architecture, add meaningful tests for behavioral
 changes, and run `npm run check` before opening a pull request.
 
 See the [development guide](docs/development.md) for repository conventions and

@@ -2,8 +2,10 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    maxWorkers: 4,
     environment: "node",
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
+    exclude: ["tests/firestore-rules.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "html", "lcov"],

@@ -1,186 +1,146 @@
 # State and Routing
 
-Squarecast treats the URL as its board document. This design makes editor and
-play sessions portable across tabs and devices without server-side persistence.
+Squarecast keeps the URL as a complete portable board document while adding
+optional device and account pointers. URL-only operation remains independent of
+Firebase.
 
 ## State Sources
 
 | Source | Stored data | Scope |
 | --- | --- | --- |
-| URL fragment | Editor, launch, or play state | Shareable and restorable |
+| `#sq1:` URL fragment | Editor, launch, or play state | Immutable, shareable snapshot |
+| `#sql1:` pointer | IndexedDB editor record and checkpoints | Current browser profile |
+| `#sqb1:` pointer | Private Firestore editor record and checkpoints | Verified account members |
+| `#sqv1:` bearer pointer | Latest published read-only copy | Anyone holding the active token |
+| `#sqp1:` bearer pointer | Latest published launch source | Anyone holding the active token |
+| `#sqi1:` invitation pointer | Seven-day editor invitation | Verified signed-in account |
 | `#new` action route | Instruction to create fresh defaults | Shareable action |
 | Empty fragment | Instruction to select a sample | Landing behavior |
-| `localStorage` | `system`, `light`, or `dark` appearance | Current browser only |
+| `localStorage` | Appearance preference | Current browser profile |
 | React component state | Dialogs, copy feedback, drag state | Current render session |
 
-No board content is stored in cookies, `sessionStorage`, IndexedDB, or a remote
-service.
+Device boards and unacknowledged cloud operations use IndexedDB. Account boards
+use Firestore. Board data is never stored in cookies, `sessionStorage`, or
+`localStorage`.
 
 ## Encoded State
 
 `StateCodec` converts state into a versioned compact tuple, compresses that
-tuple with LZ-String, and writes it beneath the `#sq1:` prefix. Tuple fields use
-numeric codes and positional structure to avoid repeating object-property
-names. Generated play cells normally store Card Pool indexes instead of
-duplicating Card IDs and text.
+tuple with LZ-String, and writes it beneath `#sq1:`. Generated play cells
+normally store Card Pool indexes instead of duplicating Card IDs and text.
 
 ```text
 https://mikejhill.github.io/squarecast/#sq1:<compressed-state>
 ```
 
-The fragment is not sent to the web server as part of an HTTP request. It is
-read and written by the browser application.
+The fragment is not sent with the HTTP request. Decoding fails closed:
 
-Decoding follows a fail-closed sequence:
+1. verify the prefix;
+2. decompress and parse JSON;
+3. validate the compact transport tuple;
+4. reconstruct the application state;
+5. validate the complete model with Zod; and
+6. accept only supported state modes and versions.
 
-1. verify the `#sq1:` prefix;
-2. decompress the payload;
-3. parse JSON;
-4. validate the compact transport tuple;
-5. reconstruct the ordinary application state;
-6. validate the complete application object with Zod; and
-7. accept only a supported state mode and version.
-
-Malformed or incompatible data falls back to a new editor instead of entering
-runtime state. Object-based `#sq1:` links issued by earlier Squarecast versions
-remain readable.
+Malformed or incompatible `#sq1:` data opens a fresh editor. Earlier
+object-based `#sq1:` payloads remain readable.
 
 ## Application Modes
 
-### Editor state
-
-Editor state contains:
-
-- board title, dimensions, free-square behavior, color, and text settings;
-- Card Pool entries and placement rules;
-- selected sort mode; and
-- Board Setup disclosure state; and
-- live-preview seed.
-
-This is the source of truth used to create launch and play states.
-
-### Launch state
-
-A play link contains a `launch` state whose source is the complete editor.
-Opening the link generates a new seed and immediately replaces the launch state
-with a concrete play state. Two people opening the same launch link therefore
-receive independently randomized boards.
-
-### Play state
-
-Play state contains:
-
-- generated cell order;
-- checked cell indexes;
-- generation seed;
-- display configuration; and
-- the source editor.
-
-Retaining the source allows **Edit This Board** to return directly to the board
-that produced the session.
+An `edit` state contains configuration, Card Pool, placement rules, sort mode,
+Board Setup disclosure, and preview seed. A `launch` state contains the source
+editor and generates a new concrete play state on every opening. A `play` state
+contains generated cells, checked indexes, its seed, and the source editor so
+**Edit This Board** can return to it.
 
 ## Route Resolution
 
 ```mermaid
 flowchart TD
-    A["Application loads URL fragment"] --> B{"Fragment"}
+    A["Application loads URL fragment"] --> B{"Route class"}
     B -- "empty or #" --> C["Create random sample editor"]
-    B -- "#new" --> D["Create blank editor with defaults"]
-    B -- "#sq1:..." --> E["Decode and validate"]
-    B -- "other / invalid" --> D
+    B -- "#new" --> D["Create fresh defaults"]
+    B -- "#sq1:payload" --> E["Decode and validate"]
+    B -- "#sql1:id" --> L["Load IndexedDB record"]
+    B -- "#sqb1:id" --> M["Require verified member and load Firestore"]
+    B -- "#sqv1:token" --> V["Load and subscribe to public view"]
+    B -- "#sqp1:token" --> P["Load latest source and generate play"]
+    B -- "#sqi1:token" --> Q["Require verified account and accept invite"]
+    B -- "other" --> D
     E --> F{"State mode"}
     F -- "edit" --> G["Restore editor"]
     F -- "launch" --> H["Generate fresh play state"]
     F -- "play" --> I["Restore exact play session"]
-    E -- "decode failure" --> D
+    L --> J["Open saved workspace"]
+    M --> J
+    Q --> J
+    V --> K["Open read-only public board"]
+    P --> I
 ```
 
-`#new` is intentionally an action route rather than a fixed empty-board state.
-Every opening creates fresh defaults, including a randomized board color.
+`#new` is an action route. Every opening creates fresh defaults and a random
+board color. Saved-route resolution is asynchronous. Missing records,
+unverified accounts, removed access, revoked tokens, disabled Firebase, and
+provider failures produce explicit recoverable route states; none silently
+create a replacement board.
+
+Opening `#sqp1:` validates the latest published editor, generates a fresh play
+board, and replaces the pointer with a concrete `#sq1:` play session. Play
+progress never enters a saved library.
+
+## Storage Promotion And Copies
+
+A URL editor starts with a visible storage preference. Its first meaningful
+edit creates a device draft while signed out or an account board while signed
+in with a verified account. The user can explicitly retain URL Only behavior.
+Disclosure changes, appearance, dialogs, and preview shuffles do not promote.
+
+Existing device boards stay device-only after sign-in. Moving between URL,
+device, and account storage always creates an independent copy. It never deletes
+the source. **Copy Editor Link** and **Create Play Link** still create
+self-contained `#sq1:` snapshots. Mutable view/play links and editor invitations
+are separate cloud actions.
 
 ## History Policy
 
-Squarecast distinguishes high-frequency edits from meaningful transitions.
+Typing and other high-frequency edits replace the current history entry. Major
+transitions push an entry: New Board, Sample Board, geometry changes, Test This
+Board, Edit This Board, complete-board import, meaningful deletion, sorting,
+bulk import, storage copies, and checkpoint restoration. Back and Forward never
+write immediately.
 
-| Interaction | History behavior | Reason |
-| --- | --- | --- |
-| Typing a title or editing a card | Replace current entry | Avoid one Back step per keystroke |
-| Expanding or collapsing Board Setup | Replace current entry | Preserve the view without adding navigation noise |
-| Changing board geometry | Push a new entry | The change can invalidate placement rules |
-| New Board or Sample Board | Push a new entry | Preserve the prior board |
-| Test This Board | Push a new entry | Preserve the editor |
-| Edit This Board | Push a new entry | Preserve the play session |
-| Import complete JSON | Push a new entry | Preserve the board being replaced |
-| Delete, sort, or bulk-import cards | Push a new entry | Preserve a meaningful collection change |
-| Restore with Back or Forward | No write | Prevent restoration from rewriting history |
+Saved pointer routes remain stable. `history.state.squarecast` stores the
+encoded snapshot, storage kind, record ID, and revision. Back or Forward can
+therefore show an older saved revision without rewriting storage. Historical
+views reject edits until **Restore This Version** writes a new head revision.
 
-`NavigationCoordinator` records the policy for the next React commit.
-`UrlHistoryService` performs the resulting `pushState`, `replaceState`, or no-op.
+## Seeds And Reproducibility
 
-```mermaid
-sequenceDiagram
-    participant UI
-    participant Controller
-    participant Navigation
-    participant React
-    participant History
-
-    UI->>Controller: Major action
-    Controller->>Navigation: schedule("push")
-    Controller->>React: set next immutable state
-    React->>Navigation: consume(encoded hash)
-    Navigation->>History: pushState(hash)
-    History-->>UI: Back/Forward remains meaningful
-```
-
-## Seeds and Reproducibility
-
-The editor preview, launch generation, and play reshuffle use separate seeds.
-Once a play state is created, its generated cells and seed are stored in the
-URL. Restoring that play URL reproduces the exact board and checked cells.
-
-Creating a play link does not freeze one board. The link stores a launch
-template, and each opening creates a fresh play seed.
+Editor preview, launch generation, and play reshuffle use separate seeds. A
+concrete play URL reproduces the same generated board and checked cells. A
+launch URL creates a new seed on each opening.
 
 ## Appearance Preference
 
-Appearance is excluded from board state because it describes the current
-browser, not the shared board. The value is stored under:
+Appearance is not board state. `squarecast:appearance` in `localStorage`
+accepts `system`, `light`, or `dark`; invalid or unavailable storage falls back
+to `system`.
 
-```text
-squarecast:appearance
-```
+## Privacy And Compatibility
 
-Supported values are `system`, `light`, and `dark`. If storage is unavailable
-or contains an unsupported value, Squarecast uses `system`. This is the only
-browser-storage exception.
+Anyone with a complete `#sq1:` URL can read its board. Public view/play tokens
+are bearer credentials. Private Firestore boards are access-controlled
+plaintext, not end-to-end encrypted. Never log encoded hashes, tokens, share
+URLs, titles, or Card Pool text. See [Privacy](privacy.md).
 
-## Privacy and URL Handling
-
-URL fragments make board data portable, not secret. Anyone with the full URL
-can restore and inspect the state it contains.
-
-Operational rules:
-
-- never put sensitive data in a board;
-- never log encoded hashes, share URLs, titles, or Card Pool text;
-- do not add third-party scripts that collect the current URL;
-- preserve the static architecture unless a new privacy model is explicitly
-  designed; and
-- treat state-schema and codec changes as compatibility changes.
-
-## Compatibility
-
-The `sq1` prefix and state field `v: 1` establish the application compatibility
-boundary. The transport tuple has its own version, allowing its representation
-to evolve without changing the application model or public route. Existing
-object payloads and schema defaults preserve compatible older links.
-
-The compressed URL representation is an application format, not a public
-hand-editing format. Use the documented JSON board file for external tooling.
+The `sq1` prefix and application field `v: 1` remain stable. The compact tuple
+has its own version and still decodes legacy object payloads. Saved device and
+cloud records have an independent `schemaVersion: 1`; changing them does not
+change URL or complete-board JSON compatibility.
 
 ## Related Documents
 
 - [Architecture](architecture.md)
 - [Data Formats](data-formats.md)
 - [Operations](operations.md)
+- [Privacy](privacy.md)

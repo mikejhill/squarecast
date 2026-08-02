@@ -14,6 +14,7 @@ contributors; these guides explain the decisions and contracts behind it.
 | [Data Formats](data-formats.md) | Users building integrations and maintainers | Portable JSON boards, CSV Card Pools, compatibility, and validation |
 | [Development](development.md) | Contributors | Repository layout, local workflow, coding conventions, testing, and common change patterns |
 | [Operations](operations.md) | Maintainers | Runtime logging, privacy, CI/CD, GitHub Pages deployment, diagnostics, and recovery |
+| [Privacy](privacy.md) | Users and maintainers | Storage boundaries, account content, public links, retention, and deletion |
 
 ## Suggested Reading Paths
 
@@ -39,3 +40,4 @@ For deployment or production diagnosis:
 
 1. [Operations](operations.md)
 2. [State and Routing](state-and-routing.md)
+3. [Privacy](privacy.md)

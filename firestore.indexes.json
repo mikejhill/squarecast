@@ -1,0 +1,49 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "boards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberUids", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "boards",
+      "fieldPath": "stateHash",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "boards",
+      "fieldPath": "roles",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "boards",
+      "fieldPath": "recentOperationIds",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "boards",
+      "fieldPath": "lastOperation",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "boards",
+      "fieldPath": "shareTokens",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "publicShares",
+      "fieldPath": "stateHash",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "checkpoints",
+      "fieldPath": "stateHash",
+      "indexes": []
+    }
+  ]
+}

@@ -120,6 +120,21 @@ export class EditorStateService {
     };
   }
 
+  /** Appends already-identified cards when replaying a persisted operation. */
+  public appendAnswers(
+    editor: EditorState,
+    answers: readonly Answer[],
+  ): EditorState {
+    if (!answers.length) return editor;
+    return {
+      ...editor,
+      answers: this.sorter.sort(
+        [...editor.answers, ...answers],
+        editor.config.sortMode,
+      ),
+    };
+  }
+
   /** Changes the persistent mode and immediately applies it to the Card Pool. */
   public sortCards(editor: EditorState, mode: BoardConfig["sortMode"]): EditorState {
     return {

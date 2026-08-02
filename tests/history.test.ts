@@ -34,6 +34,18 @@ describe("URL history service", () => {
     expect(history.pushState).not.toHaveBeenCalled();
   });
 
+  it("stores a restorable snapshot beside stable pointer routes", () => {
+    const history = createHistory();
+    const state = { squarecast: { snapshotHash: "#sq1:state" } };
+    new UrlHistoryService(history).write("#sql1:device-id", "replace", state);
+
+    expect(history.replaceState).toHaveBeenCalledWith(
+      state,
+      "",
+      "#sql1:device-id",
+    );
+  });
+
   it("does not rewrite history while restoring Back or Forward state", () => {
     const history = createHistory();
     new UrlHistoryService(history).write("#sq1:restored", "none");

@@ -2206,7 +2206,510 @@ optgroup {
   }
 }
 
+.library-button,
+.account-button {
+  min-height: 36px;
+  max-width: 170px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(31, 30, 28, 0.15);
+  border-radius: 9px;
+  background: #fffefa;
+  color: #4d4943;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.library-button span,
+.account-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storage-status {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(31, 30, 28, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 254, 250, 0.82);
+}
+
+.storage-status-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.storage-status-main > div {
+  min-width: 0;
+  display: grid;
+}
+
+.storage-status-main strong {
+  font-size: 13px;
+}
+
+.storage-status-main span {
+  overflow: hidden;
+  color: #77716a;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presence-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.storage-actions {
+  min-width: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.storage-actions button,
+.storage-actions select,
+.cloud-share-list button,
+.member-list button,
+.board-library-actions button {
+  min-height: 32px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid rgba(31, 30, 28, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  color: #45413c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.storage-actions select {
+  max-width: 210px;
+}
+
+.storage-actions .storage-share-button {
+  border-color: var(--accent-dark);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.google-signin-button {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #ccc6be;
+  border-radius: 9px;
+  background: #fff;
+  color: #252529;
+  font-weight: 800;
+}
+
+.auth-divider {
+  margin: 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #8b857d;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  height: 1px;
+  flex: 1;
+  background: rgba(31, 30, 28, 0.13);
+  content: "";
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 5px;
+  color: #5f5a54;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.auth-form input {
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid #d5d0c8;
+  border-radius: 8px;
+  background: #fff;
+  color: #252529;
+}
+
+.auth-secondary-actions,
+.account-actions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.auth-secondary-actions button {
+  border: 0;
+  background: transparent;
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.account-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.account-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-identity > div {
+  display: grid;
+  gap: 2px;
+}
+
+.account-identity span,
+.account-identity small {
+  color: #77716a;
+}
+
+.danger-button {
+  min-height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #a83b3b;
+  border-radius: 9px;
+  background: #fff1f1;
+  color: #8d2727;
+  font-weight: 800;
+}
+
+.danger-icon {
+  color: #a33232 !important;
+}
+
+.account-message,
+.form-error {
+  margin: 12px 0 0;
+  color: #9b3232;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.board-library {
+  display: grid;
+  gap: 22px;
+}
+
+.board-library-section h3,
+.member-list h3 {
+  margin: 0 0 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+}
+
+.board-library-section > p {
+  margin: 0;
+  color: #77716a;
+  font-size: 13px;
+}
+
+.board-library-section ul,
+.member-list ul {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+  list-style: none;
+}
+
+.board-library-section li,
+.member-list li {
+  min-width: 0;
+  padding: 9px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(31, 30, 28, 0.11);
+  border-radius: 9px;
+}
+
+.board-library-section li > div:first-child {
+  min-width: 0;
+  display: grid;
+}
+
+.board-library-section li strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-library-section li span {
+  color: #77716a;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.board-library-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 5px;
+}
+
+.cloud-share-list {
+  display: grid;
+  gap: 8px;
+}
+
+.cloud-share-list section {
+  min-width: 0;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(31, 30, 28, 0.11);
+  border-radius: 9px;
+}
+
+.cloud-share-list section > div:first-child {
+  min-width: 0;
+  display: grid;
+}
+
+.cloud-share-list section span {
+  color: #77716a;
+  font-size: 11px;
+}
+
+.cloud-share-list section > button,
+.share-token-actions {
+  margin-left: auto;
+}
+
+.share-token-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.member-list {
+  margin-top: 20px;
+}
+
+.member-list li code {
+  font-size: 11px;
+}
+
+.member-list li > span {
+  color: #77716a;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.member-list li > div {
+  margin-left: auto;
+  display: flex;
+  gap: 5px;
+}
+
+.public-board-shell,
+.route-state-page {
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: clamp(32px, 6vw, 72px) 0;
+}
+
+.public-board-shell > header {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.public-board-shell > header span {
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.public-board-shell > header h1,
+.route-state-page h1 {
+  margin: 7px 0;
+  font-size: clamp(32px, 6vw, 52px);
+  letter-spacing: -0.055em;
+}
+
+.public-board-shell > header p,
+.route-state-page p {
+  color: #77716a;
+}
+
+.public-board-preview {
+  width: min(620px, 100%);
+  margin: 0 auto;
+}
+
+.public-board-actions,
+.route-state-page > div {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+}
+
+.route-state-page {
+  min-height: 62vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.route-spinner {
+  animation: storage-spin 0.9s linear infinite;
+}
+
+@keyframes storage-spin {
+  to { transform: rotate(360deg); }
+}
+
+.app.is-dark .library-button,
+.app.is-dark .account-button,
+.app.is-dark .storage-status,
+.app.is-dark .storage-actions button,
+.app.is-dark .storage-actions select,
+.app.is-dark .cloud-share-list button,
+.app.is-dark .member-list button,
+.app.is-dark .board-library-actions button,
+.app.is-dark .google-signin-button,
+.app.is-dark .auth-form input {
+  border-color: #494850;
+  background: #28282d;
+  color: #e4e0d9;
+}
+
+.app.is-dark .storage-status-main span,
+.app.is-dark .account-identity span,
+.app.is-dark .account-identity small,
+.app.is-dark .board-library-section li span,
+.app.is-dark .cloud-share-list section span,
+.app.is-dark .member-list li > span,
+.app.is-dark .public-board-shell > header p,
+.app.is-dark .route-state-page p {
+  color: #aaa59d;
+}
+
+.app.is-dark .board-library-section li,
+.app.is-dark .cloud-share-list section,
+.app.is-dark .member-list li {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.checkpoint-list {
+  display: grid;
+  gap: 9px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkpoint-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 11px;
+  border: 1px solid rgba(20, 20, 20, 0.14);
+  border-radius: 9px;
+}
+
+.checkpoint-list div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.checkpoint-list span {
+  overflow: hidden;
+  color: #6f6a62;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkpoint-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.account-verification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app.is-dark .checkpoint-list li {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.app.is-dark .checkpoint-list span {
+  color: #aaa59d;
+}
+
+@media (max-width: 1180px) {
+  .mode-label,
+  .github-link span,
+  .library-button span,
+  .account-button span {
+    display: none;
+  }
+}
+
 @media (max-width: 980px) {
+  .storage-status {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .storage-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
   /*
    * At stacked widths the preview is no longer sticky, so the application can
    * safely become the horizontal containment boundary. This prevents any

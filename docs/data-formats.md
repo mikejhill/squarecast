@@ -8,6 +8,9 @@ state:
 
 Files are read and generated locally in the browser.
 
+The JSON and CSV contracts are unchanged by saved-board storage. Copying an
+editor or creating a play link still uses the portable `#sq1:` format.
+
 ## Complete Board JSON
 
 Use JSON when board settings, Card Pool content, and placement constraints must
@@ -162,6 +165,30 @@ generated play cells, and should be treated as an internal application format.
 
 Do not build integrations by editing compressed fragments. Use the versioned
 JSON format for complete boards or CSV for Card Pools.
+
+## Saved Records
+
+Device and cloud records are internal persistence envelopes, not portable
+interchange formats. Both use an independent `schemaVersion: 1` and store a
+validated compact editor hash plus title, revision, and timestamps. Device
+records embed up to 25 checkpoint envelopes. Cloud records add owner/member
+roles, recent operation IDs, sharing references, checkpoint revisions, and the
+last editor UID.
+
+Firestore stores account content as access-controlled plaintext. The editor
+payload and permission maps are exempt from indexing; only membership and
+updated-time query fields are indexed. Cloud saves reject encoded payloads over
+750 KiB. This limit does not block URL-only/device editing or complete-board
+JSON export.
+
+Public-share documents contain a published editor hash, kind, board ID, title,
+revision, and timestamp. They are retrievable only by random token and cannot be
+listed. Invitation documents contain a board reference, editor role, owner,
+creation time, and seven-day expiry.
+
+Stored-record schema changes require their own validation and migration policy.
+They must not silently change complete-board JSON, CSV, `#sq1:`, or legacy-link
+decoding.
 
 ## Compatibility Rules
 

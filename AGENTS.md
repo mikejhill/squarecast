@@ -6,7 +6,7 @@ Follow them when reviewing or changing the project.
 
 ## Product Mission
 
-Squarecast is a static, URL-native bingo board studio. Users create a source
+Squarecast is a static, URL-compatible bingo board studio. Users create a source
 board, provide a Card Pool, apply optional placement rules, generate randomized
 play boards, and mark cards in the browser.
 
@@ -21,17 +21,21 @@ The repository is:
 ## Non-Negotiable Platform Constraints
 
 - Keep the application fully static and compatible with GitHub Pages.
-- Do not add a backend, database, account system, server session, or remote
-  persistence.
-- Store editor state, launch templates, generated boards, and play progress in
-  the URL fragment.
-- Do not store board data in cookies, `localStorage`, `sessionStorage`,
-  IndexedDB, or another browser store.
-- The only browser-storage exception is the device-local appearance preference:
-  `system`, `light`, or `dark` in `localStorage`.
+- Keep URL-only operation fully functional without Firebase.
+- Preserve self-contained editor snapshots, launch templates, generated boards,
+  and play progress under the `#sq1:` URL fragment format.
+- Store device boards in IndexedDB. Store account boards only in Firebase
+  Firestore. Never store board data in cookies, `localStorage`, or
+  `sessionStorage`.
+- Keep the device-local appearance preference (`system`, `light`, or `dark`) in
+  `localStorage`.
+- Do not add an application server, Cloud Functions, Firebase Hosting, Cloud
+  Storage, or another server runtime. GitHub Pages remains the only web host.
 - Do not add analytics, telemetry, remote logging, or third-party scripts that
   collect board URLs.
 - Treat full Squarecast URLs as readable documents, not secrets.
+- Treat account boards as access-controlled plaintext, not end-to-end encrypted
+  content. Public links are bearer credentials.
 
 ## Product Language
 

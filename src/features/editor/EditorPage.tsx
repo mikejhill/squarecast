@@ -14,19 +14,52 @@ import { BoardSetupPanel } from "./BoardSetupPanel";
 import { CardPoolPanel } from "./CardPoolPanel";
 import { EditorDialogs } from "./EditorDialogs";
 import { EditorPreviewPanel } from "./EditorPreviewPanel";
+import { StorageStatusBar } from "../../components/StorageStatusBar";
+import type { StorageKind, WorkspaceReadySession } from "../../lib/board-repository";
+import type { AuthUser } from "../../services/cloud-auth-service";
+import type { BoardPresence } from "../../services/cloud-board-repository";
 
 const logger = new RuntimeLogger("editor-page");
 
 type EditorPageProps = {
   state: EditorState;
   onChange: StateChangeHandler;
+  session: WorkspaceReadySession;
+  authUser: AuthUser | null;
+  preferredStorage: StorageKind;
+  statusMessage: string;
+  presence: readonly BoardPresence[];
+  editorUrl: string;
+  onPreferredStorageChange: (kind: StorageKind) => void;
+  onCopyToDevice: () => void;
+  onCopyToCloud: () => void;
+  onUseUrlOnly: () => void;
+  onOpenShare: () => void;
+  onOpenHistory: () => void;
+  onRestoreHistorical: () => void;
 };
 
 /**
  * Owns editor-only presentation state and delegates board behavior to the
  * controller and domain services.
  */
-export function EditorPage({ state, onChange }: EditorPageProps) {
+export function EditorPage({
+  state,
+  onChange,
+  session,
+  authUser,
+  preferredStorage,
+  statusMessage,
+  presence,
+  editorUrl,
+  onPreferredStorageChange,
+  onCopyToDevice,
+  onCopyToCloud,
+  onUseUrlOnly,
+  onOpenShare,
+  onOpenHistory,
+  onRestoreHistorical,
+}: EditorPageProps) {
   const controller = useMemo(
     () => new EditorController(state, onChange, applicationServices),
     [onChange, state],
@@ -118,6 +151,20 @@ export function EditorPage({ state, onChange }: EditorPageProps) {
 
   return (
     <main className="editor-shell">
+      <StorageStatusBar
+        session={session}
+        authUser={authUser}
+        preferredStorage={preferredStorage}
+        statusMessage={statusMessage}
+        presence={presence}
+        onPreferredStorageChange={onPreferredStorageChange}
+        onCopyToDevice={onCopyToDevice}
+        onCopyToCloud={onCopyToCloud}
+        onUseUrlOnly={onUseUrlOnly}
+        onOpenShare={onOpenShare}
+        onOpenHistory={onOpenHistory}
+        onRestoreHistorical={onRestoreHistorical}
+      />
       <BoardSetupPanel
         config={state.config}
         collapsed={state.setupCollapsed}
@@ -146,7 +193,7 @@ export function EditorPage({ state, onChange }: EditorPageProps) {
         <EditorPreviewPanel
           controller={controller}
           copied={copied}
-          onCopyEditor={() => copyUrl("edit", window.location.href)}
+          onCopyEditor={() => copyUrl("edit", editorUrl)}
           onCreatePlayLink={createPlayLink}
         />
       </section>

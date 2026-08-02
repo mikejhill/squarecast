@@ -57,6 +57,11 @@ describe("editor controller", () => {
         config: expect.objectContaining({ title: "Changed" }),
       }),
       "replace",
+      undefined,
+      expect.objectContaining({
+        meaningful: true,
+        operation: expect.objectContaining({ type: "patch-config" }),
+      }),
     );
     expect(controller.addCard(" ")).toBe(false);
     expect(controller.addCard("Added")).toBe(true);
@@ -70,12 +75,14 @@ describe("editor controller", () => {
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ setupCollapsed: true }),
       "replace",
+      undefined,
+      { meaningful: false },
     );
   });
 
   it("imports pasted and dropped CSV values", async () => {
     const editor = BoardModel.createDefaultEditor();
-    editor.answers = [];
+    editor.answers = editor.answers.slice(0, 1);
     const onChange = vi.fn();
     const controller = new EditorController(
       editor,
@@ -117,6 +124,10 @@ describe("editor controller", () => {
         ]),
       }),
       "push",
+      undefined,
+      expect.objectContaining({
+        operation: expect.objectContaining({ type: "replace-editor" }),
+      }),
     );
   });
 

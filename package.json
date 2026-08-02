@@ -1,7 +1,7 @@
 {
   "name": "squarecast",
   "version": "1.0.0",
-  "description": "URL-native bingo board studio for building, sharing, and playing randomized boards.",
+  "description": "Static bingo board studio with portable URL, device, and optional account storage.",
   "private": true,
   "engines": {
     "node": ">=20.19.0"
@@ -11,11 +11,13 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:rules": "firebase emulators:exec --only firestore --project squarecast-test \"vitest run --config vitest.rules.config.ts\"",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "check": "npm run test:coverage && npm run build"
+    "check": "npm run test:rules && npm run test:coverage && npm run build"
   },
   "dependencies": {
+    "firebase": "^12.17.0",
     "loglevel": "^1.9.2",
     "lucide-react": "^0.468.0",
     "lz-string": "^1.5.0",
@@ -24,11 +26,17 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.10.5",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "@vitest/coverage-v8": "^4.1.10",
+    "fake-indexeddb": "^6.2.5",
+    "firebase-tools": "^15.25.1",
+    "jsdom": "^29.0.1",
     "typescript": "^5.7.2",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
