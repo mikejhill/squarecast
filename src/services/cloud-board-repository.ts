@@ -827,6 +827,7 @@ export class CloudBoardRepository implements BoardRepository {
           }
         : undefined,
       createdAt: this.toMillis(record.createdAt),
+      recentOperationIds: record.recentOperationIds,
       lastOperationTargets: record.lastOperation?.targets,
       lastEditorUid: record.lastOperation?.uid,
     };

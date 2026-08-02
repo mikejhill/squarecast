@@ -34,6 +34,7 @@ export type SavedBoard = BoardSummary & {
   editor: EditorState;
   createdAt: number;
   cloudAccess?: CloudAccessSnapshot;
+  recentOperationIds?: readonly string[];
   lastOperationTargets?: readonly string[];
   lastEditorUid?: string;
 };

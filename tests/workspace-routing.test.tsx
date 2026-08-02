@@ -327,6 +327,120 @@ describe("workspace route resolution", () => {
     vi.useRealTimers();
   });
 
+  it("does not regress a rapid field edit while an older cloud save is in flight", async () => {
+    window.history.replaceState(null, "", "/#sqb1:cloud-board");
+    const editor = BoardModel.createDefaultEditor();
+    editor.config.free = 1;
+    const user = {
+      uid: "account-user",
+      email: "user@example.test",
+      displayName: "User",
+      emailVerified: true,
+      isAnonymous: false,
+    };
+    const board = (
+      revision: number,
+      free: number,
+      recentOperationIds: readonly string[] = [],
+    ): SavedBoard => ({
+      id: "cloud-board",
+      title: editor.config.title,
+      storageKind: "cloud",
+      permission: "editor",
+      revision,
+      updatedAt: revision,
+      createdAt: 1,
+      editor: { ...editor, config: { ...editor.config, free } },
+      recentOperationIds,
+    });
+    let boardListener: ((board: SavedBoard | null, error?: Error) => void) | undefined;
+    const releases: Array<(board: SavedBoard) => void> = [];
+    const cloudBoards = {
+      subscribe: vi.fn((
+        _id: string,
+        listener: (board: SavedBoard | null, error?: Error) => void,
+      ) => {
+        boardListener = listener;
+        listener(board(1, 1));
+        return () => undefined;
+      }),
+      applyOperation: vi.fn(
+        () => new Promise<SavedBoard>((resolve) => releases.push(resolve)),
+      ),
+      heartbeatPresence: vi.fn(async () => undefined),
+      subscribePresence: vi.fn(() => () => undefined),
+      cleanupStalePresence: vi.fn(async () => undefined),
+      clearPresence: vi.fn(async () => undefined),
+    };
+    const services = createServices({
+      auth: {
+        enabled: true,
+        subscribe: vi.fn((listener) => {
+          listener(user);
+          return () => undefined;
+        }),
+      },
+      deviceBoards: {
+        available: true,
+        load: vi.fn(async () => null),
+        subscribe: vi.fn(() => () => undefined),
+        listPendingCloudOperations: vi.fn(async () => []),
+        putPendingCloudOperation: vi.fn(async () => undefined),
+        removePendingCloudOperation: vi.fn(async () => undefined),
+      },
+      cloudBoards,
+    });
+    const { result } = renderHook(() => useWorkspace(services));
+    await waitFor(() => expect(result.current.session.status).toBe("ready"));
+
+    const freeTwo = { ...editor, config: { ...editor.config, free: 2 } };
+    act(() => result.current.navigate(freeTwo, "push", undefined, {
+      meaningful: true,
+      operation: {
+        id: "free-two",
+        type: "patch-config",
+        patch: { free: 2 },
+      },
+    }));
+    await waitFor(() => expect(cloudBoards.applyOperation).toHaveBeenCalledOnce());
+
+    const freeThree = { ...editor, config: { ...editor.config, free: 3 } };
+    act(() => result.current.navigate(freeThree, "push", undefined, {
+      meaningful: true,
+      operation: {
+        id: "free-three",
+        type: "patch-config",
+        patch: { free: 3 },
+      },
+    }));
+    expect(
+      result.current.session.status === "ready" && result.current.session.state.mode === "edit"
+        ? result.current.session.state.config.free
+        : null,
+    ).toBe(3);
+
+    act(() => boardListener?.(board(2, 2, ["free-two"])));
+    expect(
+      result.current.session.status === "ready" && result.current.session.state.mode === "edit"
+        ? result.current.session.state.config.free
+        : null,
+    ).toBe(3);
+
+    releases.shift()?.(board(2, 2, ["free-two"]));
+    await waitFor(() => expect(cloudBoards.applyOperation).toHaveBeenCalledTimes(2));
+    act(() => boardListener?.(board(2, 2, ["free-two"])));
+    expect(
+      result.current.session.status === "ready" && result.current.session.state.mode === "edit"
+        ? result.current.session.state.config.free
+        : null,
+    ).toBe(3);
+
+    releases.shift()?.(board(3, 3, ["free-two", "free-three"]));
+    await waitFor(() =>
+      expect(result.current.session).toEqual(expect.objectContaining({ revision: 3 })),
+    );
+  });
+
   it("restores a saved history snapshot without writing or mutating storage", async () => {
     window.history.replaceState(null, "", "/");
     const services = createServices();

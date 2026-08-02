@@ -142,6 +142,9 @@ denied paths.
   stale cleanup is one non-blocking query plus one bounded batch.
 - Routine typing commits after 1.5 seconds idle and no later than five seconds
   after the first pending edit. Structural operations commit immediately.
+- Listener rendering overlays queued and in-flight local operations, excluding
+  operation IDs already present in the received board revision. Older save
+  acknowledgements cannot visibly roll a field back while a newer edit waits.
 
 Firestore listeners still incur an initial document read and another read when
 a matching document changes. Transactions read the current board and may retry

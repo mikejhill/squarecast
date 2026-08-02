@@ -32,6 +32,7 @@ export const CLOUD_EDIT_MAX_DELAY_MS = 5_000;
 export class CloudSyncCoordinator {
   private readonly queued = new Map<string, QueuedOperation>();
   private readonly immediate: QueuedOperation[] = [];
+  private inFlight: QueuedOperation | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private maxTimer: ReturnType<typeof setTimeout> | null = null;
   private flushPromise: Promise<void> | null = null;
@@ -51,6 +52,7 @@ export class CloudSyncCoordinator {
 
   public get pendingOperations(): readonly EditorOperation[] {
     return [
+      ...(this.inFlight ? [this.inFlight.operation] : []),
       ...this.immediate.map((entry) => entry.operation),
       ...Array.from(this.queued.values(), (entry) => entry.operation),
     ];
@@ -137,6 +139,7 @@ export class CloudSyncCoordinator {
     while (!this.disposed) {
       const next = this.immediate.shift() ?? this.takeCoalesced();
       if (!next) break;
+      this.inFlight = next;
       try {
         await next.persisted;
         const saved = await this.repository.applyOperation(
@@ -147,8 +150,10 @@ export class CloudSyncCoordinator {
         await this.pendingStore.removePendingCloudOperation(
           `${this.uid}:${this.boardId}:${next.operation.id}`,
         );
+        this.inFlight = null;
         this.callbacks.onSaved(saved);
       } catch (error) {
+        this.inFlight = null;
         this.immediate.unshift(next);
         if (error instanceof EditorConflictError) {
           await this.pendingStore.removePendingCloudOperation(

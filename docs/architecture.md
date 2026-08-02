@@ -129,11 +129,18 @@ routine typing and position-control visibility do not create checkpoint rows.
 
 `CloudSyncCoordinator` applies operations optimistically, persists only
 unacknowledged operations in IndexedDB, coalesces same-target typing after 1.5
-seconds idle with a five-second maximum delay, and commits major changes immediately. Firestore transactions read the current
-head, apply one semantic operation, increment the revision, update active
+seconds idle with a five-second maximum delay, and commits major changes
+immediately. Firestore transactions read the current head, apply one semantic
+operation, increment the revision, update active
 published copies, and retry concurrent writes. Different targets merge. An edit
 against a deleted target becomes a recoverable conflict. Recent operation IDs
 make reconnect replay safe.
+
+The optimistic overlay includes queued operations and the operation currently
+inside a Firestore transaction. Listener snapshots expose recent operation IDs,
+so the overlay skips operations already incorporated into that snapshot. This
+prevents an older acknowledgement from briefly replacing a newer rapid edit to
+the same field.
 
 Cloud board listeners provide the initial private-board load and then reapply
 local pending operations over the latest remote head. The first public-view

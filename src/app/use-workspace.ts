@@ -232,6 +232,7 @@ export function useWorkspace(services: ApplicationServices) {
           onSaved: (board) => {
             let editor = board.editor;
             for (const operation of sync.pendingOperations) {
+              if (board.recentOperationIds?.includes(operation.id)) continue;
               try {
                 editor = applyEditorOperation(
                   services.editorState,
@@ -428,6 +429,7 @@ export function useWorkspace(services: ApplicationServices) {
           }
           let editor = board.editor;
           for (const operation of sync.pendingOperations) {
+            if (board.recentOperationIds?.includes(operation.id)) continue;
             try {
               editor = applyEditorOperation(
                 services.editorState,

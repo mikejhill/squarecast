@@ -69,6 +69,36 @@ describe("cloud sync coordinator", () => {
     expect(coordinator.hasPending).toBe(false);
   });
 
+  it("keeps the active transaction in the optimistic operation overlay", async () => {
+    const { coordinator, repository } = createHarness();
+    let finish!: (board: ReturnType<typeof saved>) => void;
+    vi.mocked(repository.applyOperation).mockImplementation(
+      () => new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const first = {
+      id: "free-two",
+      type: "patch-config" as const,
+      patch: { free: 2 },
+    };
+    const second = {
+      id: "free-three",
+      type: "patch-config" as const,
+      patch: { free: 3 },
+    };
+
+    coordinator.enqueue(first, "Change Board Setup");
+    await vi.waitFor(() => expect(repository.applyOperation).toHaveBeenCalledOnce());
+    coordinator.enqueue(second, "Change Board Setup");
+
+    expect(coordinator.pendingOperations).toEqual([first, second]);
+    finish(saved(2));
+    await vi.waitFor(() => expect(repository.applyOperation).toHaveBeenCalledTimes(2));
+    finish(saved(3));
+    await coordinator.flush();
+  });
+
   it("coalesces routine edits before flushing", async () => {
     const { coordinator, repository, pendingStore } = createHarness();
     coordinator.enqueue({
@@ -149,6 +179,7 @@ describe("cloud sync coordinator", () => {
     const restoring = coordinator.restorePending();
     await vi.waitFor(() => expect(releases).toHaveLength(1));
     expect(coordinator.pendingOperations).toEqual([
+      expect.objectContaining({ id: "first" }),
       expect.objectContaining({ id: "second" }),
     ]);
     releases.shift()?.();

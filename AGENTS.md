@@ -198,6 +198,10 @@ See [State and Routing](docs/state-and-routing.md).
 - Merge different targets. For same-target overlap, identify the affected field
   or Card, state that the local change is queued automatically, and confirm when
   it saves. Reject edit-after-delete without discarding recoverable local text.
+- Keep the operation currently inside a Firestore transaction in the optimistic
+  overlay until it is acknowledged. Filter overlay operations already present
+  in `recentOperationIds`; an older listener snapshot must never make a rapid
+  local field edit visibly regress.
 - Presence uses one visible-session heartbeat per minute, immediate cleanup on
   hide/exit when possible, and a two-minute stale cutoff. Collapse multiple
   sessions with the same Firebase UID in the displayed editor list.
