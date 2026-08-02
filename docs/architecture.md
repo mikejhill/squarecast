@@ -91,10 +91,10 @@ Classes under `src/lib/` implement application rules:
 - runtime logging.
 
 `EditorOperation` is a runtime-validated discriminated union for configuration
-patches, Card Pool additions/edits/deletions, sorting, imports, and complete
-replacement. `applyEditorOperation` is the single immutable interpretation
-path used by device and cloud repositories. Operation IDs make cloud replay
-idempotent.
+and presentation patches, Card Pool additions/edits/deletions, sorting, and
+complete replacement. Complete-board imports use replacement operations.
+`applyEditorOperation` is the single immutable interpretation path used by
+device and cloud repositories. Operation IDs make cloud replay idempotent.
 
 These classes avoid direct React dependencies and are the primary unit-test
 surface.
@@ -104,7 +104,7 @@ surface.
 Classes under `src/services/` isolate browser-only capabilities:
 
 - clipboard writes;
-- in-memory file downloads; and
+- in-memory file downloads;
 - rendered text measurement;
 - IndexedDB device persistence and pending cloud operations;
 - Firebase initialization and authentication; and
@@ -123,6 +123,9 @@ validated compact `#sq1:` editor payload and metadata.
 The device repository performs atomic read/write transactions, retains the
 latest 25 meaningful checkpoints, and announces cross-tab changes with
 `BroadcastChannel`. Appearance remains in `localStorage`; board data never does.
+New saved boards begin with a **Board Created** baseline. Named checkpoints
+capture structural Board Setup changes and meaningful Card Pool actions;
+routine typing and position-control visibility do not create checkpoint rows.
 
 `CloudSyncCoordinator` applies operations optimistically, persists only
 unacknowledged operations in IndexedDB, coalesces same-target typing for 750 ms,
@@ -146,7 +149,10 @@ active editor token. Rules require both the session and token to remain active
 for every board read or write, so rotation and revocation fail closed without a
 server. Anonymous sessions do not enter the permanent account member list. If
 the recipient signs in or creates an account, Firebase links credentials where
-possible and the active editor route adds that account as a normal editor.
+possible and the active editor route adds that account as a normal editor. The
+anonymous UID deterministically produces a stable name in the form **Guest
+Adjective Creature NNN**, shown to that guest and in collaborator presence lists
+without storing additional profile data.
 
 Cloud payloads are rejected above 750 KiB. The active editor remains usable for
 URL snapshot copy and JSON export when Firebase is unavailable or quota-limited.

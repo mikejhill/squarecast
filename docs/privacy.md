@@ -41,11 +41,10 @@ An anonymous Firebase identity contains a random UID and no email address.
 Squarecast deterministically turns that UID into a clearly labeled, playful
 guest username for the guest's status bar and other editors' presence lists.
 The name remains stable for that browser identity and requires no additional
-profile data.
-Its board-scoped editor-session record contains only that UID's document path,
-the active editor token, schema version, and creation timestamp. Replacing the
-anonymous identity with a signed-in account does not transfer unrelated device
-boards.
+profile data. Its board-scoped editor-session record contains only that UID's
+document path, the active editor token, schema version, and creation timestamp.
+Replacing the anonymous identity with a signed-in account does not transfer
+unrelated device boards.
 
 ## Sharing
 
@@ -72,11 +71,11 @@ Saved boards retain at most 25 meaningful checkpoints. Cloud presence records
 are treated as expired after two minutes and cleaned opportunistically.
 
 Deleting an owner-managed account board removes public links, editor links,
-anonymous editor sessions, checkpoints, presence, and the board. Deleting a shared board as an editor
-removes that account's membership. Account deletion first deletes owned boards
-and removes remaining memberships; authentication is deleted last. Cleanup or
-pending-save failure blocks account deletion so export and retry remain
-available.
+anonymous editor sessions, checkpoints, presence, and the board. Deleting a
+shared board as an editor removes that account's membership. Account deletion
+first deletes owned boards and removes remaining memberships; authentication is
+deleted last. Cleanup or pending-save failure blocks account deletion so export
+and retry remain available.
 
 ## Operational Boundaries
 

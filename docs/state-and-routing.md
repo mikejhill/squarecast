@@ -13,7 +13,7 @@ Firebase.
 | `#sqb1:` pointer | Private Firestore editor record and checkpoints | Account members |
 | `#sqv1:` bearer pointer | Latest published read-only copy | Anyone holding the active token |
 | `#sqp1:` bearer pointer | Latest published launch source | Anyone holding the active token |
-| `#sqi1:` editor pointer | Perpetual mutable editor access | Anyone holding the active token |
+| `#sqi1:` editor pointer | Perpetual mutable editor access | Active-token guests or account editors |
 | `#new` action route | Instruction to create fresh defaults | Shareable action |
 | Empty fragment | Instruction to select a sample | Landing behavior |
 | `localStorage` | Appearance preference | Current browser profile |
@@ -95,6 +95,9 @@ A URL editor starts with a visible storage preference. Its first meaningful
 edit creates a device draft while signed out or an account board while signed
 in with a verified account. The user can explicitly retain URL Only behavior.
 Disclosure changes, appearance, dialogs, and preview shuffles do not promote.
+An anonymous recipient already editing through `#sqi1:` is an active cloud
+guest and saves directly to that shared board; first-edit promotion does not
+apply to that session.
 
 Existing device boards stay device-only after sign-in. Moving between URL,
 device, and account storage always creates an independent copy. It never deletes
@@ -121,9 +124,16 @@ views reject edits until **Restore This Version** writes a new head revision.
 Device and cloud boards retain up to 25 saved versions. New boards begin with a
 **Board Created** baseline. Card additions, deletions, sorting, imports, and
 structural Board Setup changes create named versions; routine typing remains
-coalesced. Existing boards without a baseline capture their prior state when the
-next named version is created. The Version History dialog identifies the current
-revision and provides separate **View** and **Restore** actions.
+coalesced, and showing or hiding Card position controls does not add a named
+version. Existing boards without a baseline capture their prior state when the
+next named version is created. The Version History dialog identifies the
+current revision and provides separate **View** and **Restore** actions.
+
+Cloud presence records one entry per visible browser session, refreshes once
+per minute, removes the entry when the page hides or exits when possible, and
+ignores abandoned entries after two minutes. The UI collapses simultaneous
+sessions with the same Firebase UID into one displayed editor. Anonymous guests
+receive a deterministic **Guest Adjective Creature NNN** name.
 
 ## Seeds And Reproducibility
 

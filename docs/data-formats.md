@@ -58,7 +58,7 @@ move together.
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `format` | string | Must be `squarecast-board` |
-| `version` | number | Current document version |
+| `version` | number | Must be `2` for newly written documents; version `1` remains readable |
 | `config` | object | Complete board configuration |
 | `placementControlsVisible` | boolean | Whether Card Pool position dropdowns are shown; defaults to `false` when omitted |
 | `cards` | array | Card text and placement rules |
@@ -81,6 +81,11 @@ move together.
 Version 2 writes `free` as a count. Version 1 documents and legacy URL objects
 that stored `free` as a boolean remain readable; `true` becomes `1` and
 `false` becomes `0`.
+
+Each supported board size has a fixed free-cell sequence. Squarecast takes the
+first `free` positions from that sequence, prioritizing distinct rows, columns,
+and diagonals. The editor clamps the count when a size change lowers the
+maximum; imported documents above `size - 1` are rejected.
 
 ### Placement rules
 
@@ -190,9 +195,10 @@ JSON export.
 Public-share documents contain a published editor hash, kind, board ID, title,
 revision, and timestamp. They are retrievable only by random token and cannot be
 listed. Editor-link documents contain a board reference, editor role, owner,
-and creation time. Anonymous editor-session documents bind one Firebase guest
-identity to the board's currently active editor token; they contain no board
-payload.
+and creation time; the link remains valid until explicitly rotated or revoked.
+Anonymous editor-session documents bind one Firebase guest identity to the
+board's currently active editor token; they contain no board payload or guest
+display name.
 
 Stored-record schema changes require their own validation and migration policy.
 They must not silently change complete-board JSON, CSV, `#sq1:`, or legacy-link

@@ -158,7 +158,10 @@ Examples of meaningful tests include:
 - first-edit storage promotion and asynchronous saved-route failures;
 - IndexedDB reload, duplicate, deletion, quota, and cross-tab behavior;
 - operation coalescing, replay, idempotency, and conflict recovery;
-- Firestore owner/editor/public/invitation rules in the emulator;
+- Firestore owner/editor/public/guest-link rules in the emulator;
+- perpetual editor-link rotation/revocation and guest save access;
+- presence cleanup, duplicate-UID collapsing, and generated guest names;
+- free-square bounds, layouts, generation, and play marking;
 - immutable editor and player mutations; and
 - logging redaction and level behavior.
 
@@ -171,9 +174,12 @@ Examples of meaningful tests include:
 3. Update board factories and sample creation.
 4. Add immutable mutation behavior if required.
 5. Add editor controls and play rendering.
-6. Update JSON compatibility expectations.
-7. Test URL and JSON round trips.
-8. Update the relevant documentation.
+6. Update compact URL transport, complete-board JSON, and saved-record
+   compatibility where the field is portable.
+7. Add operation and Security Rules coverage when the field persists to saved
+   boards.
+8. Test URL, JSON, editor, generation, and play behavior as applicable.
+9. Update the relevant documentation and agent contract.
 
 ### Add a sample board
 
@@ -244,6 +250,10 @@ A pull request should explain:
 - Imported or decoded input is validated.
 - Device and cloud records use the same semantic operation contract.
 - Security Rules deny adjacent unauthorized paths, not only allow the target.
+- Editor-link changes cover signed-out guest saves, signed-in membership,
+  rotation, revocation, and repeat openings.
+- Saved-version changes cover baseline creation, pruning, historical viewing,
+  and restore-as-new-revision behavior.
 - Firebase-disabled URL/device operation was preserved.
 - Logs contain no board content or URLs.
 - Light, dark, system, keyboard, and narrow-screen behavior were considered.

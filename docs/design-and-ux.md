@@ -46,11 +46,13 @@ flowchart LR
     B --> C["Build Card Pool"]
     C --> D["Add optional placement rules"]
     D --> E["Review live preview and validation"]
-    E --> F["Test board"]
-    E --> G["Create play link"]
-    F --> H["Return to Edit This Board"]
-    G --> I["Player opens a fresh randomized board"]
-    I --> J["Mark cells and detect Bingo"]
+    E --> F["Choose URL, device, or account storage"]
+    F --> G["Test board"]
+    F --> H["Share snapshot or live cloud link"]
+    G --> I["Return to Edit This Board"]
+    H --> J["Player opens a fresh randomized board"]
+    H --> K["Collaborator opens editor link"]
+    J --> L["Mark cells and detect Bingo"]
 ```
 
 ## Editor Information Architecture
@@ -63,7 +65,7 @@ The header contains navigation and device-level controls:
 - system, light, and dark appearance;
 - fresh-board creation;
 - random sample selection;
-- current mode label; and
+- current mode label;
 - My Boards;
 - Sign In or account management; and
 - repository link.
@@ -127,7 +129,7 @@ The preview combines:
 - the current board;
 - validation status (**Ready to Play** when complete);
 - immediate test play; and
-- a prominent editor-link action;
+- a prominent editor-link action; and
 - play-link creation.
 
 The editor snapshot link stays prominent because it is the portable recovery

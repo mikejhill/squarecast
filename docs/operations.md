@@ -119,6 +119,11 @@ be corrected before advertising cloud storage.
 - perpetual editor tokens that fail closed after rotation or revocation; and
 - member-or-active-guest checkpoint and presence access.
 
+Anonymous guests are authenticated Firebase users, not unauthenticated
+Firestore clients. Their board-scoped editor-session document must match the
+board's current editor token. A guest save may update board content and
+revision metadata but cannot change ownership, members, or sharing references.
+
 `firestore.indexes.json` indexes membership and updated-time lookup while
 exempting state payloads and role/token maps from unnecessary indexing. Every
 rule change requires an emulator test covering the allowed path and adjacent
@@ -141,6 +146,7 @@ share URLs, clipboard contents, imported content, or Firebase documents.
 | Missing/removed private board | Show Not Found or Access Removed |
 | Signed-out private route | Show Auth Required; preserve route |
 | Signed-out editor route | Create an anonymous guest identity and preserve the token route |
+| Rotated/revoked editor route | Remove guest access and show Board Unavailable |
 | Revoked public token | Fail closed with Not Found |
 | IndexedDB failure/quota | Keep active URL state and expose snapshot/JSON export |
 | Firestore blocked/offline | Persist unacknowledged operations in IndexedDB |
@@ -164,7 +170,8 @@ A green workflow proves rules tests, coverage thresholds, strict compilation,
 the production build, and Pages artifact deployment. When configured, the
 policy job also proves OIDC authentication and rules/index deployment. It does
 not prove provider-console setup, App Check enforcement, quota headroom, or
-multi-browser collaboration; verify those manually.
+multi-browser collaboration; verify those manually with signed-in, anonymous,
+incognito, offline, and reopened-editor-link sessions.
 
 Rollback application code with a normal revert commit. Roll back rules/indexes
 through reviewed repository changes and the same OIDC workflow. Do not edit

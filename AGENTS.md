@@ -6,9 +6,10 @@ Follow them when reviewing or changing the project.
 
 ## Product Mission
 
-Squarecast is a static, URL-compatible bingo board studio. Users create a source
-board, provide a Card Pool, apply optional placement rules, generate randomized
-play boards, and mark cards in the browser.
+Squarecast is a static bingo board studio with portable URL snapshots, local
+device libraries, and optional managed cloud collaboration. Users create a
+source board, provide a Card Pool, apply optional placement rules, generate
+randomized play boards, and mark cards in the browser.
 
 The production application is:
 
@@ -36,6 +37,11 @@ The repository is:
 - Treat full Squarecast URLs as readable documents, not secrets.
 - Treat account boards as access-controlled plaintext, not end-to-end encrypted
   content. Public links are bearer credentials.
+- Use Firebase Authentication and Firestore directly from the browser. Do not
+  make Firebase availability a prerequisite for URL or device operation.
+- Keep Firebase configuration public and repository-controlled. Keep private
+  credentials out of browser bundles and deploy rules/indexes through GitHub
+  OIDC.
 
 ## Product Language
 
@@ -74,6 +80,17 @@ The repository is:
   - complete-board JSON import
   - meaningful Card Pool deletion, sorting, or bulk import
 - Back and Forward restoration must not immediately rewrite the restored entry.
+- Preserve the complete route contract:
+  - `#sq1:` self-contained snapshot, launch template, or play session
+  - `#sql1:` IndexedDB board pointer
+  - `#sqb1:` private Firestore board pointer
+  - `#sqv1:` mutable read-only published view
+  - `#sqp1:` mutable published source that becomes a fresh `#sq1:` play session
+  - `#sqi1:` perpetual mutable editor link for guests or account editors
+- Missing, unauthorized, revoked, or unavailable pointer routes show an
+  explicit recoverable state. Never silently replace them with a new board.
+- Keep pointer URLs stable. Store revision snapshots in `history.state` so Back
+  and Forward can open a read-only historical view without rewriting storage.
 
 See [State and Routing](docs/state-and-routing.md).
 
@@ -123,6 +140,8 @@ See [State and Routing](docs/state-and-routing.md).
   - exact-cell, row, and column constraints
 - Card Pool sorting defaults to Manual Order. Deterministic sort modes reapply
   after additions, imports, text edits, and placement changes.
+- Card position selectors are hidden by default. **Show Positions** and **Hide
+  Positions** change portable saved editor state without deleting constraints.
 - Board Setup disclosure state is editor-session state and is restored from the
   URL hash.
 - Live Preview remains available for incomplete boards and uses placeholders
@@ -131,6 +150,49 @@ See [State and Routing](docs/state-and-routing.md).
 - **Copy Editor Link** appears directly below **Test This Board**.
 - Validation errors block testing and publishing but do not block partial
   preview shuffling.
+- Show the current storage boundary and sync state beside the editor. Preserve
+  **Saved**, **Saving**, **Offline — Changes Pending**, **Conflict**, and
+  **Cloud Unavailable** as accessible status messages.
+- Saved boards expose Version History. Retain at most 25 named checkpoints,
+  include a **Board Created** baseline, allow read-only viewing, and restore an
+  older checkpoint only by writing a new head revision.
+
+## Storage, Sharing, and Collaboration
+
+- First meaningful edit promotes a URL board to On This Device while signed out
+  or Saved To Account while signed in with a verified account. Allow explicit
+  URL Only selection. Disclosure, appearance, dialogs, and preview shuffles do
+  not promote.
+- Existing device boards remain device-only after sign-in. Every move between
+  repositories creates an independent copy and never deletes the source.
+- **Copy Editor Link** and **Create Play Link** always produce self-contained
+  `#sq1:` snapshots. Keep mutable cloud links in the owner-only Share dialog.
+- Public view and play links follow the latest successful save until rotated or
+  revoked. Public view is read-only. Public play creates a fresh concrete
+  `#sq1:` session and never saves play progress.
+- Anyone holding an active `#sqi1:` editor link can edit without signing in.
+  Use Firebase Anonymous Authentication and a board-scoped active-token session
+  for guest read/write access. Editor links never expire automatically; only
+  rotation or revocation invalidates them.
+- Give anonymous guests a deterministic, clearly labeled **Guest Adjective
+  Creature NNN** name. Show it in their storage UI and collaborator presence.
+  Do not persist extra guest profile data.
+- Opening an editor link while signed in adds that account as an editor.
+  Reopening it as an existing editor must retain access. Link revocation removes
+  guest access but does not remove account editors.
+- Only owners manage members, links, deletion, and ownership transfer. Keep the
+  20-member limit. Transfer ownership only to an existing account editor.
+- Apply cloud operations optimistically. Coalesce same-target typing for 750 ms,
+  commit major operations immediately, transact against the current revision,
+  and replay only unacknowledged operations from IndexedDB.
+- Merge different targets. For same-target overlap, identify the affected field
+  or Card, state that the local change is queued automatically, and confirm when
+  it saves. Reject edit-after-delete without discarding recoverable local text.
+- Presence uses one visible-session heartbeat per minute, immediate cleanup on
+  hide/exit when possible, and a two-minute stale cutoff. Collapse multiple
+  sessions with the same Firebase UID in the displayed editor list.
+- Every asynchronous Share action must disable conflicting actions, show its
+  pending state, and report copy success or failure.
 
 ## Action Ordering
 
@@ -187,6 +249,8 @@ See [State and Routing](docs/state-and-routing.md).
 
 - Complete-board JSON includes configuration and Card Pool in one versioned
   object.
+- Current JSON writes version 2 with an integer `free` count and saved
+  `placementControlsVisible`. Continue reading version 1 Boolean `free` values.
 - Validate the entire JSON document before replacing editor state.
 - Generate fresh internal card IDs on JSON import.
 - CSV contains Card Pool text only and exports one card per row.
@@ -212,6 +276,9 @@ See [Data Formats](docs/data-formats.md).
 - Keep domain mutations immutable.
 - Wrap direct browser side effects in `src/services/`.
 - Construct long-lived dependencies in `ApplicationServices`.
+- Route persistence through `WorkspaceSession`, `BoardRepository`, and the
+  IndexedDB/Firestore adapters. Persist all meaningful mutations as validated
+  `EditorOperation` values interpreted by one immutable domain service.
 - Separate abstractions into focused files instead of expanding `App.tsx`.
 - Add meaningful class- and method-level JSDoc that explains responsibility,
   invariants, and failure behavior.
@@ -229,7 +296,8 @@ See [Architecture](docs/architecture.md) and
 - Use `warn` for recoverable degradation.
 - Use `error` for failed operations and broken invariants.
 - Never log card text, board titles, full state, encoded hashes, share URLs,
-  clipboard content, or imported file content.
+  public/editor tokens, clipboard content, imported file content, or Firebase
+  documents.
 - Do not add a remote log transport.
 
 See [Operations](docs/operations.md).
@@ -252,6 +320,11 @@ npm run check
 
 - `npm run check` must pass tests, coverage, strict TypeScript compilation, and
   the production build.
+- Storage/collaboration changes require IndexedDB tests and adjacent allow/deny
+  Firestore emulator tests, including guest access, token rotation/revocation,
+  membership limits, presence, checkpoints, and revision monotonicity.
+- Free-square changes require schema, editor clamping, deterministic layout,
+  generator, compact codec, JSON compatibility, sample, and play tests.
 
 ## Documentation
 
@@ -268,4 +341,6 @@ npm run check
 - Commit only the scoped change.
 - Push completed work to `main` when publication is part of the task.
 - Verify the GitHub Pages workflow reaches a successful conclusion.
+- Verify the conditional Firestore policy job succeeds when its OIDC variables
+  are configured.
 - Report the live site, commit, validation result, and deployment workflow.

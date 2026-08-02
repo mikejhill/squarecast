@@ -8,13 +8,13 @@ contributors; these guides explain the decisions and contracts behind it.
 
 | Document | Audience | Contents |
 | --- | --- | --- |
-| [Architecture](architecture.md) | Maintainers | Runtime layers, dependency composition, state model, board generation, and browser adapters |
-| [Design and UX](design-and-ux.md) | Designers and frontend contributors | Product principles, information architecture, interaction behavior, accessibility, and responsive design |
-| [State and Routing](state-and-routing.md) | Maintainers | URL encoding, editor/launch/play states, special routes, browser history, and storage boundaries |
+| [Architecture](architecture.md) | Maintainers | Runtime layers, repositories, collaboration, state model, board generation, and browser adapters |
+| [Design and UX](design-and-ux.md) | Designers and frontend contributors | Editor, storage, sharing, history, accessibility, and responsive interaction contracts |
+| [State and Routing](state-and-routing.md) | Maintainers | Portable and pointer routes, storage promotion, browser history, and saved versions |
 | [Data Formats](data-formats.md) | Users building integrations and maintainers | Portable JSON boards, CSV Card Pools, compatibility, and validation |
 | [Development](development.md) | Contributors | Repository layout, local workflow, coding conventions, testing, and common change patterns |
-| [Operations](operations.md) | Maintainers | Runtime logging, privacy, CI/CD, GitHub Pages deployment, diagnostics, and recovery |
-| [Privacy](privacy.md) | Users and maintainers | Storage boundaries, account content, public links, retention, and deletion |
+| [Operations](operations.md) | Maintainers | Firebase setup, Security Rules, CI/CD, GitHub Pages deployment, diagnostics, and recovery |
+| [Privacy](privacy.md) | Users and maintainers | Local/account data, guest identities, bearer links, retention, and deletion |
 
 ## Suggested Reading Paths
 

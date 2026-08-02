@@ -20,8 +20,10 @@ The site remains a static GitHub Pages application.
 1. Start with a curated sample or a blank board.
 2. Configure the board and build a Card Pool—the list of possible squares.
 3. Add optional rules that place specific cards in a cell, row, or column.
-4. Test a randomized board and resolve any validation issues.
-5. Create a play link. Each player receives an independently randomized board.
+4. Choose URL-only, device, or optional account storage.
+5. Test a randomized board and resolve any validation issues.
+6. Share a fixed snapshot, a live view/play link, or a collaborative editor
+   link. Each play-link opening receives an independently randomized board.
 
 Players mark cards directly in the browser. Their board and progress remain in
 the URL, which can be copied or bookmarked at any time.
@@ -29,7 +31,7 @@ the URL, which can be copied or bookmarked at any time.
 ## Features
 
 - Square boards from 3×3 through 7×7
-- Zero or more balanced free squares with a custom label
+- Zero through `size - 1` balanced free squares with a shared custom label
 - Curated 5×5 sample boards
 - Card Pools with no fixed maximum and persistent sorting
 - Exact-cell, row, and column placement constraints
@@ -42,7 +44,8 @@ the URL, which can be copied or bookmarked at any time.
 - Card Pool CSV import, export, paste, and drag-and-drop
 - URL-aware Back and Forward navigation
 - URL-only, device, and optional account storage
-- Mutable public view/play links and account-optional editor links
+- Mutable public view/play links and perpetual, account-optional editor links
+- Automatically named guest collaborators with no sign-in prompt
 - Optimistic collaboration, offline pending changes, and version history
 - Responsive editing and play layouts
 
@@ -52,7 +55,9 @@ URL-only boards and play sessions stay in the URL. Device boards and pending
 cloud operations use IndexedDB. Account boards use access-controlled Firebase
 Firestore documents. Cloud content is plaintext to Firebase, not end-to-end
 encrypted. Public view/play links are bearer links readable by anyone holding
-the token.
+the token. Active editor links also act as bearer credentials: signed-out
+recipients receive a named anonymous guest identity and can edit the source
+board, while signed-in recipients become account editors.
 
 Appearance is the only value in `localStorage`. Squarecast has no analytics,
 telemetry, remote logging, cookies, or application server. See the
@@ -93,9 +98,10 @@ Technical documentation lives in [`docs/`](docs/README.md).
 
 ## Contributing
 
-Issues and pull requests are welcome. Keep changes focused, preserve the
-static and URL-compatible architecture, add meaningful tests for behavioral
-changes, and run `npm run check` before opening a pull request.
+Issues and pull requests are welcome. Keep changes focused, preserve the static
+browser architecture and Firebase-independent URL/device paths, add meaningful
+tests for behavioral changes, and run `npm run check` before opening a pull
+request.
 
 See the [development guide](docs/development.md) for repository conventions and
 the [design and UX guide](docs/design-and-ux.md) for product constraints.
