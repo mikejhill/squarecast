@@ -127,21 +127,21 @@ export function CloudShareDialog({
   };
 
   const label = (kind: ShareKind) =>
-    kind === "view" ? "Live View Link" : kind === "play" ? "Live Play Link" : "Editor Invitation";
+    kind === "view" ? "Live View Link" : kind === "play" ? "Live Play Link" : "Editor Link";
 
   const busy = pending !== null;
 
   return (
     <Modal title="Share Saved Board" onClose={onClose}>
       <p className="modal-copy">
-        Public links are bearer links. Anyone holding one can read the published board. Editor links require a verified account.
+        Public and editor links are bearer links. Anyone holding an editor link can change the board without signing in.
       </p>
       <div className="cloud-share-list">
         {(["view", "play", "invite"] as const).map((kind) => (
           <section key={kind}>
             <div>
               <strong>{label(kind)}</strong>
-              <span>{kind === "invite" ? "Expires seven days after creation" : "Always follows the latest saved revision"}</span>
+              <span>{kind === "invite" ? "Active until rotated or revoked" : "Always follows the latest saved revision"}</span>
             </div>
             {tokens[kind] ? (
               <div className="share-token-actions">

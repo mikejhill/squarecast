@@ -183,8 +183,10 @@ JSON export.
 
 Public-share documents contain a published editor hash, kind, board ID, title,
 revision, and timestamp. They are retrievable only by random token and cannot be
-listed. Invitation documents contain a board reference, editor role, owner,
-creation time, and seven-day expiry.
+listed. Editor-link documents contain a board reference, editor role, owner,
+and creation time. Anonymous editor-session documents bind one Firebase guest
+identity to the board's currently active editor token; they contain no board
+payload.
 
 Stored-record schema changes require their own validation and migration policy.
 They must not silently change complete-board JSON, CSV, `#sq1:`, or legacy-link

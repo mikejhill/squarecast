@@ -49,13 +49,16 @@ export function StorageStatusBar({
         ? Database
         : Link2;
   const otherEditors = presence.filter((entry) => entry.uid !== authUser?.uid);
+  const activeStorageLabel = session.editorToken
+    ? "Shared Editor Link"
+    : storageLabels[session.storageKind];
 
   return (
     <section className="storage-status" aria-label="Board storage">
       <div className="storage-status-main">
         <Icon size={17} />
         <div>
-          <strong>{storageLabels[session.storageKind]}</strong>
+          <strong>{activeStorageLabel}</strong>
           <span role="status">
             {session.historicalRevision !== undefined
               ? `Viewing historical revision ${session.historicalRevision}`

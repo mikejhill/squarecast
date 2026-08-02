@@ -71,6 +71,7 @@ export type WorkspaceReadySession = {
   syncStatus: SyncStatus;
   readOnly: boolean;
   historicalRevision?: number;
+  editorToken?: string;
 };
 
 export type WorkspaceSession =

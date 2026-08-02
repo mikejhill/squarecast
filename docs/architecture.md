@@ -137,6 +137,15 @@ head. Presence uses a board subcollection, one visible-session heartbeat per
 minute, and a two-minute freshness cutoff. It deliberately excludes cursors and
 character-level CRDT behavior.
 
+Editor links use Firebase Anonymous Authentication as a transparent Security
+Rules identity; recipients do not see a login prompt. A small board-scoped
+editor-session document binds that anonymous UID to the board's currently
+active editor token. Rules require both the session and token to remain active
+for every board read or write, so rotation and revocation fail closed without a
+server. Anonymous sessions do not enter the permanent account member list. If
+the recipient signs in or creates an account, Firebase links credentials where
+possible and the active editor route adds that account as a normal editor.
+
 Cloud payloads are rejected above 750 KiB. The active editor remains usable for
 URL snapshot copy and JSON export when Firebase is unavailable or quota-limited.
 

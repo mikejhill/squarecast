@@ -62,7 +62,7 @@ describe("cloud share dialog", () => {
 
     creation.resolve("new-invite-token");
     expect(await screen.findByRole("button", { name: "Copy" })).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toContain("Created editor invitation.");
+    expect(screen.getByRole("status").textContent).toContain("Created editor link.");
     expect(createButton.isConnected).toBe(false);
   });
 
@@ -83,7 +83,7 @@ describe("cloud share dialog", () => {
     );
     copied.resolve();
     expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toContain("Editor Invitation copied.");
+    expect(screen.getByRole("status").textContent).toContain("Editor Link copied.");
   });
 
   it("does not report success when the displayed invitation is inactive", async () => {

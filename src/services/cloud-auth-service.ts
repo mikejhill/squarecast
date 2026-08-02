@@ -1,16 +1,22 @@
 import {
+  EmailAuthProvider,
   GoogleAuthProvider,
   browserLocalPersistence,
   createUserWithEmailAndPassword,
   deleteUser,
+  linkWithCredential,
+  linkWithPopup,
   onIdTokenChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
   setPersistence,
+  signInAnonymously,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   type Auth,
+  type AuthError,
   type User,
 } from "firebase/auth";
 import type { FirebaseClient } from "./firebase-client";
@@ -20,9 +26,10 @@ export type AuthUser = {
   email: string;
   displayName: string;
   emailVerified: boolean;
+  isAnonymous: boolean;
 };
 
-/** Provides verified Google and email/password identity without UI coupling. */
+/** Provides account and transparent anonymous collaboration identity without UI coupling. */
 export class CloudAuthService {
   private authClient: Auth | null = null;
 
@@ -49,16 +56,31 @@ export class CloudAuthService {
   }
 
   public async signInGoogle(): Promise<AuthUser> {
-    const result = await signInWithPopup(this.auth(), new GoogleAuthProvider());
+    const auth = this.auth();
+    const provider = new GoogleAuthProvider();
+    const current = auth.currentUser;
+    if (current?.isAnonymous) {
+      try {
+        return this.normalize((await linkWithPopup(current, provider)).user);
+      } catch (error) {
+        const credential = GoogleAuthProvider.credentialFromError(error as AuthError);
+        if (!credential || !this.isCredentialInUse(error)) throw error;
+        return this.normalize((await signInWithCredential(auth, credential)).user);
+      }
+    }
+    const result = await signInWithPopup(auth, provider);
     return this.normalize(result.user);
   }
 
   public async signUpEmail(email: string, password: string): Promise<AuthUser> {
-    const result = await createUserWithEmailAndPassword(
-      this.auth(),
-      email.trim(),
-      password,
-    );
+    const auth = this.auth();
+    const normalizedEmail = email.trim();
+    const result = auth.currentUser?.isAnonymous
+      ? await linkWithCredential(
+          auth.currentUser,
+          EmailAuthProvider.credential(normalizedEmail, password),
+        )
+      : await createUserWithEmailAndPassword(auth, normalizedEmail, password);
     await sendEmailVerification(result.user);
     return this.normalize(result.user);
   }
@@ -74,6 +96,14 @@ export class CloudAuthService {
 
   public async resetPassword(email: string): Promise<void> {
     await sendPasswordResetEmail(this.auth(), email.trim());
+  }
+
+  /** Creates a persistent, non-interactive identity for bearer editor links. */
+  public async ensureAnonymousUser(): Promise<AuthUser> {
+    const auth = this.auth();
+    if (auth.currentUser) return this.normalize(auth.currentUser);
+    await setPersistence(auth, browserLocalPersistence);
+    return this.normalize((await signInAnonymously(auth)).user);
   }
 
   public async resendVerification(): Promise<void> {
@@ -109,8 +139,18 @@ export class CloudAuthService {
     return {
       uid: user.uid,
       email: user.email ?? "",
-      displayName: user.displayName ?? user.email?.split("@")[0] ?? "Editor",
+      displayName:
+        user.displayName ??
+        user.email?.split("@")[0] ??
+        (user.isAnonymous ? "Guest Editor" : "Editor"),
       emailVerified: user.emailVerified,
+      isAnonymous: user.isAnonymous,
     };
+  }
+
+  private isCredentialInUse(error: unknown): boolean {
+    if (!error || typeof error !== "object" || !("code" in error)) return false;
+    const code = (error as { code?: unknown }).code;
+    return code === "auth/credential-already-in-use" || code === "auth/email-already-in-use";
   }
 }

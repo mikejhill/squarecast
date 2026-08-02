@@ -142,12 +142,13 @@ changes or failed cleanup.
 ### Cloud sharing
 
 The owner-only Share dialog separates mutable live view, mutable live play, and
-editor invitation links. Public links can be copied, rotated, or revoked
-independently. Invitations state their seven-day lifetime and verified-account
-requirement. Creating a link reuses an existing active token; only the explicit
-Rotate action invalidates it. Every asynchronous action exposes progress and
-reports copy success or failure. Collaborator removal and ownership transfer
-remain distinct.
+editor links. Public links can be copied, rotated, or revoked independently.
+Editor links state that anyone holding the active token can edit without an
+account and that the token remains active until rotated or revoked. Creating a
+link reuses an existing active token; only the explicit Rotate action
+invalidates it. Every asynchronous action exposes progress and reports copy
+success or failure. Collaborator removal and ownership transfer remain
+distinct.
 
 Public view is read-only and offers **Play This Board** and **Edit a Copy**.
 Public play resolves the latest source into a fresh URL-only session.

@@ -69,7 +69,7 @@ describe("workspace route resolution", () => {
     );
   });
 
-  it("requires a verified account before loading a private cloud pointer", async () => {
+  it("requires an account before loading a private cloud pointer", async () => {
     window.history.replaceState(null, "", "/#sqb1:private-board");
     const services = createServices({
       cloudBoards: { load: vi.fn() },
@@ -80,6 +80,65 @@ describe("workspace route resolution", () => {
       expect.objectContaining({ reason: "auth-required" }),
     );
     expect(services.cloudBoards?.load).not.toHaveBeenCalled();
+  });
+
+  it("opens an editor link through a transparent anonymous collaboration session", async () => {
+    window.history.replaceState(null, "", "/#sqi1:guest-token");
+    const editor = BoardModel.createDefaultEditor();
+    const guest = {
+      uid: "guest-user",
+      email: "",
+      displayName: "Guest Editor",
+      emailVerified: false,
+      isAnonymous: true,
+    };
+    const cloudBoards = {
+      acceptInvite: vi.fn(async () => "shared-board"),
+      load: vi.fn(async () => ({
+        id: "shared-board",
+        title: editor.config.title,
+        storageKind: "cloud" as const,
+        permission: "editor" as const,
+        revision: 3,
+        updatedAt: 1,
+        createdAt: 1,
+        editor,
+      })),
+      subscribe: vi.fn(() => () => undefined),
+      heartbeatPresence: vi.fn(async () => undefined),
+      subscribePresence: vi.fn(() => () => undefined),
+      clearPresence: vi.fn(async () => undefined),
+    };
+    const services = createServices({
+      auth: {
+        enabled: true,
+        subscribe: vi.fn((listener: (user: null) => void) => {
+          listener(null);
+          return () => undefined;
+        }),
+        ensureAnonymousUser: vi.fn(async () => guest),
+      },
+      cloudBoards,
+    });
+
+    const { result } = renderHook(() => useWorkspace(services));
+    await waitFor(() => expect(result.current.session.status).toBe("ready"));
+    expect(result.current.session).toEqual(
+      expect.objectContaining({
+        recordId: "shared-board",
+        permission: "editor",
+        editorToken: "guest-token",
+      }),
+    );
+    expect(result.current.authUser).toBeNull();
+    expect(cloudBoards.acceptInvite).toHaveBeenCalledWith("guest-token");
+    expect(services.history.write).not.toHaveBeenCalled();
+    act(() => result.current.navigate(editor, "replace"));
+    expect(services.history.write).toHaveBeenLastCalledWith(
+      "#sqi1:guest-token",
+      "replace",
+      expect.any(Object),
+    );
   });
 
   it("restores a saved history snapshot without writing or mutating storage", async () => {

@@ -42,7 +42,7 @@ the URL, which can be copied or bookmarked at any time.
 - Card Pool CSV import, export, paste, and drag-and-drop
 - URL-aware Back and Forward navigation
 - URL-only, device, and optional account storage
-- Mutable public view/play links and verified editor invitations
+- Mutable public view/play links and account-optional editor links
 - Optimistic collaboration, offline pending changes, and version history
 - Responsive editing and play layouts
 

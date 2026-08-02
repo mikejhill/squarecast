@@ -25,6 +25,32 @@ const urlSession: WorkspaceReadySession = {
 };
 
 describe("storage interface", () => {
+  it("identifies anonymous bearer-link collaboration without presenting account storage", () => {
+    render(
+      <StorageStatusBar
+        session={{
+          ...urlSession,
+          storageKind: "cloud",
+          recordId: "shared-board",
+          permission: "editor",
+          editorToken: "active-token",
+        }}
+        authUser={null}
+        preferredStorage="device"
+        statusMessage=""
+        presence={[]}
+        onPreferredStorageChange={vi.fn()}
+        onCopyToDevice={vi.fn()}
+        onCopyToCloud={vi.fn()}
+        onUseUrlOnly={vi.fn()}
+        onOpenShare={vi.fn()}
+        onOpenHistory={vi.fn()}
+        onRestoreHistorical={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Shared Editor Link")).toBeTruthy();
+  });
+
   it("shows first-edit storage selection and disables account storage while signed out", async () => {
     const user = userEvent.setup();
     const onPreferredStorageChange = vi.fn();

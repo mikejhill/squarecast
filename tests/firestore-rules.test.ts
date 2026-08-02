@@ -50,6 +50,13 @@ function unverified(uid: string) {
   }).firestore();
 }
 
+function anonymous(uid: string) {
+  return environment.authenticatedContext(uid, {
+    email_verified: false,
+    firebase: { sign_in_provider: "anonymous" },
+  }).firestore();
+}
+
 function boardData(ownerUid = "owner") {
   return {
     schemaVersion: 1,
@@ -105,6 +112,17 @@ describe("Firestore security rules", () => {
         ...boardData(),
         roles: { owner: "owner", outsider: "editor" },
       }),
+    );
+  });
+
+  it("allows an unverified account to reopen a board it already joined", async () => {
+    await seedBoard("joined-board", {
+      ...boardData(),
+      memberUids: ["owner", "joined-editor"],
+      roles: { owner: "owner", "joined-editor": "editor" },
+    });
+    await assertSucceeds(
+      getDoc(doc(unverified("joined-editor"), "boards", "joined-board")),
     );
   });
 
@@ -164,7 +182,7 @@ describe("Firestore security rules", () => {
     );
   });
 
-  it("accepts an active invite but rejects expired invites", async () => {
+  it("adds signed-in accounts through a perpetual active invitation", async () => {
     await seedBoard();
     await environment.withSecurityRulesDisabled(async (context) => {
       const database = context.firestore();
@@ -174,19 +192,10 @@ describe("Firestore security rules", () => {
         role: "editor",
         ownerUid: "owner",
         createdAt: Timestamp.now(),
-        expiresAt: Timestamp.fromMillis(Date.now() + 60_000),
-      });
-      await setDoc(doc(database, "editorInvites", "expired-token"), {
-        schemaVersion: 1,
-        boardId: "board-1",
-        role: "editor",
-        ownerUid: "owner",
-        createdAt: Timestamp.now(),
-        expiresAt: Timestamp.fromMillis(Date.now() - 60_000),
       });
     });
     await assertSucceeds(
-      updateDoc(doc(auth("joiner"), "boards", "board-1"), {
+      updateDoc(doc(unverified("joiner"), "boards", "board-1"), {
         memberUids: arrayUnion("joiner"),
         "roles.joiner": "editor",
         lastAcceptedInvite: "active-token",
@@ -199,7 +208,7 @@ describe("Firestore security rules", () => {
       updateDoc(doc(auth("late"), "boards", "board-2"), {
         memberUids: arrayUnion("late"),
         "roles.late": "editor",
-        lastAcceptedInvite: "expired-token",
+        lastAcceptedInvite: "active-token",
         updatedAt: serverTimestamp(),
         updatedBy: "late",
       }),
@@ -215,7 +224,6 @@ describe("Firestore security rules", () => {
         role: "editor",
         ownerUid: "owner",
         createdAt: Timestamp.now(),
-        expiresAt: Timestamp.fromMillis(Date.now() + 60_000),
       });
     });
     const database = auth("joiner");
@@ -228,6 +236,7 @@ describe("Firestore security rules", () => {
         email: "joiner@example.test",
         displayName: "Joiner",
         emailVerified: true,
+        isAnonymous: false,
       }),
     );
 
@@ -248,6 +257,7 @@ describe("Firestore security rules", () => {
       email: "owner@example.test",
       displayName: "Owner",
       emailVerified: true,
+      isAnonymous: false,
     };
     const repository = new CloudBoardRepository(
       { firestore: () => database } as unknown as FirebaseClient,
@@ -362,7 +372,6 @@ describe("Firestore security rules", () => {
         role: "editor",
         ownerUid: "owner",
         createdAt: Timestamp.now(),
-        expiresAt: Timestamp.fromMillis(Date.now() + 60_000),
       });
       await deleteDoc(reference);
     });
@@ -375,6 +384,122 @@ describe("Firestore security rules", () => {
         updatedBy: "joiner",
       }),
     );
+  });
+
+  it("grants anonymous editor sessions only while their bearer token is active", async () => {
+    await seedBoard("board-1", {
+      ...boardData(),
+      shareTokens: { invite: "guest-token" },
+    });
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "editorInvites", "guest-token"), {
+        schemaVersion: 1,
+        boardId: "board-1",
+        role: "editor",
+        ownerUid: "owner",
+        createdAt: Timestamp.now(),
+      });
+    });
+    const guest = anonymous("guest");
+    const board = doc(guest, "boards", "board-1");
+    await assertFails(getDoc(board));
+    await assertFails(
+      setDoc(doc(guest, "boards", "board-1", "editorSessions", "guest"), {
+        schemaVersion: 1,
+        inviteToken: "wrong-token",
+        createdAt: serverTimestamp(),
+      }),
+    );
+    await assertFails(
+      setDoc(doc(auth("account"), "boards", "board-1", "editorSessions", "account"), {
+        schemaVersion: 1,
+        inviteToken: "guest-token",
+        createdAt: serverTimestamp(),
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(guest, "boards", "board-1", "editorSessions", "guest"), {
+        schemaVersion: 1,
+        inviteToken: "guest-token",
+        createdAt: serverTimestamp(),
+      }),
+    );
+    await assertSucceeds(getDoc(board));
+    await assertSucceeds(
+      updateDoc(board, {
+        title: "Guest Edit",
+        stateHash: "#sq1:guest-edit",
+        revision: 2,
+        recentOperationIds: ["guest-operation"],
+        checkpointRevisions: [],
+        updatedAt: serverTimestamp(),
+        updatedBy: "guest",
+        lastOperation: {
+          id: "guest-operation",
+          targets: ["config:title"],
+          uid: "guest",
+        },
+      }),
+    );
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const database = context.firestore();
+      await setDoc(doc(database, "editorInvites", "rotated-token"), {
+        schemaVersion: 1,
+        boardId: "board-1",
+        role: "editor",
+        ownerUid: "owner",
+        createdAt: Timestamp.now(),
+      });
+      await updateDoc(doc(database, "boards", "board-1"), {
+        "shareTokens.invite": "rotated-token",
+      });
+    });
+    await assertFails(getDoc(board));
+  });
+
+  it("opens an editor link through the repository without permanent membership", async () => {
+    await seedBoard("board-1", {
+      ...boardData(),
+      shareTokens: { invite: "repository-token" },
+    });
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "editorInvites", "repository-token"), {
+        schemaVersion: 1,
+        boardId: "board-1",
+        role: "editor",
+        ownerUid: "owner",
+        createdAt: Timestamp.now(),
+      });
+    });
+    const database = anonymous("repository-guest");
+    const repository = new CloudBoardRepository(
+      { firestore: () => database } as unknown as FirebaseClient,
+      new StateCodec(),
+      new EditorStateService(new AnswerPoolSorter()),
+      () => ({
+        uid: "repository-guest",
+        email: "",
+        displayName: "Guest Editor",
+        emailVerified: false,
+        isAnonymous: true,
+      }),
+    );
+
+    expect(await repository.acceptInvite("repository-token")).toBe("board-1");
+    expect(await repository.acceptInvite("repository-token")).toBe("board-1");
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const snapshot = await getDoc(doc(context.firestore(), "boards", "board-1"));
+      expect(snapshot.data()?.memberUids).toEqual(["owner"]);
+      expect(
+        (await getDoc(doc(
+          context.firestore(),
+          "boards",
+          "board-1",
+          "editorSessions",
+          "repository-guest",
+        ))).data()?.inviteToken,
+      ).toBe("repository-token");
+    });
   });
 
   it("protects presence by board membership and session ownership", async () => {

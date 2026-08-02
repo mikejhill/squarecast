@@ -25,6 +25,7 @@ import {
 import { z } from "zod";
 import type {
   BoardCheckpoint,
+  BoardPermission,
   BoardRepository,
   BoardSummary,
   SavedBoard,
@@ -91,7 +92,6 @@ const inviteSchema = z.object({
   role: z.literal("editor"),
   ownerUid: z.string(),
   createdAt: z.unknown(),
-  expiresAt: z.unknown(),
 });
 
 export type PublicShareKind = "view" | "play";
@@ -144,14 +144,19 @@ export class CloudBoardRepository implements BoardRepository {
   }
 
   public async load(id: string): Promise<SavedBoard | null> {
-    const user = this.requireVerifiedUser();
+    const user = this.requireSignedInUser();
     const snapshot = await getDoc(doc(this.database, "boards", id));
     if (!snapshot.exists()) return null;
-    return this.toSavedBoard(id, this.parseRecord(snapshot.data()), user.uid);
+    return this.toSavedBoard(
+      id,
+      this.parseRecord(snapshot.data()),
+      user.uid,
+      user.isAnonymous ? "editor" : undefined,
+    );
   }
 
   public async create(editor: EditorState): Promise<SavedBoard> {
-    const user = this.requireVerifiedUser();
+    const user = this.requireSignedInUser();
     const parsed = editorStateSchema.parse(editor);
     const stateHash = this.encodeWithinLimit(parsed);
     const reference = doc(collection(this.database, "boards"));
@@ -199,7 +204,12 @@ export class CloudBoardRepository implements BoardRepository {
         throw new Error("Access to this board was removed.");
       }
       if (current.recentOperationIds.includes(parsedOperation.id)) {
-        return this.toSavedBoard(id, current, user.uid);
+        return this.toSavedBoard(
+          id,
+          current,
+          user.uid,
+          user.isAnonymous ? "editor" : undefined,
+        );
       }
       const editor = this.decodeEditor(current.stateHash);
       const nextEditor = applyEditorOperation(
@@ -270,7 +280,12 @@ export class CloudBoardRepository implements BoardRepository {
         createdAt: current.createdAt,
         updatedAt: Date.now(),
       };
-      return this.toSavedBoard(id, nextRecord, user.uid);
+      return this.toSavedBoard(
+        id,
+        nextRecord,
+        user.uid,
+        user.isAnonymous ? "editor" : undefined,
+      );
     });
     return saved;
   }
@@ -298,13 +313,15 @@ export class CloudBoardRepository implements BoardRepository {
       return;
     }
     const boardReference = doc(this.database, "boards", id);
-    const [checkpoints, presence] = await Promise.all([
+    const [checkpoints, presence, editorSessions] = await Promise.all([
       getDocs(collection(boardReference, "checkpoints")),
       getDocs(collection(boardReference, "presence")),
+      getDocs(collection(boardReference, "editorSessions")),
     ]);
     const references = [
       ...checkpoints.docs.map((snapshot) => snapshot.ref),
       ...presence.docs.map((snapshot) => snapshot.ref),
+      ...editorSessions.docs.map((snapshot) => snapshot.ref),
     ];
     for (const token of Object.values(current.shareTokens)) {
       if (!token) continue;
@@ -327,7 +344,7 @@ export class CloudBoardRepository implements BoardRepository {
   }
 
   public async listCheckpoints(id: string): Promise<readonly BoardCheckpoint[]> {
-    const user = this.requireVerifiedUser();
+    const user = this.requireSignedInUser();
     const board = await this.requireRecord(id);
     if (!board.memberUids.includes(user.uid)) throw new Error("Access removed.");
     const snapshots = await getDocs(
@@ -369,13 +386,18 @@ export class CloudBoardRepository implements BoardRepository {
     id: string,
     listener: (board: SavedBoard | null, error?: Error) => void,
   ): Unsubscribe {
-    const user = this.requireVerifiedUser();
+    const user = this.requireSignedInUser();
     return onSnapshot(
       doc(this.database, "boards", id),
       (snapshot) => {
         listener(
           snapshot.exists()
-            ? this.toSavedBoard(id, this.parseRecord(snapshot.data()), user.uid)
+            ? this.toSavedBoard(
+                id,
+                this.parseRecord(snapshot.data()),
+                user.uid,
+                user.isAnonymous ? "editor" : undefined,
+              )
             : null,
         );
       },
@@ -437,8 +459,8 @@ export class CloudBoardRepository implements BoardRepository {
           doc(this.database, "editorInvites", previous),
         );
         if (previousSnapshot.exists()) {
-          const invite = inviteSchema.parse(previousSnapshot.data());
-          if (this.toMillis(invite.expiresAt) > Date.now()) return previous;
+          inviteSchema.parse(previousSnapshot.data());
+          return previous;
         }
       }
       transaction.update(boardReference, { "shareTokens.invite": token });
@@ -448,7 +470,6 @@ export class CloudBoardRepository implements BoardRepository {
         role: "editor",
         ownerUid: user.uid,
         createdAt: serverTimestamp(),
-        expiresAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000),
       });
       if (previous) {
         transaction.delete(doc(this.database, "editorInvites", previous));
@@ -521,16 +542,21 @@ export class CloudBoardRepository implements BoardRepository {
   }
 
   public async acceptInvite(token: string): Promise<string> {
-    const user = this.requireVerifiedUser();
+    const user = this.requireSignedInUser();
     const inviteSnapshot = await getDoc(
       doc(this.database, "editorInvites", token),
     );
-    if (!inviteSnapshot.exists()) throw new Error("This editor invitation is no longer active.");
+    if (!inviteSnapshot.exists()) throw new Error("This editor link is no longer active.");
     const invite = inviteSchema.parse(inviteSnapshot.data());
-    if (this.toMillis(invite.expiresAt) <= Date.now()) {
-      throw new Error("This editor invitation has expired.");
-    }
     const boardReference = doc(this.database, "boards", invite.boardId);
+    if (user.isAnonymous) {
+      await setDoc(doc(boardReference, "editorSessions", user.uid), {
+        schemaVersion: 1,
+        inviteToken: token,
+        createdAt: serverTimestamp(),
+      });
+      return invite.boardId;
+    }
     if (await this.canReadBoardAsMember(boardReference, user.uid)) {
       return invite.boardId;
     }
@@ -581,7 +607,7 @@ export class CloudBoardRepository implements BoardRepository {
   }
 
   public async heartbeatPresence(boardId: string, sessionId: string): Promise<void> {
-    const user = this.requireVerifiedUser();
+    const user = this.requireSignedInUser();
     await setDoc(doc(this.database, "boards", boardId, "presence", sessionId), {
       uid: user.uid,
       displayName: user.displayName,
@@ -597,7 +623,7 @@ export class CloudBoardRepository implements BoardRepository {
     boardId: string,
     listener: (presence: readonly BoardPresence[]) => void,
   ): Unsubscribe {
-    const user = this.requireVerifiedUser();
+    const user = this.requireSignedInUser();
     let canClean = false;
     let staleReferences: Array<ReturnType<typeof doc>> = [];
     const clean = () => {
@@ -636,6 +662,7 @@ export class CloudBoardRepository implements BoardRepository {
             .filter((entry) => entry.lastSeen >= cutoff),
         );
       },
+      () => listener([]),
     );
   }
 
@@ -661,7 +688,7 @@ export class CloudBoardRepository implements BoardRepository {
     if (!snapshot.exists()) return false;
     if (kind === "invite") {
       const invite = inviteSchema.parse(snapshot.data());
-      return invite.boardId === boardId && this.toMillis(invite.expiresAt) > Date.now();
+      return invite.boardId === boardId;
     }
     const share = publicShareSchema.parse(snapshot.data());
     return share.boardId === boardId && share.kind === kind;
@@ -731,9 +758,15 @@ export class CloudBoardRepository implements BoardRepository {
     };
   }
 
-  private toSavedBoard(id: string, record: CloudRecord, uid: string): SavedBoard {
+  private toSavedBoard(
+    id: string,
+    record: CloudRecord,
+    uid: string,
+    permissionOverride?: BoardPermission,
+  ): SavedBoard {
     return {
       ...this.toSummary(id, record, uid),
+      permission: permissionOverride ?? record.roles[uid] ?? "viewer",
       editor: this.decodeEditor(record.stateHash),
       createdAt: this.toMillis(record.createdAt),
       lastOperationTargets: record.lastOperation?.targets,
@@ -745,6 +778,12 @@ export class CloudBoardRepository implements BoardRepository {
     const user = this.getUser();
     if (!user) throw new Error("Sign in to use account storage.");
     if (!user.emailVerified) throw new Error("Verify your email before using account storage.");
+    return user;
+  }
+
+  private requireSignedInUser(): AuthUser {
+    const user = this.getUser();
+    if (!user) throw new Error("Open an active editor link or sign in to continue.");
     return user;
   }
 

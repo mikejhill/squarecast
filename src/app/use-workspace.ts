@@ -36,6 +36,7 @@ type StoredHistoryState = {
     storageKind: StorageKind;
     recordId?: string;
     revision: number;
+    editorToken?: string;
   };
 };
 
@@ -45,6 +46,15 @@ const checkpointReasons: Record<string, string> = {
   "sort-cards": "Sort Card Pool",
   "replace-editor": "Import Complete Board",
 };
+
+function isPermissionDenied(error: unknown): boolean {
+  return Boolean(
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "permission-denied",
+  );
+}
 
 function readyUrlSession(state: ActiveState): WorkspaceReadySession {
   return {
@@ -164,6 +174,7 @@ export function useWorkspace(services: ApplicationServices) {
           storageKind: next.storageKind,
           recordId: next.recordId,
           revision: next.revision,
+          editorToken: next.editorToken,
         },
       };
       services.history.write(route, mode, state);
@@ -226,6 +237,21 @@ export function useWorkspace(services: ApplicationServices) {
         boardId,
         (board, error) => {
           if (error) {
+            const current = sessionRef.current;
+            if (
+              current.status === "ready" &&
+              current.editorToken &&
+              isPermissionDenied(error)
+            ) {
+              stopCloudSession();
+              setSession({
+                status: "error",
+                route: ApplicationRoutes.editorInvite(current.editorToken),
+                reason: "access-removed",
+                message: "This editor link was rotated or revoked.",
+              });
+              return;
+            }
             setStatusMessage(error.message);
             setSession((current) =>
               current.status === "ready" && current.recordId === boardId
@@ -290,7 +316,9 @@ export function useWorkspace(services: ApplicationServices) {
       const sessionId = createOperationId();
       const heartbeat = () => {
         if (document.visibilityState === "visible") {
-          void services.cloudBoards?.heartbeatPresence(boardId, sessionId);
+          void services.cloudBoards
+            ?.heartbeatPresence(boardId, sessionId)
+            .catch(() => undefined);
         }
       };
       heartbeat();
@@ -301,7 +329,9 @@ export function useWorkspace(services: ApplicationServices) {
       );
       presenceUnsubscribe.current = () => {
         stopPresence();
-        void services.cloudBoards?.clearPresence(boardId, sessionId);
+        void services.cloudBoards
+          ?.clearPresence(boardId, sessionId)
+          .catch(() => undefined);
       };
     },
     [services, stopCloudSession],
@@ -427,18 +457,23 @@ export function useWorkspace(services: ApplicationServices) {
           );
           return;
         }
-        if (!user?.emailVerified) {
+        let routeUser = user;
+        if (route.kind === "invite" && !routeUser) {
+          routeUser = await services.auth.ensureAnonymousUser();
+        }
+        if (
+          route.kind !== "invite" &&
+          (!routeUser || routeUser.isAnonymous)
+        ) {
           setSession({
             status: "error",
             route: hash,
             reason: "auth-required",
-            message:
-              route.kind === "invite"
-                ? "Sign in with a verified account to accept this editor invitation."
-                : "Sign in with a verified account to open this board.",
+            message: "Sign in to open this board.",
           });
           return;
         }
+        if (!routeUser) throw new Error("The editor link could not establish a guest session.");
         const boardId =
           route.kind === "invite"
             ? await services.cloudBoards.acceptInvite(route.id)
@@ -462,13 +497,17 @@ export function useWorkspace(services: ApplicationServices) {
           revision: board.revision,
           syncStatus: "saved",
           readOnly: false,
+          editorToken:
+            route.kind === "invite" && routeUser.isAnonymous
+              ? route.id
+              : undefined,
         };
         setSession(ready);
-        setPreferredStorage("cloud");
-        if (route.kind === "invite") {
+        setPreferredStorage(routeUser.emailVerified ? "cloud" : "device");
+        if (route.kind === "invite" && !routeUser.isAnonymous) {
           writeHistory(ready, "replace", ApplicationRoutes.cloudBoard(board.id));
         }
-        startCloudSession(board.id, user);
+        startCloudSession(board.id, routeUser);
       } catch (error) {
         setSession({
           status: "error",
@@ -482,6 +521,7 @@ export function useWorkspace(services: ApplicationServices) {
   );
 
   useEffect(() => {
+    services.firebase.initializeAppCheck();
     const unsubscribe = services.auth.subscribe((user) => {
       authRef.current = user;
       setAuthUser(user);
@@ -494,7 +534,6 @@ export function useWorkspace(services: ApplicationServices) {
         );
       }
     });
-    services.firebase.initializeAppCheck();
     return unsubscribe;
   }, [resolveRoute, services, startsWithStoredRoute]);
 
@@ -519,6 +558,7 @@ export function useWorkspace(services: ApplicationServices) {
             readOnly: false,
             historicalRevision:
               saved.storageKind === "url" ? undefined : saved.revision,
+            editorToken: saved.editorToken,
           });
           return;
         }
@@ -937,12 +977,12 @@ export function useWorkspace(services: ApplicationServices) {
   return {
     session,
     navigate,
-    authUser,
+    authUser: authUser?.isAnonymous ? null : authUser,
     authKnown,
     preferredStorage,
     setPreferredStorage,
     statusMessage,
-    presence,
+    presence: presence.filter((entry) => entry.uid !== authUser?.uid),
     openRoute,
     startUrlState,
     resolveCurrentRoute: () => resolveRoute(window.location.hash, authRef.current),
@@ -961,6 +1001,9 @@ export function useWorkspace(services: ApplicationServices) {
 }
 
 function routeForSession(session: WorkspaceReadySession, encoded: string): string {
+  if (session.editorToken) {
+    return ApplicationRoutes.editorInvite(session.editorToken);
+  }
   if (session.storageKind === "device" && session.recordId) {
     return ApplicationRoutes.deviceBoard(session.recordId);
   }

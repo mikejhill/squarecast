@@ -21,8 +21,8 @@ flowchart LR
 ```
 
 Cloud configuration is public repository/deployment metadata, not a secret.
-Firestore Security Rules, verified identity, random tokens, and App Check form
-the authorization boundary.
+Firestore Security Rules, account or anonymous Firebase identity, random
+tokens, and App Check form the authorization boundary.
 
 ## Firebase Project Setup
 
@@ -32,7 +32,7 @@ Use one Firebase Spark project:
 2. create a Firestore Standard database in the US multi-region matching the
    configured rules and indexes;
 3. register a Web app without enabling Firebase Hosting;
-4. enable Google and Email/Password authentication;
+4. enable Google, Email/Password, and Anonymous authentication;
 5. add `mikejhill.github.io` and required local-development hosts to authorized
    Authentication domains;
 6. configure password-reset and verification email templates;
@@ -48,6 +48,7 @@ existing play sessions remain functional without Firebase.
 References: [Firebase pricing plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans),
 [Firestore quotas](https://firebase.google.com/docs/firestore/quotas),
 [Web Authentication](https://firebase.google.com/docs/auth/web/start),
+[Anonymous Authentication](https://firebase.google.com/docs/auth/web/anonymous-auth),
 [Security Rules](https://firebase.google.com/docs/firestore/security/get-started),
 and [App Check for Web](https://firebase.google.com/docs/app-check/web/recaptcha-provider).
 
@@ -107,15 +108,16 @@ be corrected before advertising cloud storage.
 
 `firestore.rules` enforces:
 
-- verified authentication for private boards and invitations;
+- account membership for private board pointers;
+- active-token-bound anonymous sessions for editor links;
 - owner/editor role boundaries;
 - owner-only access management and deletion;
 - monotonic revision increments and conservative payload size;
 - a maximum of 20 members;
 - restricted field changes for editor writes;
 - get-only, non-listable public token documents;
-- time-bounded invitation acceptance; and
-- member-only checkpoint and presence access.
+- perpetual editor tokens that fail closed after rotation or revocation; and
+- member-or-active-guest checkpoint and presence access.
 
 `firestore.indexes.json` indexes membership and updated-time lookup while
 exempting state payloads and role/token maps from unnecessary indexing. Every
@@ -137,7 +139,8 @@ share URLs, clipboard contents, imported content, or Firebase documents.
 | Invalid/corrupt `#sq1:` | Open a fresh editor |
 | Missing `#sql1:` record | Show device Not Found; preserve route |
 | Missing/removed private board | Show Not Found or Access Removed |
-| Signed-out private/invite route | Show Auth Required; preserve route |
+| Signed-out private route | Show Auth Required; preserve route |
+| Signed-out editor route | Create an anonymous guest identity and preserve the token route |
 | Revoked public token | Fail closed with Not Found |
 | IndexedDB failure/quota | Keep active URL state and expose snapshot/JSON export |
 | Firestore blocked/offline | Persist unacknowledged operations in IndexedDB |

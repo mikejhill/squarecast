@@ -10,10 +10,10 @@ Firebase.
 | --- | --- | --- |
 | `#sq1:` URL fragment | Editor, launch, or play state | Immutable, shareable snapshot |
 | `#sql1:` pointer | IndexedDB editor record and checkpoints | Current browser profile |
-| `#sqb1:` pointer | Private Firestore editor record and checkpoints | Verified account members |
+| `#sqb1:` pointer | Private Firestore editor record and checkpoints | Account members |
 | `#sqv1:` bearer pointer | Latest published read-only copy | Anyone holding the active token |
 | `#sqp1:` bearer pointer | Latest published launch source | Anyone holding the active token |
-| `#sqi1:` invitation pointer | Seven-day editor invitation | Verified signed-in account |
+| `#sqi1:` editor pointer | Perpetual mutable editor access | Anyone holding the active token |
 | `#new` action route | Instruction to create fresh defaults | Shareable action |
 | Empty fragment | Instruction to select a sample | Landing behavior |
 | `localStorage` | Appearance preference | Current browser profile |
@@ -62,10 +62,10 @@ flowchart TD
     B -- "#new" --> D["Create fresh defaults"]
     B -- "#sq1:payload" --> E["Decode and validate"]
     B -- "#sql1:id" --> L["Load IndexedDB record"]
-    B -- "#sqb1:id" --> M["Require verified member and load Firestore"]
+    B -- "#sqb1:id" --> M["Require account member and load Firestore"]
     B -- "#sqv1:token" --> V["Load and subscribe to public view"]
     B -- "#sqp1:token" --> P["Load latest source and generate play"]
-    B -- "#sqi1:token" --> Q["Require verified account and accept invite"]
+    B -- "#sqi1:token" --> Q["Create guest identity or add signed-in editor"]
     B -- "other" --> D
     E --> F{"State mode"}
     F -- "edit" --> G["Restore editor"]
@@ -80,7 +80,7 @@ flowchart TD
 
 `#new` is an action route. Every opening creates fresh defaults and a random
 board color. Saved-route resolution is asynchronous. Missing records,
-unverified accounts, removed access, revoked tokens, disabled Firebase, and
+removed access, revoked tokens, disabled Firebase, and
 provider failures produce explicit recoverable route states; none silently
 create a replacement board.
 
@@ -98,7 +98,7 @@ Disclosure changes, appearance, dialogs, and preview shuffles do not promote.
 Existing device boards stay device-only after sign-in. Moving between URL,
 device, and account storage always creates an independent copy. It never deletes
 the source. **Copy Editor Link** and **Create Play Link** still create
-self-contained `#sq1:` snapshots. Mutable view/play links and editor invitations
+self-contained `#sq1:` snapshots. Mutable view/play links and editor links
 are separate cloud actions.
 
 ## History Policy
@@ -109,8 +109,10 @@ Board, Edit This Board, complete-board import, meaningful deletion, sorting,
 bulk import, storage copies, and checkpoint restoration. Back and Forward never
 write immediately.
 
-Saved pointer routes remain stable. `history.state.squarecast` stores the
-encoded snapshot, storage kind, record ID, and revision. Back or Forward can
+Saved pointer routes remain stable. Anonymous editor-link sessions retain the
+`#sqi1:` route so signing in can add the resulting account as an editor.
+`history.state.squarecast` stores the encoded snapshot, storage kind, record
+ID, revision, and active editor token when applicable. Back or Forward can
 therefore show an older saved revision without rewriting storage. Historical
 views reject edits until **Restore This Version** writes a new head revision.
 
