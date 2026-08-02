@@ -142,6 +142,43 @@ export function editorOperationTargetsOverlap(
     localTargets.some((target) => remoteTargets.includes(target));
 }
 
+const configTargetLabels: Record<keyof BoardConfig, string> = {
+  title: "Board Title",
+  size: "Board Size",
+  free: "Free Square",
+  freeLabel: "Free Square Label",
+  theme: "Board Theme",
+  accentColor: "Board Color",
+  fontMode: "Tile Text Size Mode",
+  fontSize: "Tile Text Size",
+  sortMode: "Card Pool Sort Order",
+  previewSeed: "Preview Shuffle",
+};
+
+/** Produces concise user-facing names for the content affected by an operation. */
+export function editorOperationTargetLabels(
+  operation: EditorOperation,
+  editor: EditorState,
+): readonly string[] {
+  switch (operation.type) {
+    case "patch-config":
+      return Object.keys(operation.patch).map(
+        (field) => configTargetLabels[field as keyof BoardConfig],
+      );
+    case "update-card":
+    case "delete-card": {
+      const text = editor.answers.find((card) => card.id === operation.cardId)?.text.trim();
+      return [text ? `Card “${text.slice(0, 40)}${text.length > 40 ? "…" : ""}”` : "A Card"];
+    }
+    case "add-cards":
+      return ["Card Pool Additions"];
+    case "sort-cards":
+      return ["Card Pool Order"];
+    case "replace-editor":
+      return ["Entire Board"];
+  }
+}
+
 /** Merges two compatible routine operations while retaining the newer ID. */
 export function coalesceEditorOperations(
   previous: EditorOperation,

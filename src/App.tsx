@@ -157,6 +157,7 @@ export function App() {
           onOpenShare={() => setShareOpen(true)}
           onOpenHistory={() => setHistoryOpen(true)}
           onRestoreHistorical={() => void workspace.restoreHistorical()}
+          onReturnToCurrent={workspace.returnToCurrent}
         />
       ) : (
         <PlayerPage state={workspace.session.state} onChange={workspace.navigate} />
@@ -202,7 +203,9 @@ export function App() {
         workspace.session.storageKind !== "url" && (
           <CheckpointDialog
             loadCheckpoints={workspace.listCheckpoints}
+            onView={workspace.viewCheckpoint}
             onRestore={workspace.restoreCheckpoint}
+            viewingRevision={workspace.session.historicalRevision}
             onClose={() => setHistoryOpen(false)}
           />
         )}

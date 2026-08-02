@@ -142,7 +142,8 @@ service cloud.firestore {
         request.resource.data.shareTokens.size() == 0 &&
         request.resource.data.revision == 1 &&
         request.resource.data.recentOperationIds.size() == 0 &&
-        request.resource.data.checkpointRevisions.size() == 0 &&
+        (request.resource.data.checkpointRevisions == [] ||
+          request.resource.data.checkpointRevisions == [1]) &&
         validPayload(request.resource.data);
       allow update: if validEditorUpdate(boardId) || validOwnerUpdate() ||
         validInviteJoin(boardId) || validSelfRemoval();
@@ -152,8 +153,11 @@ service cloud.firestore {
         allow read: if member(boardData(boardId)) || activeGuest(boardId, boardData(boardId));
         allow create: if editor(boardId, nextBoardData(boardId)) &&
           request.resource.data.schemaVersion == 1 &&
-          request.resource.data.revision == nextBoardData(boardId).revision &&
-          request.resource.data.stateHash == nextBoardData(boardId).stateHash &&
+          request.resource.data.revision in nextBoardData(boardId).checkpointRevisions &&
+          ((request.resource.data.revision == nextBoardData(boardId).revision &&
+              request.resource.data.stateHash == nextBoardData(boardId).stateHash) ||
+            (request.resource.data.revision == boardData(boardId).revision &&
+              request.resource.data.stateHash == boardData(boardId).stateHash)) &&
           request.resource.data.reason is string &&
           request.resource.data.createdBy == request.auth.uid;
         allow delete: if editor(boardId, nextBoardData(boardId)) &&

@@ -47,7 +47,8 @@ describe("device board repository", () => {
     );
     expect(updated.revision).toBe(2);
     expect(updated.editor.config.title).toBe("Stored Board");
-    expect(await repository.listCheckpoints(created.id)).toHaveLength(1);
+    expect(await repository.listCheckpoints(created.id)).toHaveLength(2);
+    expect((await repository.listCheckpoints(created.id))[1]?.reason).toBe("Board Created");
 
     const presentation = {
       ...updated.editor,

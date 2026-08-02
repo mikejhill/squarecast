@@ -7,6 +7,7 @@ import { useWorkspace } from "../src/app/use-workspace";
 import { StateCodec } from "../src/lib/codec";
 import { EditorStateService } from "../src/lib/editor-state";
 import { BoardGenerator } from "../src/lib/generator";
+import type { SavedBoard } from "../src/lib/board-repository";
 import { BoardModel } from "../src/lib/model";
 import { AnswerPoolSorter } from "../src/lib/sorting";
 
@@ -14,6 +15,7 @@ afterEach(() => {
   cleanup();
   window.history.replaceState(null, "", "/");
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 function createServices(overrides: Record<string, unknown> = {}) {
@@ -148,6 +150,96 @@ describe("workspace route resolution", () => {
     await waitFor(() => expect(cloudBoards.clearPresence).toHaveBeenCalledTimes(2));
   });
 
+  it("identifies a same-target collaboration conflict and confirms automatic resolution", async () => {
+    window.history.replaceState(null, "", "/#sqb1:cloud-board");
+    const editor = BoardModel.createDefaultEditor();
+    let boardListener: ((board: SavedBoard | null, error?: Error) => void) | undefined;
+    const user = {
+      uid: "account-user",
+      email: "user@example.test",
+      displayName: "User",
+      emailVerified: true,
+      isAnonymous: false,
+    };
+    const savedBoard = (revision: number) => ({
+      id: "cloud-board",
+      title: editor.config.title,
+      storageKind: "cloud" as const,
+      permission: "editor" as const,
+      revision,
+      updatedAt: revision,
+      createdAt: 1,
+      editor,
+    });
+    const cloudBoards = {
+      load: vi.fn(async () => savedBoard(1)),
+      subscribe: vi.fn((
+        _id: string,
+        listener: (board: SavedBoard | null, error?: Error) => void,
+      ) => {
+        boardListener = listener;
+        return () => undefined;
+      }),
+      applyOperation: vi.fn(async () => savedBoard(3)),
+      heartbeatPresence: vi.fn(async () => undefined),
+      subscribePresence: vi.fn(() => () => undefined),
+      clearPresence: vi.fn(async () => undefined),
+    };
+    const services = createServices({
+      auth: {
+        enabled: true,
+        subscribe: vi.fn((listener) => {
+          listener(user);
+          return () => undefined;
+        }),
+      },
+      deviceBoards: {
+        available: true,
+        load: vi.fn(async () => null),
+        subscribe: vi.fn(() => () => undefined),
+        listPendingCloudOperations: vi.fn(async () => []),
+        putPendingCloudOperation: vi.fn(async () => undefined),
+        removePendingCloudOperation: vi.fn(async () => undefined),
+      },
+      cloudBoards,
+    });
+    const { result } = renderHook(() => useWorkspace(services));
+    await waitFor(() => expect(result.current.session.status).toBe("ready"));
+    vi.useFakeTimers();
+
+    const local = {
+      ...editor,
+      config: { ...editor.config, title: "My Pending Title" },
+    };
+    act(() =>
+      result.current.navigate(local, "replace", undefined, {
+        meaningful: true,
+        operation: {
+          id: "local-title",
+          type: "patch-config",
+          patch: { title: "My Pending Title" },
+        },
+      }),
+    );
+    act(() =>
+      boardListener?.({
+        ...savedBoard(2),
+        lastEditorUid: "collaborator",
+        lastOperationTargets: ["config:title"],
+      }),
+    );
+    expect(result.current.session).toEqual(expect.objectContaining({ syncStatus: "conflict" }));
+    expect(result.current.statusMessage).toContain("Board Title");
+    expect(result.current.statusMessage).toContain("save automatically");
+    expect(result.current.statusMessage).toContain("no action is required");
+
+    await act(async () => vi.advanceTimersByTimeAsync(750));
+    expect(result.current.session).toEqual(expect.objectContaining({ syncStatus: "saved" }));
+    expect(result.current.statusMessage).toContain("conflict resolved");
+    expect(result.current.statusMessage).toContain("Board Title");
+    vi.useRealTimers();
+  });
+
   it("restores a saved history snapshot without writing or mutating storage", async () => {
     window.history.replaceState(null, "", "/");
     const services = createServices();
@@ -179,5 +271,70 @@ describe("workspace route resolution", () => {
     );
     expect(services.history.write).not.toHaveBeenCalled();
     expect(services.deviceBoards.load).not.toHaveBeenCalled();
+  });
+
+  it("previews a saved checkpoint and returns to the current device revision", async () => {
+    const current = BoardModel.createDefaultEditor();
+    current.config.title = "Current Board";
+    const historical = BoardModel.createDefaultEditor();
+    historical.config.title = "Older Board";
+    window.history.replaceState(null, "", "/#sql1:device-board");
+    const load = vi.fn(async () => ({
+      id: "device-board",
+      title: current.config.title,
+      storageKind: "device" as const,
+      permission: "owner" as const,
+      revision: 4,
+      updatedAt: 4,
+      createdAt: 1,
+      editor: current,
+    }));
+    const services = createServices({
+      deviceBoards: {
+        available: true,
+        load,
+        subscribe: vi.fn(() => () => undefined),
+        listPendingCloudOperations: vi.fn(async () => []),
+      },
+    });
+    const { result } = renderHook(() => useWorkspace(services));
+    await waitFor(() => expect(result.current.session.status).toBe("ready"));
+
+    await act(async () => {
+      await result.current.viewCheckpoint({
+        revision: 2,
+        stateHash: services.codec.encode(historical),
+        createdAt: 2,
+        reason: "Add Card",
+      });
+    });
+    expect(result.current.session).toEqual(
+      expect.objectContaining({
+        revision: 2,
+        historicalRevision: 2,
+        state: expect.objectContaining({ config: expect.objectContaining({ title: "Older Board" }) }),
+      }),
+    );
+    expect(services.history.write).toHaveBeenLastCalledWith(
+      "#sql1:device-board",
+      "push",
+      expect.any(Object),
+    );
+
+    act(() => result.current.returnToCurrent());
+    await waitFor(() =>
+      expect(result.current.session).toEqual(
+        expect.objectContaining({
+          revision: 4,
+          state: expect.objectContaining({ config: expect.objectContaining({ title: "Current Board" }) }),
+        }),
+      ),
+    );
+    expect(
+      result.current.session.status === "ready"
+        ? result.current.session.historicalRevision
+        : null,
+    ).toBeUndefined();
+    expect(load).toHaveBeenCalledTimes(2);
   });
 });

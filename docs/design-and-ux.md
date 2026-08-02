@@ -127,9 +127,15 @@ and immutable-sharing mechanism.
 The storage/status bar identifies the active persistence boundary and announces
 **Saved**, **Saving**, **Offline — Changes Pending**, **Conflict**, or **Cloud
 Unavailable** through an accessible status region. It provides independent-copy
-actions, cloud sharing for owners, and version history. A browser-history
-snapshot is visibly historical and cannot be edited until restored as a new
-revision.
+actions, cloud sharing for owners, and version history. Version History lists
+the current and retained revisions with separate **View** and **Restore**
+actions. A historical snapshot is visibly read-only until restored as a new
+revision or dismissed with **Return To Current**.
+
+Same-target collaboration notices name the affected Board Setup field, Card,
+Card Pool operation, or complete Board. They state that the local operation is
+queued automatically, require no manual submission, and change to a resolved
+message after the local operation saves.
 
 ### My Boards and account
 

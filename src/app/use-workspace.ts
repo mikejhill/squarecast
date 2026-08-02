@@ -19,8 +19,10 @@ import { CloudSyncCoordinator } from "../lib/cloud-sync";
 import {
   applyEditorOperation,
   createOperationId,
+  editorOperationTargetLabels,
   editorOperationTargetsOverlap,
   type EditorChange,
+  type EditorOperation,
 } from "../lib/editor-operation";
 import type { HistoryWriteMode } from "../lib/history";
 import { NavigationCoordinator } from "../lib/navigation";
@@ -40,12 +42,25 @@ type StoredHistoryState = {
   };
 };
 
-const checkpointReasons: Record<string, string> = {
-  "delete-card": "Delete Card",
-  "add-cards": "Import Or Add Cards",
-  "sort-cards": "Sort Card Pool",
-  "replace-editor": "Import Complete Board",
-};
+function checkpointReasonFor(
+  operation: EditorOperation,
+  historyMode: HistoryWriteMode,
+): string | undefined {
+  switch (operation.type) {
+    case "add-cards":
+      return operation.cards.length === 1 ? "Add Card" : "Add Cards";
+    case "delete-card":
+      return "Delete Card";
+    case "sort-cards":
+      return "Sort Card Pool";
+    case "replace-editor":
+      return "Import Complete Board";
+    case "patch-config":
+      return historyMode === "push" ? "Change Board Setup" : undefined;
+    case "update-card":
+      return undefined;
+  }
+}
 
 function isPermissionDenied(error: unknown): boolean {
   return Boolean(
@@ -98,6 +113,7 @@ export function useWorkspace(services: ApplicationServices) {
   const deviceUnsubscribe = useRef<(() => void) | null>(null);
   const presenceUnsubscribe = useRef<Unsubscribe | null>(null);
   const presenceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const collaborationConflictTarget = useRef<string | null>(null);
   const sessionRef = useRef(session);
   const authRef = useRef(authUser);
   const promotionInFlight = useRef<{
@@ -217,9 +233,6 @@ export function useWorkspace(services: ApplicationServices) {
                   }
                 : current,
             );
-            setStatusMessage((current) =>
-              current.startsWith("A collaborator committed") ? current : "",
-            );
           },
           onStatus: (syncStatus, message) => {
             setSession((current) =>
@@ -227,7 +240,14 @@ export function useWorkspace(services: ApplicationServices) {
                 ? { ...current, syncStatus }
                 : current,
             );
-            setStatusMessage(message ?? "");
+            if (syncStatus === "saved" && collaborationConflictTarget.current) {
+              setStatusMessage(
+                `Collaboration conflict resolved: Your local change to ${collaborationConflictTarget.current} saved after the collaborator's change.`,
+              );
+              collaborationConflictTarget.current = null;
+            } else {
+              setStatusMessage(message ?? "");
+            }
           },
         },
       );
@@ -269,24 +289,37 @@ export function useWorkspace(services: ApplicationServices) {
             });
             return;
           }
-          if (
+          const overlappingOperations =
             board.lastEditorUid &&
             board.lastEditorUid !== user.uid &&
-            board.lastOperationTargets?.length &&
-            sync.pendingOperations.some((operation) =>
-              editorOperationTargetsOverlap(
-                operation,
-                board.lastOperationTargets ?? [],
+            board.lastOperationTargets?.length
+              ? sync.pendingOperations.filter((operation) =>
+                  editorOperationTargetsOverlap(
+                    operation,
+                    board.lastOperationTargets ?? [],
+                  ),
+                )
+              : [];
+          if (overlappingOperations.length > 0) {
+            const currentEditor = sessionRef.current.status === "ready" &&
+                sessionRef.current.state.mode === "edit"
+              ? sessionRef.current.state
+              : board.editor;
+            const target = [
+              ...new Set(
+                overlappingOperations.flatMap((operation) =>
+                  editorOperationTargetLabels(operation, currentEditor),
+                ),
               ),
-            )
-          ) {
+            ].join(" and ");
+            collaborationConflictTarget.current = target;
             setSession((current) =>
               current.status === "ready" && current.recordId === boardId
                 ? { ...current, syncStatus: "conflict" }
                 : current,
             );
             setStatusMessage(
-              "A collaborator committed a change to the same target. Your pending change will commit last.",
+              `A collaborator also changed ${target}. Your local change is queued and will save automatically; no action is required.`,
             );
           }
           let editor = board.editor;
@@ -720,9 +753,7 @@ export function useWorkspace(services: ApplicationServices) {
       if (current.storageKind === "device" && current.recordId) {
         if (change.operation && change.meaningful) {
           const reason =
-            historyMode === "push"
-              ? checkpointReasons[change.operation.type] ?? "Board Change"
-              : undefined;
+            checkpointReasonFor(change.operation, historyMode);
           void services.deviceBoards
             .applyOperation(current.recordId, change.operation, reason)
             .then((board) => {
@@ -760,9 +791,7 @@ export function useWorkspace(services: ApplicationServices) {
       ) {
         cloudSync.current?.enqueue(
           change.operation,
-          historyMode === "push"
-            ? checkpointReasons[change.operation.type] ?? "Board Change"
-            : undefined,
+          checkpointReasonFor(change.operation, historyMode),
         );
       }
     },
@@ -872,6 +901,7 @@ export function useWorkspace(services: ApplicationServices) {
 
   const adoptRestoredBoard = useCallback(
     (board: Awaited<ReturnType<typeof services.deviceBoards.restore>>) => {
+      const current = sessionRef.current;
       const ready: WorkspaceReadySession = {
         status: "ready",
         state: board.editor,
@@ -881,6 +911,7 @@ export function useWorkspace(services: ApplicationServices) {
         revision: board.revision,
         syncStatus: "saved",
         readOnly: false,
+        editorToken: current.status === "ready" ? current.editorToken : undefined,
       };
       setSession(ready);
       setStatusMessage("");
@@ -890,6 +921,61 @@ export function useWorkspace(services: ApplicationServices) {
       }
     },
     [startCloudSession, writeHistory],
+  );
+
+  const returnToCurrent = useCallback(() => {
+    const current = sessionRef.current;
+    if (
+      current.status !== "ready" ||
+      !current.recordId ||
+      current.storageKind === "url"
+    ) return;
+    const route = current.editorToken
+      ? ApplicationRoutes.editorInvite(current.editorToken)
+      : current.storageKind === "cloud"
+        ? ApplicationRoutes.cloudBoard(current.recordId)
+        : ApplicationRoutes.deviceBoard(current.recordId);
+    window.history.pushState(null, "", route);
+    void resolveRoute(route, authRef.current);
+  }, [resolveRoute]);
+
+  const viewCheckpoint = useCallback(
+    async (checkpoint: BoardCheckpoint) => {
+      const current = sessionRef.current;
+      if (
+        current.status !== "ready" ||
+        !current.recordId ||
+        current.storageKind === "url"
+      ) {
+        throw new Error("This board does not have saved version history.");
+      }
+      if (checkpoint.isCurrent) {
+        returnToCurrent();
+        return;
+      }
+      if (current.storageKind === "cloud") {
+        await cloudSync.current?.flush();
+        if (cloudSync.current?.hasPending) {
+          throw new Error("Cloud changes must finish before viewing a version.");
+        }
+      }
+      const editor = services.codec.decode(checkpoint.stateHash);
+      if (!editor || editor.mode !== "edit") {
+        throw new Error("This saved version is invalid.");
+      }
+      stopCloudSession();
+      const historical: WorkspaceReadySession = {
+        ...current,
+        state: editor,
+        revision: checkpoint.revision,
+        syncStatus: "saved",
+        historicalRevision: checkpoint.revision,
+      };
+      setSession(historical);
+      setStatusMessage("");
+      writeHistory(historical, "push");
+    },
+    [returnToCurrent, services.codec, stopCloudSession, writeHistory],
   );
 
   const restoreCheckpoint = useCallback(
@@ -1007,8 +1093,10 @@ export function useWorkspace(services: ApplicationServices) {
     deleteBoard,
     duplicateBoard,
     listCheckpoints,
+    viewCheckpoint,
     restoreCheckpoint,
     restoreHistorical,
+    returnToCurrent,
     copyEditorUrl,
     signOut,
     deleteAccount,

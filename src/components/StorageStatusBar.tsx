@@ -19,6 +19,7 @@ type StorageStatusBarProps = {
   onOpenShare: () => void;
   onOpenHistory: () => void;
   onRestoreHistorical: () => void;
+  onReturnToCurrent: () => void;
 };
 
 const storageLabels: Record<StorageKind, string> = {
@@ -41,6 +42,7 @@ export function StorageStatusBar({
   onOpenShare,
   onOpenHistory,
   onRestoreHistorical,
+  onReturnToCurrent,
 }: StorageStatusBarProps) {
   const Icon =
     session.storageKind === "cloud"
@@ -83,9 +85,14 @@ export function StorageStatusBar({
       )}
       <div className="storage-actions">
         {session.historicalRevision !== undefined && (
-          <button type="button" onClick={onRestoreHistorical}>
-            <RotateCcw size={15} /> Restore This Version
-          </button>
+          <>
+            <button type="button" onClick={onRestoreHistorical}>
+              <RotateCcw size={15} /> Restore This Version
+            </button>
+            <button type="button" onClick={onReturnToCurrent}>
+              <History size={15} /> Return To Current
+            </button>
+          </>
         )}
         {session.storageKind === "url" ? (
           <label>

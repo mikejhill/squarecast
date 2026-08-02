@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
-import { History, RotateCcw } from "lucide-react";
+import { Eye, History, RotateCcw } from "lucide-react";
 import type { BoardCheckpoint } from "../lib/board-repository";
 import { Modal } from "./Modal";
 
 type CheckpointDialogProps = {
   onClose: () => void;
   loadCheckpoints: () => Promise<readonly BoardCheckpoint[]>;
+  onView: (checkpoint: BoardCheckpoint) => Promise<void>;
   onRestore: (revision: number) => Promise<void>;
+  viewingRevision?: number;
 };
 
 /** Lists immutable saved checkpoints and restores one as a new head revision. */
 export function CheckpointDialog({
   onClose,
   loadCheckpoints,
+  onView,
   onRestore,
+  viewingRevision,
 }: CheckpointDialogProps) {
   const [checkpoints, setCheckpoints] = useState<readonly BoardCheckpoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [restoring, setRestoring] = useState<number | null>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -54,6 +59,19 @@ export function CheckpointDialog({
     }
   };
 
+  const view = async (checkpoint: BoardCheckpoint) => {
+    setViewing(checkpoint.revision);
+    setMessage("");
+    try {
+      await onView(checkpoint);
+      onClose();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The version could not be opened.");
+    } finally {
+      setViewing(null);
+    }
+  };
+
   return (
     <Modal title="Version History" onClose={onClose}>
       <p className="dialog-intro">
@@ -63,7 +81,7 @@ export function CheckpointDialog({
       {loading ? (
         <p role="status">Loading version history…</p>
       ) : checkpoints.length === 0 ? (
-        <p>No meaningful checkpoints have been saved yet.</p>
+        <p>No saved versions are available for this board.</p>
       ) : (
         <ol className="checkpoint-list">
           {checkpoints.map((checkpoint) => (
@@ -73,16 +91,37 @@ export function CheckpointDialog({
                 <strong>{checkpoint.reason}</strong>
                 <span>
                   Revision {checkpoint.revision} · {new Date(checkpoint.createdAt).toLocaleString()}
+                  {checkpoint.isCurrent ? " · Current" : ""}
                 </span>
               </div>
-              <button
-                type="button"
-                disabled={restoring !== null}
-                onClick={() => void restore(checkpoint.revision)}
-              >
-                <RotateCcw size={15} />
-                {restoring === checkpoint.revision ? "Restoring…" : "Restore"}
-              </button>
+              <div className="checkpoint-actions">
+                <button
+                  type="button"
+                  disabled={
+                    restoring !== null ||
+                    viewing !== null ||
+                    viewingRevision === checkpoint.revision ||
+                    (viewingRevision === undefined && checkpoint.isCurrent)
+                  }
+                  onClick={() => void view(checkpoint)}
+                >
+                  <Eye size={15} />
+                  {viewing === checkpoint.revision
+                    ? "Opening…"
+                    : viewingRevision === checkpoint.revision ||
+                        (viewingRevision === undefined && checkpoint.isCurrent)
+                      ? "Viewing"
+                      : "View"}
+                </button>
+                <button
+                  type="button"
+                  disabled={restoring !== null || viewing !== null || checkpoint.isCurrent}
+                  onClick={() => void restore(checkpoint.revision)}
+                >
+                  <RotateCcw size={15} />
+                  {restoring === checkpoint.revision ? "Restoring…" : "Restore"}
+                </button>
+              </div>
             </li>
           ))}
         </ol>

@@ -145,7 +145,7 @@ share URLs, clipboard contents, imported content, or Firebase documents.
 | IndexedDB failure/quota | Keep active URL state and expose snapshot/JSON export |
 | Firestore blocked/offline | Persist unacknowledged operations in IndexedDB |
 | Firestore quota/provider failure | Show Cloud Unavailable; keep active editor |
-| Same-target collaboration conflict | Keep recoverable local text and announce Conflict |
+| Same-target collaboration conflict | Name the affected target, state that local work will save automatically, then confirm resolution |
 | Invalid JSON/CSV | Keep current board; reject partial replacement |
 
 Before sign-out, checkpoint restore, or account deletion, Squarecast flushes

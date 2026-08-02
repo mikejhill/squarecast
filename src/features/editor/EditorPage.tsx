@@ -37,6 +37,7 @@ type EditorPageProps = {
   onOpenShare: () => void;
   onOpenHistory: () => void;
   onRestoreHistorical: () => void;
+  onReturnToCurrent: () => void;
 };
 
 /**
@@ -59,6 +60,7 @@ export function EditorPage({
   onOpenShare,
   onOpenHistory,
   onRestoreHistorical,
+  onReturnToCurrent,
 }: EditorPageProps) {
   const controller = useMemo(
     () => new EditorController(state, onChange, applicationServices),
@@ -164,6 +166,7 @@ export function EditorPage({
         onOpenShare={onOpenShare}
         onOpenHistory={onOpenHistory}
         onRestoreHistorical={onRestoreHistorical}
+        onReturnToCurrent={onReturnToCurrent}
       />
       <BoardSetupPanel
         config={state.config}

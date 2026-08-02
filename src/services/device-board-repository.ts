@@ -128,7 +128,14 @@ export class DeviceBoardRepository implements BoardRepository {
       revision: 1,
       createdAt: now,
       updatedAt: now,
-      checkpoints: [],
+      checkpoints: [
+        {
+          revision: 1,
+          stateHash: this.codec.encode(parsed),
+          createdAt: now,
+          reason: "Board Created",
+        },
+      ],
     };
     await this.putRecord(record);
     return this.toSavedBoard(record);
@@ -157,9 +164,19 @@ export class DeviceBoardRepository implements BoardRepository {
     );
     const revision = current.revision + 1;
     const now = Date.now();
+    const earlierCheckpoint =
+      checkpointReason && current.checkpoints.length === 0
+        ? [{
+            revision: current.revision,
+            stateHash: current.stateHash,
+            createdAt: current.updatedAt,
+            reason: `Before ${checkpointReason}`,
+          }]
+        : [];
     const checkpoints = checkpointReason
       ? [
           ...current.checkpoints,
+          ...earlierCheckpoint,
           {
             revision,
             stateHash: this.codec.encode(nextEditor),
@@ -213,7 +230,26 @@ export class DeviceBoardRepository implements BoardRepository {
   }
 
   public async listCheckpoints(id: string): Promise<readonly BoardCheckpoint[]> {
-    return (await this.requireRecord(id)).checkpoints.slice().reverse();
+    const current = await this.requireRecord(id);
+    const checkpoints = current.checkpoints
+      .slice()
+      .reverse()
+      .map((checkpoint) => ({
+        ...checkpoint,
+        isCurrent: checkpoint.revision === current.revision,
+      }));
+    return checkpoints.some((checkpoint) => checkpoint.revision === current.revision)
+      ? checkpoints
+      : [
+          {
+            revision: current.revision,
+            stateHash: current.stateHash,
+            createdAt: current.updatedAt,
+            reason: "Current Version",
+            isCurrent: true,
+          },
+          ...checkpoints,
+        ].slice(0, 25);
   }
 
   public async restore(id: string, revision: number): Promise<SavedBoard> {

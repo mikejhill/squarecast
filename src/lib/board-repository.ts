@@ -42,6 +42,7 @@ export type BoardCheckpoint = {
   stateHash: string;
   createdAt: number;
   reason: string;
+  isCurrent?: boolean;
 };
 
 /** Common persistence behavior consumed by the workspace orchestration layer. */

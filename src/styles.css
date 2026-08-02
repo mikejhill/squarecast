@@ -2683,6 +2683,13 @@ optgroup {
   gap: 6px;
 }
 
+.checkpoint-list .checkpoint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .account-verification-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2764,6 +2771,14 @@ optgroup {
 }
 
 @media (max-width: 620px) {
+  .checkpoint-list li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .checkpoint-list .checkpoint-actions {
+    grid-column: 1 / -1;
+  }
+
   .site-header {
     height: 62px;
     padding: 0 12px;

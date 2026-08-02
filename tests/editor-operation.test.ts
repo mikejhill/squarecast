@@ -5,6 +5,7 @@ import {
   coalesceEditorOperations,
   createOperationId,
   editorOperationCoalescingKey,
+  editorOperationTargetLabels,
   editorOperationTargetKeys,
   editorOperationTargetsOverlap,
   editorOperationSchema,
@@ -108,6 +109,42 @@ describe("editor operations", () => {
     expect(coalesceEditorOperations(firstConfig, nextConfig)).toEqual(nextConfig);
     expect(coalesceEditorOperations(firstCard, nextCard)).toEqual(nextCard);
     expect(coalesceEditorOperations(deletion, nextConfig)).toEqual(nextConfig);
+  });
+
+  it("describes conflicting semantic targets in user-facing language", () => {
+    const editor = BoardModel.createDefaultEditor();
+    const card = editor.answers[0]!;
+    expect(
+      editorOperationTargetLabels(
+        {
+          id: "config",
+          type: "patch-config",
+          patch: { title: "Changed", freeLabel: "Center" },
+        },
+        editor,
+      ),
+    ).toEqual(["Board Title", "Free Square Label"]);
+    expect(
+      editorOperationTargetLabels(
+        { id: "card", type: "update-card", cardId: card.id, patch: { text: "Changed" } },
+        editor,
+      ),
+    ).toEqual([`Card “${card.text}”`]);
+    expect(
+      editorOperationTargetLabels(
+        { id: "missing", type: "delete-card", cardId: "missing" },
+        editor,
+      ),
+    ).toEqual(["A Card"]);
+    expect(
+      editorOperationTargetLabels({ id: "add", type: "add-cards", cards: [] }, editor),
+    ).toEqual(["Card Pool Additions"]);
+    expect(
+      editorOperationTargetLabels({ id: "sort", type: "sort-cards", mode: "manual" }, editor),
+    ).toEqual(["Card Pool Order"]);
+    expect(
+      editorOperationTargetLabels({ id: "replace", type: "replace-editor", editor }, editor),
+    ).toEqual(["Entire Board"]);
   });
 
   it("creates operation IDs with and without randomUUID and validates schemas", () => {

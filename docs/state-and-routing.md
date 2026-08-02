@@ -115,6 +115,14 @@ Saved pointer routes remain stable. Anonymous editor-link sessions retain the
 ID, revision, and active editor token when applicable. Back or Forward can
 therefore show an older saved revision without rewriting storage. Historical
 views reject edits until **Restore This Version** writes a new head revision.
+**Return To Current** discards the preview without changing storage.
+
+Device and cloud boards retain up to 25 saved versions. New boards begin with a
+**Board Created** baseline. Card additions, deletions, sorting, imports, and
+structural Board Setup changes create named versions; routine typing remains
+coalesced. Existing boards without a baseline capture their prior state when the
+next named version is created. The Version History dialog identifies the current
+revision and provides separate **View** and **Restore** actions.
 
 ## Seeds And Reproducibility
 

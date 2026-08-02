@@ -104,6 +104,28 @@ describe("Firestore security rules", () => {
     );
   });
 
+  it("creates cloud boards with a restorable baseline checkpoint", async () => {
+    const database = auth("owner");
+    const repository = new CloudBoardRepository(
+      { firestore: () => database } as unknown as FirebaseClient,
+      new StateCodec(),
+      new EditorStateService(new AnswerPoolSorter()),
+      () => ({
+        uid: "owner",
+        email: "owner@example.test",
+        displayName: "Owner",
+        emailVerified: true,
+        isAnonymous: false,
+      }),
+    );
+
+    const board = await repository.create(BoardModel.createDefaultEditor());
+    const checkpoints = await repository.listCheckpoints(board.id);
+    expect(checkpoints).toEqual([
+      expect.objectContaining({ revision: 1, reason: "Board Created", isCurrent: true }),
+    ]);
+  });
+
   it("rejects unverified board creation and forged initial permissions", async () => {
     await assertFails(
       setDoc(doc(unverified("owner"), "boards", "unverified"), boardData()),
@@ -502,7 +524,7 @@ describe("Firestore security rules", () => {
     );
     expect(saved.editor.config.title).toBe("Saved By Guest");
     expect(saved.revision).toBe(2);
-    await expect(repository.listCheckpoints("board-1")).resolves.toHaveLength(1);
+    await expect(repository.listCheckpoints("board-1")).resolves.toHaveLength(2);
     await environment.withSecurityRulesDisabled(async (context) => {
       const snapshot = await getDoc(doc(context.firestore(), "boards", "board-1"));
       expect(snapshot.data()?.memberUids).toEqual(["owner"]);

@@ -46,6 +46,7 @@ describe("storage interface", () => {
         onOpenShare={vi.fn()}
         onOpenHistory={vi.fn()}
         onRestoreHistorical={vi.fn()}
+        onReturnToCurrent={vi.fn()}
       />,
     );
     expect(screen.getByText("Shared Editor Link")).toBeTruthy();
@@ -69,6 +70,7 @@ describe("storage interface", () => {
         onOpenShare={vi.fn()}
         onOpenHistory={vi.fn()}
         onRestoreHistorical={vi.fn()}
+        onReturnToCurrent={vi.fn()}
       />,
     );
 
@@ -93,6 +95,7 @@ describe("storage interface", () => {
         onOpenShare={vi.fn()}
         onOpenHistory={vi.fn()}
         onRestoreHistorical={vi.fn()}
+        onReturnToCurrent={vi.fn()}
       />,
     );
     expect(screen.getByRole("status").textContent).toContain(
@@ -110,6 +113,7 @@ describe("storage interface", () => {
     const user = userEvent.setup();
     const onOpenHistory = vi.fn();
     const onRestoreHistorical = vi.fn();
+    const onReturnToCurrent = vi.fn();
     render(
       <StorageStatusBar
         session={{
@@ -130,14 +134,17 @@ describe("storage interface", () => {
         onOpenShare={vi.fn()}
         onOpenHistory={onOpenHistory}
         onRestoreHistorical={onRestoreHistorical}
+        onReturnToCurrent={onReturnToCurrent}
       />,
     );
     expect(screen.getByRole("status").textContent).toContain(
       "Viewing historical revision 4",
     );
     await user.click(screen.getByRole("button", { name: "Restore This Version" }));
+    await user.click(screen.getByRole("button", { name: "Return To Current" }));
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(onRestoreHistorical).toHaveBeenCalledOnce();
+    expect(onReturnToCurrent).toHaveBeenCalledOnce();
     expect(onOpenHistory).toHaveBeenCalledOnce();
   });
 

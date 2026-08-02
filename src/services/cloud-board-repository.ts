@@ -190,12 +190,22 @@ export class CloudBoardRepository implements BoardRepository {
       revision: 1,
       recentOperationIds: [] as string[],
       shareTokens: {},
-      checkpointRevisions: [] as number[],
+      checkpointRevisions: [1],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       updatedBy: user.uid,
     };
-    await setDoc(reference, record);
+    const batch = writeBatch(this.database);
+    batch.set(reference, record);
+    batch.set(doc(reference, "checkpoints", "1"), {
+      schemaVersion: 1,
+      revision: 1,
+      stateHash,
+      reason: "Board Created",
+      createdAt: serverTimestamp(),
+      createdBy: user.uid,
+    });
+    await batch.commit();
     return {
       id: reference.id,
       title: parsed.config.title,
@@ -239,8 +249,15 @@ export class CloudBoardRepository implements BoardRepository {
       );
       const stateHash = this.encodeWithinLimit(nextEditor);
       const revision = current.revision + 1;
+      const needsEarlierCheckpoint = Boolean(
+        checkpointReason && current.checkpointRevisions.length === 0,
+      );
       const nextCheckpointRevisions = checkpointReason
-        ? [...current.checkpointRevisions, revision].slice(-CHECKPOINT_LIMIT)
+        ? [
+            ...current.checkpointRevisions,
+            ...(needsEarlierCheckpoint ? [current.revision] : []),
+            revision,
+          ].slice(-CHECKPOINT_LIMIT)
         : current.checkpointRevisions;
       const nextData = {
         title: nextEditor.config.title,
@@ -261,6 +278,19 @@ export class CloudBoardRepository implements BoardRepository {
       };
       transaction.update(boardReference, nextData);
       if (checkpointReason) {
+        if (needsEarlierCheckpoint) {
+          transaction.set(
+            doc(boardReference, "checkpoints", String(current.revision)),
+            {
+              schemaVersion: 1,
+              revision: current.revision,
+              stateHash: current.stateHash,
+              reason: `Before ${checkpointReason}`,
+              createdAt: current.updatedAt,
+              createdBy: user.uid,
+            },
+          );
+        }
         transaction.set(
           doc(boardReference, "checkpoints", String(revision)),
           {
@@ -376,15 +406,28 @@ export class CloudBoardRepository implements BoardRepository {
         limit(CHECKPOINT_LIMIT),
       ),
     );
-    return snapshots.docs.map((snapshot) => {
+    const checkpoints = snapshots.docs.map((snapshot) => {
       const data = snapshot.data();
       return {
         revision: Number(data.revision),
         stateHash: String(data.stateHash),
         createdAt: this.toMillis(data.createdAt),
         reason: String(data.reason),
+        isCurrent: Number(data.revision) === board.revision,
       };
     });
+    return checkpoints.some((checkpoint) => checkpoint.revision === board.revision)
+      ? checkpoints
+      : [
+          {
+            revision: board.revision,
+            stateHash: board.stateHash,
+            createdAt: this.toMillis(board.updatedAt),
+            reason: "Current Version",
+            isCurrent: true,
+          },
+          ...checkpoints,
+        ].slice(0, CHECKPOINT_LIMIT);
   }
 
   public async restore(id: string, revision: number): Promise<SavedBoard> {
