@@ -17,6 +17,9 @@
     "check": "npm run test:rules && npm run test:coverage && npm run build"
   },
   "dependencies": {
+    "@mikejhill/portable-document-browser": "0.1.0",
+    "@mikejhill/portable-document-codec": "0.1.0",
+    "@mikejhill/portable-document-core": "0.1.0",
     "firebase": "^12.17.0",
     "loglevel": "^1.9.2",
     "lucide-react": "^0.468.0",

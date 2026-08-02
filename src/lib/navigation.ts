@@ -1,3 +1,4 @@
+import { NavigationPolicy } from "@mikejhill/portable-document-browser";
 import type { HistoryWriteMode } from "./history";
 import { ApplicationRoutes } from "./routes";
 
@@ -13,13 +14,12 @@ export type NavigationWrite = {
  * and Back/Forward restoration consumes state without rewriting history.
  */
 export class NavigationCoordinator {
-  private mode: HistoryWriteMode = "replace";
-  private routeHash: string | null;
+  private readonly policy = new NavigationPolicy();
 
   public constructor(initialHash: string) {
-    this.routeHash = ApplicationRoutes.isNewBoard(initialHash)
-      ? ApplicationRoutes.newBoardHash
-      : null;
+    if (ApplicationRoutes.isNewBoard(initialHash)) {
+      this.policy.schedule("replace", ApplicationRoutes.newBoardHash);
+    }
   }
 
   /** Records how the next state render should update browser history. */
@@ -27,24 +27,16 @@ export class NavigationCoordinator {
     mode: HistoryWriteMode = "replace",
     routeHash?: string,
   ): void {
-    this.mode = mode;
-    this.routeHash = routeHash ?? null;
+    this.policy.schedule(mode, routeHash);
   }
 
   /** Prevents the state restored by a popstate event from writing itself again. */
   public restore(): void {
-    this.mode = "none";
-    this.routeHash = null;
+    this.policy.restore();
   }
 
   /** Returns and resets the pending write after React commits the new state. */
   public consume(encodedStateHash: string): NavigationWrite {
-    const write = {
-      hash: this.routeHash ?? encodedStateHash,
-      mode: this.mode,
-    };
-    this.mode = "replace";
-    this.routeHash = null;
-    return write;
+    return this.policy.consume(encodedStateHash);
   }
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import LZString from "lz-string";
+import { IdentityTextCompression } from "@mikejhill/portable-document-codec";
 import { StateCodec } from "../src/lib/codec";
+import { CompactStateSerializer } from "../src/lib/compact-state";
 import { BoardModel, editorStateSchema } from "../src/lib/model";
 import { BoardGenerator } from "../src/lib/generator";
 
@@ -20,6 +22,24 @@ describe("URL state codec", () => {
     state.answers[1]!.placement = { kind: "row", index: 1 };
     state.answers[2]!.placement = { kind: "column", index: 2 };
     expect(codec.decode(codec.encode(state))).toEqual(state);
+  });
+
+  it("preserves the exact pre-migration compact LZString wire format", () => {
+    const state = BoardModel.createDefaultEditor();
+    const compact = new CompactStateSerializer().serialize(state);
+    const expected = `#sq1:${LZString.compressToEncodedURIComponent(JSON.stringify(compact))}`;
+
+    expect(codec.encode(state)).toBe(expected);
+  });
+
+  it("supports an injected compression port without changing state semantics", () => {
+    const identityCodec = new StateCodec(
+      new CompactStateSerializer(),
+      new IdentityTextCompression(),
+    );
+    const state = BoardModel.createDefaultEditor();
+
+    expect(identityCodec.decode(identityCodec.encode(state))).toEqual(state);
   });
 
   it("round-trips launch and generated play state without duplicated cell text", () => {

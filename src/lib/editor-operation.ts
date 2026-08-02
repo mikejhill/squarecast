@@ -1,3 +1,10 @@
+import {
+  applyDocumentCommand,
+  defineDocument,
+  type DocumentDefinition,
+  type DocumentFailure,
+  type ReducerResult,
+} from "@mikejhill/portable-document-core";
 import { z } from "zod";
 import type { EditorStateService } from "./editor-state";
 import {
@@ -73,6 +80,166 @@ export class EditorConflictError extends Error {
   }
 }
 
+/** Signals that a validated portable-document command could not be applied. */
+export class EditorOperationApplicationError extends Error {
+  public constructor(public readonly failure: DocumentFailure) {
+    super(`The editor operation failed: ${failure.code}.`);
+    this.name = "EditorOperationApplicationError";
+  }
+}
+
+/** Stable, content-free summary stored beside portable document snapshots. */
+export type SquarecastDocumentSummary = {
+  readonly title: string;
+  readonly cardCount: number;
+};
+
+/**
+ * Adapts Squarecast's existing editor state and operation protocol to the
+ * portable document contract without changing any persisted representation.
+ */
+export class SquarecastDocument {
+  public readonly definition: DocumentDefinition<
+    EditorState,
+    EditorOperation,
+    SquarecastDocumentSummary
+  >;
+
+  public constructor(private readonly service: EditorStateService) {
+    this.definition = defineDocument({
+      type: "squarecast.board",
+      currentSchemaVersion: 1,
+      stateSchema: editorStateSchema,
+      commandSchema: editorOperationSchema,
+      migrations: [],
+      reduce: (state, command) => this.reduce(state, command),
+      summarize: (state) => ({
+        title: state.config.title,
+        cardCount: state.answers.length,
+      }),
+      commandPolicy: {
+        inspect: (command) => {
+          const coalescingKey = editorOperationCoalescingKey(command);
+          return {
+            targets: editorOperationTargetKeys(command),
+            ...(coalescingKey === null ? {} : { coalescingKey }),
+            durability: this.isStructural(command) ? "immediate" : "coalesced",
+            conflictLabel: this.conflictLabel(command),
+          };
+        },
+        coalesce: coalesceEditorOperations,
+      },
+    });
+  }
+
+  /** Applies one untrusted command through validation and reducer checks. */
+  public apply(editor: unknown, operation: unknown): EditorState {
+    const result = applyDocumentCommand(this.definition, editor, operation);
+    if (result.ok) return result.state;
+
+    if (result.failure.code === "missing-target") {
+      const parsed = editorOperationSchema.safeParse(operation);
+      if (parsed.success) throw new EditorConflictError(parsed.data);
+    }
+    throw new EditorOperationApplicationError(result.failure);
+  }
+
+  private reduce(
+    editor: EditorState,
+    operation: EditorOperation,
+  ): ReducerResult<EditorState> {
+    switch (operation.type) {
+      case "patch-config":
+        return {
+          ok: true,
+          state: this.service.patchConfig(editor, operation.patch).state,
+        };
+      case "patch-presentation":
+        return {
+          ok: true,
+          state: this.service.setPlacementControlsVisible(
+            editor,
+            operation.patch.placementControlsVisible,
+          ),
+        };
+      case "add-cards":
+        return {
+          ok: true,
+          state: this.service.appendAnswers(editor, operation.cards),
+        };
+      case "update-card":
+        if (!editor.answers.some((answer) => answer.id === operation.cardId)) {
+          return {
+            ok: false,
+            code: "missing-target",
+            message:
+              "The target card no longer exists in the latest board revision.",
+            recoverable: operation.patch,
+          };
+        }
+        return {
+          ok: true,
+          state: this.service.updateCard(
+            editor,
+            operation.cardId,
+            operation.patch,
+          ),
+        };
+      case "delete-card":
+        return {
+          ok: true,
+          state: this.service.deleteCard(editor, operation.cardId),
+        };
+      case "sort-cards":
+        return {
+          ok: true,
+          state: this.service.sortCards(editor, operation.mode),
+        };
+      case "replace-editor":
+        return { ok: true, state: operation.editor };
+    }
+  }
+
+  private isStructural(operation: EditorOperation): boolean {
+    return (
+      operation.type === "add-cards" ||
+      operation.type === "delete-card" ||
+      operation.type === "sort-cards" ||
+      operation.type === "replace-editor"
+    );
+  }
+
+  private conflictLabel(operation: EditorOperation): string {
+    switch (operation.type) {
+      case "patch-config":
+        return "Board configuration";
+      case "patch-presentation":
+        return "Card position controls";
+      case "update-card":
+      case "delete-card":
+        return "Card";
+      case "add-cards":
+      case "sort-cards":
+        return "Card Pool";
+      case "replace-editor":
+        return "Entire board";
+    }
+  }
+}
+
+const squarecastDocuments = new WeakMap<
+  EditorStateService,
+  SquarecastDocument
+>();
+
+function documentFor(service: EditorStateService): SquarecastDocument {
+  const existing = squarecastDocuments.get(service);
+  if (existing) return existing;
+  const document = new SquarecastDocument(service);
+  squarecastDocuments.set(service, document);
+  return document;
+}
+
 /** Creates an operation identity suitable for transaction idempotency. */
 export function createOperationId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -87,29 +254,7 @@ export function applyEditorOperation(
   editor: EditorState,
   operation: EditorOperation,
 ): EditorState {
-  const parsed = editorOperationSchema.parse(operation);
-  switch (parsed.type) {
-    case "patch-config":
-      return service.patchConfig(editor, parsed.patch).state;
-    case "patch-presentation":
-      return service.setPlacementControlsVisible(
-        editor,
-        parsed.patch.placementControlsVisible,
-      );
-    case "add-cards":
-      return service.appendAnswers(editor, parsed.cards);
-    case "update-card":
-      if (!editor.answers.some((answer) => answer.id === parsed.cardId)) {
-        throw new EditorConflictError(parsed);
-      }
-      return service.updateCard(editor, parsed.cardId, parsed.patch);
-    case "delete-card":
-      return service.deleteCard(editor, parsed.cardId);
-    case "sort-cards":
-      return service.sortCards(editor, parsed.mode);
-    case "replace-editor":
-      return parsed.editor;
-  }
+  return documentFor(service).apply(editor, operation);
 }
 
 /** Returns a queue key used to coalesce routine typing before cloud commits. */
@@ -155,9 +300,11 @@ export function editorOperationTargetsOverlap(
   remoteTargets: readonly string[],
 ): boolean {
   const localTargets = editorOperationTargetKeys(operation);
-  return remoteTargets.includes("board") ||
+  return (
+    remoteTargets.includes("board") ||
     localTargets.includes("board") ||
-    localTargets.some((target) => remoteTargets.includes(target));
+    localTargets.some((target) => remoteTargets.includes(target))
+  );
 }
 
 const configTargetLabels: Record<keyof BoardConfig, string> = {
@@ -187,8 +334,14 @@ export function editorOperationTargetLabels(
       return ["Card Position Controls"];
     case "update-card":
     case "delete-card": {
-      const text = editor.answers.find((card) => card.id === operation.cardId)?.text.trim();
-      return [text ? `Card “${text.slice(0, 40)}${text.length > 40 ? "…" : ""}”` : "A Card"];
+      const text = editor.answers
+        .find((card) => card.id === operation.cardId)
+        ?.text.trim();
+      return [
+        text
+          ? `Card “${text.slice(0, 40)}${text.length > 40 ? "…" : ""}”`
+          : "A Card",
+      ];
     }
     case "add-cards":
       return ["Card Pool Additions"];

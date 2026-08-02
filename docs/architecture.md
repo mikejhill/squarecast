@@ -23,6 +23,9 @@ Function, worker, or server session.
 7. **Explicit browser adapters.** Clipboard, downloads, rendered text
    measurement, History API access, and local preferences sit behind focused
    classes.
+8. **Portable contracts behind compatibility adapters.** Generic command,
+   compression, routing, and navigation policies come from Portable Document
+   Kit while Squarecast retains its exact external formats.
 
 ## Runtime Layers
 
@@ -31,7 +34,8 @@ flowchart LR
     U["User interaction"] --> V["React feature views"]
     V --> C["EditorController / PlayerController"]
     C --> O["EditorOperation"]
-    O --> D["Domain services"]
+    O --> P["Portable Document Kit contracts"]
+    P --> D["Domain services"]
     D --> M["Typed state model"]
     M --> K["StateCodec"]
     K --> R["WorkspaceSession + BoardRepository"]
@@ -90,7 +94,9 @@ Classes under `src/lib/` implement application rules:
 - JSON and CSV serialization; and
 - runtime logging.
 
-`EditorOperation` is a runtime-validated discriminated union for configuration
+`SquarecastDocument` adapts the board to Portable Document Kit's validated
+document definition. `EditorOperation` remains the runtime-validated
+discriminated union for configuration
 and presentation patches, Card Pool additions/edits/deletions, sorting, and
 complete replacement. Complete-board imports use replacement operations.
 `applyEditorOperation` is the single immutable interpretation path used by
@@ -197,11 +203,11 @@ Documented alternatives remain:
 
 All persisted application state is versioned.
 
-| Mode | Purpose | Important contents |
-| --- | --- | --- |
-| `edit` | Restorable board source | Configuration, Card Pool, placement constraints, position-control visibility, sort mode, setup disclosure state, preview seed |
-| `launch` | Shareable board template | Complete editor source; opening it creates a fresh randomized play state |
-| `play` | One active board | Generated cells, checked indexes, source editor, theme, typography, and seed |
+| Mode     | Purpose                  | Important contents                                                                                                            |
+| -------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `edit`   | Restorable board source  | Configuration, Card Pool, placement constraints, position-control visibility, sort mode, setup disclosure state, preview seed |
+| `launch` | Shareable board template | Complete editor source; opening it creates a fresh randomized play state                                                      |
+| `play`   | One active board         | Generated cells, checked indexes, source editor, theme, typography, and seed                                                  |
 
 Zod schemas in `src/lib/model.ts` form the trust boundary for decoded URL
 state. The portable board-file format applies the same configuration and
@@ -275,7 +281,7 @@ applies one configured size to every tile.
 The intended dependency direction is:
 
 ```text
-components/features -> controllers -> domain services -> model
+components/features -> controllers -> SquarecastDocument -> domain services -> model
                               |
                               +-> browser service interfaces/adapters
 ```
@@ -289,3 +295,4 @@ adapter instead of being distributed through feature components.
 - [State and Routing](state-and-routing.md)
 - [Design and UX](design-and-ux.md)
 - [Development](development.md)
+- [Portable Document Kit Integration](portable-document-kit.md)

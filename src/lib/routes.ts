@@ -9,6 +9,33 @@ export class ApplicationRoutes {
   public static readonly publicViewPrefix = "#sqv1:";
   public static readonly publicPlayPrefix = "#sqp1:";
   public static readonly invitePrefix = "#sqi1:";
+  private static readonly storedRouter = new FragmentRouter([
+    {
+      kind: "local",
+      prefix: ApplicationRoutes.devicePrefix,
+      identifier: /^[A-Za-z0-9_-]{8,256}$/,
+    },
+    {
+      kind: "private",
+      prefix: ApplicationRoutes.cloudPrefix,
+      identifier: /^[A-Za-z0-9_-]{8,256}$/,
+    },
+    {
+      kind: "view",
+      prefix: ApplicationRoutes.publicViewPrefix,
+      identifier: /^[A-Za-z0-9_-]{8,256}$/,
+    },
+    {
+      kind: "launch",
+      prefix: ApplicationRoutes.publicPlayPrefix,
+      identifier: /^[A-Za-z0-9_-]{8,256}$/,
+    },
+    {
+      kind: "invitation",
+      prefix: ApplicationRoutes.invitePrefix,
+      identifier: /^[A-Za-z0-9_-]{8,256}$/,
+    },
+  ]);
 
   /** Matches the special route case-insensitively for manually entered links. */
   public static isNewBoard(hash: string): boolean {
@@ -22,31 +49,25 @@ export class ApplicationRoutes {
 
   /** Parses one versioned saved-board pointer without interpreting its data. */
   public static parseStoredRoute(hash: string): StoredBoardRoute | null {
-    const routes = [
-      [ApplicationRoutes.devicePrefix, "device"],
-      [ApplicationRoutes.cloudPrefix, "cloud"],
-      [ApplicationRoutes.publicViewPrefix, "view"],
-      [ApplicationRoutes.publicPlayPrefix, "play"],
-      [ApplicationRoutes.invitePrefix, "invite"],
-    ] as const;
-    for (const [prefix, kind] of routes) {
-      if (!hash.startsWith(prefix)) continue;
-      const id = hash.slice(prefix.length);
-      if (!/^[A-Za-z0-9_-]{8,256}$/.test(id)) return null;
-      return { kind, id };
-    }
-    return null;
+    const route = ApplicationRoutes.storedRouter.parse(hash);
+    if (!route) return null;
+    const kindByRoute = {
+      local: "device",
+      private: "cloud",
+      view: "view",
+      launch: "play",
+      invitation: "invite",
+    } as const;
+    if (!(route.kind in kindByRoute)) return null;
+    return {
+      kind: kindByRoute[route.kind as keyof typeof kindByRoute],
+      id: route.value,
+    };
   }
 
   /** Detects a saved-route namespace even when its identifier is malformed. */
   public static hasStoredRoutePrefix(hash: string): boolean {
-    return [
-      ApplicationRoutes.devicePrefix,
-      ApplicationRoutes.cloudPrefix,
-      ApplicationRoutes.publicViewPrefix,
-      ApplicationRoutes.publicPlayPrefix,
-      ApplicationRoutes.invitePrefix,
-    ].some((prefix) => hash.startsWith(prefix));
+    return ApplicationRoutes.storedRouter.hasKnownPrefix(hash);
   }
 
   public static deviceBoard(id: string): string {
@@ -74,3 +95,4 @@ export type StoredBoardRoute = {
   kind: "device" | "cloud" | "view" | "play" | "invite";
   id: string;
 };
+import { FragmentRouter } from "@mikejhill/portable-document-browser";

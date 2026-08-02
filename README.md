@@ -87,15 +87,16 @@ TypeScript compilation, and the production build.
 
 Technical documentation lives in [`docs/`](docs/README.md).
 
-| Guide | Purpose |
-| --- | --- |
-| [Architecture](docs/architecture.md) | Runtime layers, service boundaries, state model, and generation algorithm |
-| [Design and UX](docs/design-and-ux.md) | Interaction principles, editing and play flows, accessibility, and responsive behavior |
-| [State and Routing](docs/state-and-routing.md) | URL state, action routes, browser history, launch links, and privacy boundaries |
-| [Data Formats](docs/data-formats.md) | JSON board documents, CSV Card Pools, validation, and compatibility |
-| [Development](docs/development.md) | Repository structure, coding conventions, testing, and contribution workflow |
-| [Operations](docs/operations.md) | Logging, CI/CD, deployment, diagnostics, and recovery |
-| [Privacy](docs/privacy.md) | Storage boundaries, cloud access, public links, and deletion |
+| Guide                                                  | Purpose                                                                                |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| [Architecture](docs/architecture.md)                   | Runtime layers, service boundaries, state model, and generation algorithm              |
+| [Design and UX](docs/design-and-ux.md)                 | Interaction principles, editing and play flows, accessibility, and responsive behavior |
+| [State and Routing](docs/state-and-routing.md)         | URL state, action routes, browser history, launch links, and privacy boundaries        |
+| [Data Formats](docs/data-formats.md)                   | JSON board documents, CSV Card Pools, validation, and compatibility                    |
+| [Development](docs/development.md)                     | Repository structure, coding conventions, testing, and contribution workflow           |
+| [Operations](docs/operations.md)                       | Logging, CI/CD, deployment, diagnostics, and recovery                                  |
+| [Privacy](docs/privacy.md)                             | Storage boundaries, cloud access, public links, and deletion                           |
+| [Portable Document Kit](docs/portable-document-kit.md) | Shared document abstractions and Squarecast compatibility boundaries                   |
 
 ## Contributing
 

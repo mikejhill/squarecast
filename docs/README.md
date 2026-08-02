@@ -15,6 +15,7 @@ contributors; these guides explain the decisions and contracts behind it.
 | [Development](development.md) | Contributors | Repository layout, local workflow, coding conventions, testing, and common change patterns |
 | [Operations](operations.md) | Maintainers | Firebase setup, Security Rules, CI/CD, GitHub Pages deployment, diagnostics, and recovery |
 | [Privacy](privacy.md) | Users and maintainers | Local/account data, guest identities, bearer links, retention, and deletion |
+| [Portable Document Kit](portable-document-kit.md) | Maintainers | Shared package integration, compatibility boundaries, and upgrade procedure |
 
 ## Suggested Reading Paths
 

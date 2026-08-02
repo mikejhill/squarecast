@@ -1,4 +1,7 @@
-import LZString from "lz-string";
+import {
+  LzStringUriCompression,
+  type TextCompression,
+} from "@mikejhill/portable-document-codec";
 import { appStateSchema, type AppState } from "./model";
 import { RuntimeLogger } from "./logger";
 import { CompactStateSerializer } from "./compact-state";
@@ -17,11 +20,12 @@ export class StateCodec {
 
   public constructor(
     private readonly compactState = new CompactStateSerializer(),
+    private readonly compression: TextCompression = new LzStringUriCompression(),
   ) {}
 
   /** Serializes and compresses a validated in-memory state into a URL hash. */
   public encode(state: AppState): string {
-    const payload = LZString.compressToEncodedURIComponent(
+    const payload = this.compression.compress(
       JSON.stringify(this.compactState.serialize(state)),
     );
     logger.debug("Encoded application state.", {
@@ -41,7 +45,7 @@ export class StateCodec {
       return null;
     }
     try {
-      const raw = LZString.decompressFromEncodedURIComponent(
+      const raw = this.compression.decompress(
         hash.slice(StateCodec.hashPrefix.length),
       );
       if (!raw) {

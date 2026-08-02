@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   EditorConflictError,
+  EditorOperationApplicationError,
+  SquarecastDocument,
   applyEditorOperation,
   coalesceEditorOperations,
   createOperationId,
@@ -19,7 +21,11 @@ const service = new EditorStateService(new AnswerPoolSorter());
 describe("editor operations", () => {
   it("replays every durable mutation against the latest editor", () => {
     const editor = BoardModel.createDefaultEditor();
-    const added = { id: "added-card", text: "Added", placement: { kind: "any" as const } };
+    const added = {
+      id: "added-card",
+      text: "Added",
+      placement: { kind: "any" as const },
+    };
     const patched = applyEditorOperation(service, editor, {
       id: "patch",
       type: "patch-config",
@@ -60,7 +66,9 @@ describe("editor operations", () => {
     expect(patched.config.title).toBe("Changed");
     expect(withPositions.placementControlsVisible).toBe(true);
     expect(withCard.answers).toContainEqual(added);
-    expect(updated.answers.find((card) => card.id === added.id)?.text).toBe("Updated");
+    expect(updated.answers.find((card) => card.id === added.id)?.text).toBe(
+      "Updated",
+    );
     expect(sorted.config.sortMode).toBe("reverse");
     expect(deleted.answers.some((card) => card.id === added.id)).toBe(false);
     expect(replaced).toEqual(editor);
@@ -73,11 +81,61 @@ describe("editor operations", () => {
       cardId: "missing-card",
       patch: { text: "Lost text" },
     };
-    expect(() => applyEditorOperation(service, BoardModel.createDefaultEditor(), operation))
-      .toThrow(EditorConflictError);
+    expect(() =>
+      applyEditorOperation(
+        service,
+        BoardModel.createDefaultEditor(),
+        operation,
+      ),
+    ).toThrow(EditorConflictError);
     const conflict = new EditorConflictError(operation);
     expect(conflict.name).toBe("EditorConflictError");
     expect(conflict.operation).toEqual(operation);
+  });
+
+  it("exposes Squarecast as a validated portable document definition", () => {
+    const document = new SquarecastDocument(service);
+    const editor = BoardModel.createDefaultEditor();
+    const operation = {
+      id: "portable",
+      type: "patch-config" as const,
+      patch: { title: "Portable" },
+    };
+
+    expect(document.definition.type).toBe("squarecast.board");
+    expect(document.definition.currentSchemaVersion).toBe(1);
+    expect(document.definition.summarize(editor)).toEqual({
+      title: editor.config.title,
+      cardCount: editor.answers.length,
+    });
+    expect(document.definition.commandPolicy.inspect(operation)).toMatchObject({
+      targets: ["config:title"],
+      coalescingKey: "config:title",
+      durability: "coalesced",
+      conflictLabel: "Board configuration",
+    });
+    expect(
+      document.definition.commandPolicy.inspect({
+        id: "structural",
+        type: "delete-card",
+        cardId: editor.answers[0]!.id,
+      }).durability,
+    ).toBe("immediate");
+
+    const applied = document.apply(editor, operation);
+    expect(applied.config.title).toBe("Portable");
+    expect(editor.config.title).not.toBe("Portable");
+  });
+
+  it("rejects malformed portable commands before invoking domain services", () => {
+    const document = new SquarecastDocument(service);
+    expect(() =>
+      document.apply(BoardModel.createDefaultEditor(), {
+        id: "invalid",
+        type: "delete-card",
+        cardId: "",
+      }),
+    ).toThrow(EditorOperationApplicationError);
   });
 
   it("coalesces routine field and card typing without merging major actions", () => {
@@ -120,14 +178,18 @@ describe("editor operations", () => {
     expect(editorOperationCoalescingKey(presentation)).toBe(
       "presentation:placement-controls",
     );
-    expect(coalesceEditorOperations(firstConfig, nextConfig)).toEqual(nextConfig);
+    expect(coalesceEditorOperations(firstConfig, nextConfig)).toEqual(
+      nextConfig,
+    );
     expect(coalesceEditorOperations(firstCard, nextCard)).toEqual(nextCard);
     expect(coalesceEditorOperations(deletion, nextConfig)).toEqual(nextConfig);
-    expect(coalesceEditorOperations(presentation, {
-      ...presentation,
-      id: "seven",
-      patch: { placementControlsVisible: false },
-    })).toEqual({
+    expect(
+      coalesceEditorOperations(presentation, {
+        ...presentation,
+        id: "seven",
+        patch: { placementControlsVisible: false },
+      }),
+    ).toEqual({
       ...presentation,
       id: "seven",
       patch: { placementControlsVisible: false },
@@ -149,7 +211,12 @@ describe("editor operations", () => {
     ).toEqual(["Board Title", "Free Square Label"]);
     expect(
       editorOperationTargetLabels(
-        { id: "card", type: "update-card", cardId: card.id, patch: { text: "Changed" } },
+        {
+          id: "card",
+          type: "update-card",
+          cardId: card.id,
+          patch: { text: "Changed" },
+        },
         editor,
       ),
     ).toEqual([`Card “${card.text}”`]);
@@ -160,13 +227,22 @@ describe("editor operations", () => {
       ),
     ).toEqual(["A Card"]);
     expect(
-      editorOperationTargetLabels({ id: "add", type: "add-cards", cards: [] }, editor),
+      editorOperationTargetLabels(
+        { id: "add", type: "add-cards", cards: [] },
+        editor,
+      ),
     ).toEqual(["Card Pool Additions"]);
     expect(
-      editorOperationTargetLabels({ id: "sort", type: "sort-cards", mode: "manual" }, editor),
+      editorOperationTargetLabels(
+        { id: "sort", type: "sort-cards", mode: "manual" },
+        editor,
+      ),
     ).toEqual(["Card Pool Order"]);
     expect(
-      editorOperationTargetLabels({ id: "replace", type: "replace-editor", editor }, editor),
+      editorOperationTargetLabels(
+        { id: "replace", type: "replace-editor", editor },
+        editor,
+      ),
     ).toEqual(["Entire Board"]);
     expect(
       editorOperationTargetLabels(
@@ -187,7 +263,11 @@ describe("editor operations", () => {
     expect(createOperationId()).toContain("-");
     vi.stubGlobal("crypto", originalCrypto);
     expect(
-      editorOperationSchema.safeParse({ id: "x", type: "delete-card", cardId: "c" }).success,
+      editorOperationSchema.safeParse({
+        id: "x",
+        type: "delete-card",
+        cardId: "c",
+      }).success,
     ).toBe(true);
   });
 
@@ -198,44 +278,63 @@ describe("editor operations", () => {
       cardId: "one",
       patch: { text: "Changed" },
     };
-    expect(editorOperationTargetKeys({
-      id: "config",
-      type: "patch-config",
-      patch: { title: "Title", free: 0 },
-    })).toEqual(["config:title", "config:free"]);
+    expect(
+      editorOperationTargetKeys({
+        id: "config",
+        type: "patch-config",
+        patch: { title: "Title", free: 0 },
+      }),
+    ).toEqual(["config:title", "config:free"]);
     expect(editorOperationTargetKeys(cardUpdate)).toEqual(["card:one"]);
-    expect(editorOperationTargetKeys({
-      id: "delete",
-      type: "delete-card",
-      cardId: "one",
-    })).toEqual(["card:one"]);
-    expect(editorOperationTargetKeys({
-      id: "add",
-      type: "add-cards",
-      cards: [],
-    })).toEqual(["pool"]);
-    expect(editorOperationTargetKeys({
-      id: "sort",
-      type: "sort-cards",
-      mode: "manual",
-    })).toEqual(["pool"]);
-    expect(editorOperationTargetKeys({
-      id: "replace",
-      type: "replace-editor",
-      editor: BoardModel.createDefaultEditor(),
-    })).toEqual(["board"]);
-    expect(editorOperationTargetKeys({
-      id: "presentation",
-      type: "patch-presentation",
-      patch: { placementControlsVisible: true },
-    })).toEqual(["presentation:placement-controls"]);
+    expect(
+      editorOperationTargetKeys({
+        id: "delete",
+        type: "delete-card",
+        cardId: "one",
+      }),
+    ).toEqual(["card:one"]);
+    expect(
+      editorOperationTargetKeys({
+        id: "add",
+        type: "add-cards",
+        cards: [],
+      }),
+    ).toEqual(["pool"]);
+    expect(
+      editorOperationTargetKeys({
+        id: "sort",
+        type: "sort-cards",
+        mode: "manual",
+      }),
+    ).toEqual(["pool"]);
+    expect(
+      editorOperationTargetKeys({
+        id: "replace",
+        type: "replace-editor",
+        editor: BoardModel.createDefaultEditor(),
+      }),
+    ).toEqual(["board"]);
+    expect(
+      editorOperationTargetKeys({
+        id: "presentation",
+        type: "patch-presentation",
+        patch: { placementControlsVisible: true },
+      }),
+    ).toEqual(["presentation:placement-controls"]);
     expect(editorOperationTargetsOverlap(cardUpdate, ["card:one"])).toBe(true);
     expect(editorOperationTargetsOverlap(cardUpdate, ["board"])).toBe(true);
-    expect(editorOperationTargetsOverlap(cardUpdate, ["config:title"])).toBe(false);
-    expect(editorOperationTargetsOverlap({
-      id: "replace",
-      type: "replace-editor",
-      editor: BoardModel.createDefaultEditor(),
-    }, ["config:title"])).toBe(true);
+    expect(editorOperationTargetsOverlap(cardUpdate, ["config:title"])).toBe(
+      false,
+    );
+    expect(
+      editorOperationTargetsOverlap(
+        {
+          id: "replace",
+          type: "replace-editor",
+          editor: BoardModel.createDefaultEditor(),
+        },
+        ["config:title"],
+      ),
+    ).toBe(true);
   });
 });
