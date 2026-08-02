@@ -125,8 +125,10 @@ Manual Order is the default. New cards append to the pool; choosing a
 deterministic sort mode reapplies that ordering after additions and edits.
 Pressing Enter while editing an existing card commits the edit without creating
 another card.
-The Card Pool search consumes the toolbar width left by the fixed action group
+The Card Pool search consumes the toolbar width left by the action group
 at desktop and mobile sizes.
+Matched rows render one highlighted edit control. Activating it replaces that
+control with the Card text input; the two text renderings never coexist.
 
 Duplicate text remains permitted because some boards intentionally repeat a
 card. It is treated as a warning, with affected cards identified directly in

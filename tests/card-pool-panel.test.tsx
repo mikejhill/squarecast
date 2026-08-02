@@ -90,9 +90,18 @@ describe("Card Pool search", () => {
 
     await user.type(search, "snack");
 
-    expect(screen.getByLabelText("Card 1")).toBeTruthy();
+    const matchedCard = screen.getByRole("button", {
+      name: /Edit Card 1: Try a new snack/,
+    });
+    expect(screen.queryByLabelText("Card 1")).toBeNull();
     expect(screen.queryByLabelText("Card 2")).toBeNull();
     expect(container.querySelector("mark")?.textContent).toBe("snack");
+    expect(matchedCard.querySelector("mark")?.textContent).toBe("snack");
+
+    await user.click(matchedCard);
+    expect(screen.queryByRole("button", { name: /Edit Card 1:/ })).toBeNull();
+    expect(screen.getByLabelText("Card 1")).toBeTruthy();
+    expect(container.querySelector("mark")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Clear Card Pool search" }));
 
@@ -118,7 +127,9 @@ describe("Card Pool search", () => {
 
     expect(screen.queryByLabelText("Card 3")).toBeNull();
     await user.type(search, " ");
-    expect(screen.getByLabelText("Card 3")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Edit Card 3: Pack another snack/ }),
+    ).toBeTruthy();
   });
 
   it("shows a specific empty state for searches without matches", async () => {

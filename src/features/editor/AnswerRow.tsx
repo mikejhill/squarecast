@@ -4,7 +4,7 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react";
-import type { KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { MatchedText } from "../../components/MatchedText";
 import type { CardSearchRange } from "../../lib/card-pool-search";
 import type { Answer, Placement } from "../../lib/model";
@@ -33,10 +33,19 @@ export function AnswerRow({
   onChange,
   onDelete,
 }: AnswerRowProps) {
+  const [editingMatchedText, setEditingMatchedText] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const showMatchedText = !!matchRanges?.length && !editingMatchedText;
   const selectValue =
     answer.placement.kind === "any"
       ? "any"
       : `${answer.placement.kind}:${answer.placement.index}`;
+
+  // The highlighted control and text input are mutually exclusive. Focus the
+  // input only after React replaces the highlighted control for editing.
+  useEffect(() => {
+    if (editingMatchedText) inputRef.current?.focus();
+  }, [editingMatchedText]);
 
   const parsePlacement = (value: string): Placement => {
     if (value === "any") return { kind: "any" };
@@ -59,20 +68,27 @@ export function AnswerRow({
       <span className="answer-number">{index + 1}</span>
       <div className="card-text-field">
         <div className="card-text-editor">
-          <input
-            className={matchRanges?.length ? "has-search-highlight" : undefined}
-            value={answer.text}
-            onChange={(event) => onChange({ text: event.target.value })}
-            onKeyDown={handleKey}
-            onBlur={(event) => {
-              event.currentTarget.scrollLeft = 0;
-            }}
-            aria-label={`Card ${index + 1}`}
-          />
-          {!!matchRanges?.length && (
-            <span className="card-search-highlight" aria-hidden="true">
+          {showMatchedText ? (
+            <button
+              type="button"
+              className="card-search-highlight"
+              aria-label={`Edit Card ${index + 1}: ${answer.text}`}
+              onClick={() => setEditingMatchedText(true)}
+            >
               <MatchedText text={answer.text} ranges={matchRanges} />
-            </span>
+            </button>
+          ) : (
+            <input
+              ref={inputRef}
+              value={answer.text}
+              onChange={(event) => onChange({ text: event.target.value })}
+              onKeyDown={handleKey}
+              onBlur={(event) => {
+                event.currentTarget.scrollLeft = 0;
+                setEditingMatchedText(false);
+              }}
+              aria-label={`Card ${index + 1}`}
+            />
           )}
         </div>
         {duplicate && (

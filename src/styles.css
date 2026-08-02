@@ -1197,35 +1197,40 @@ optgroup {
 
 .card-text-editor {
   min-width: 0;
-  position: relative;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
   flex: 1;
 }
 
 .card-text-field input {
   width: 100%;
   min-width: 0;
+  height: 32px;
   border: 0;
   outline: 0;
+  padding: 0;
   background: transparent;
   color: #29292c;
   font-size: 14px;
 }
 
-.card-text-field input.has-search-highlight:not(:focus) {
-  color: transparent;
-}
-
 .card-search-highlight {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  display: block;
   overflow: hidden;
+  border: 0;
+  padding: 0;
+  background: transparent;
   color: #29292c;
   font-size: 14px;
+  line-height: 32px;
+  text-align: left;
+  text-overflow: clip;
   white-space: pre;
-  pointer-events: none;
+  cursor: text;
 }
 
 .card-search-highlight mark {
@@ -1234,8 +1239,10 @@ optgroup {
   color: inherit;
 }
 
-.card-text-editor:focus-within .card-search-highlight {
-  visibility: hidden;
+.card-search-highlight:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  outline-offset: 1px;
 }
 
 .duplicate-card-warning {
