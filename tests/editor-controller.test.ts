@@ -69,14 +69,25 @@ describe("editor controller", () => {
     controller.deleteCard(editor.answers[0]!.id);
     controller.sortCards("reverse");
     controller.shufflePreview();
+    controller.setPlacementControlsVisible(true);
     controller.setSetupCollapsed(true);
 
-    expect(onChange).toHaveBeenCalledTimes(7);
+    expect(onChange).toHaveBeenCalledTimes(8);
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ setupCollapsed: true }),
       "replace",
       undefined,
       { meaningful: false },
+    );
+    expect(onChange).toHaveBeenNthCalledWith(
+      7,
+      expect.objectContaining({ placementControlsVisible: true }),
+      "replace",
+      undefined,
+      expect.objectContaining({
+        meaningful: true,
+        operation: expect.objectContaining({ type: "patch-presentation" }),
+      }),
     );
   });
 

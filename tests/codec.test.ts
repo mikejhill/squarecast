@@ -14,6 +14,7 @@ describe("URL state codec", () => {
   it("round-trips every editor field and placement through a compact hash", () => {
     const state = BoardModel.createDefaultEditor();
     state.setupCollapsed = true;
+    state.placementControlsVisible = true;
     state.answers[0]!.placement = { kind: "cell", index: 0 };
     state.answers[1]!.placement = { kind: "row", index: 1 };
     state.answers[2]!.placement = { kind: "column", index: 2 };
@@ -105,13 +106,18 @@ describe("URL state codec", () => {
   it("defaults legacy editor URLs to alphabetical card sorting", () => {
     const editor = BoardModel.createDefaultEditor();
     const { sortMode: _sortMode, ...legacyConfig } = editor.config;
+    const {
+      placementControlsVisible: _placementControlsVisible,
+      ...legacyEditor
+    } = editor;
     const restored = editorStateSchema.parse({
-      ...editor,
+      ...legacyEditor,
       config: { ...legacyConfig, appearance: "dark" },
     });
 
     expect(restored.config.sortMode).toBe("alphabetical");
     expect(restored.setupCollapsed).toBe(false);
+    expect(restored.placementControlsVisible).toBe(false);
     expect("appearance" in restored.config).toBe(false);
   });
 });

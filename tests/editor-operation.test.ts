@@ -25,7 +25,12 @@ describe("editor operations", () => {
       type: "patch-config",
       patch: { title: "Changed" },
     });
-    const withCard = applyEditorOperation(service, patched, {
+    const withPositions = applyEditorOperation(service, patched, {
+      id: "presentation",
+      type: "patch-presentation",
+      patch: { placementControlsVisible: true },
+    });
+    const withCard = applyEditorOperation(service, withPositions, {
       id: "add",
       type: "add-cards",
       cards: [added],
@@ -53,6 +58,7 @@ describe("editor operations", () => {
     });
 
     expect(patched.config.title).toBe("Changed");
+    expect(withPositions.placementControlsVisible).toBe(true);
     expect(withCard.answers).toContainEqual(added);
     expect(updated.answers.find((card) => card.id === added.id)?.text).toBe("Updated");
     expect(sorted.config.sortMode).toBe("reverse");
@@ -102,13 +108,30 @@ describe("editor operations", () => {
       type: "delete-card" as const,
       cardId: "card",
     };
+    const presentation = {
+      id: "six",
+      type: "patch-presentation" as const,
+      patch: { placementControlsVisible: true },
+    };
 
     expect(editorOperationCoalescingKey(firstConfig)).toBe("config:title");
     expect(editorOperationCoalescingKey(firstCard)).toBe("card:card");
     expect(editorOperationCoalescingKey(deletion)).toBeNull();
+    expect(editorOperationCoalescingKey(presentation)).toBe(
+      "presentation:placement-controls",
+    );
     expect(coalesceEditorOperations(firstConfig, nextConfig)).toEqual(nextConfig);
     expect(coalesceEditorOperations(firstCard, nextCard)).toEqual(nextCard);
     expect(coalesceEditorOperations(deletion, nextConfig)).toEqual(nextConfig);
+    expect(coalesceEditorOperations(presentation, {
+      ...presentation,
+      id: "seven",
+      patch: { placementControlsVisible: false },
+    })).toEqual({
+      ...presentation,
+      id: "seven",
+      patch: { placementControlsVisible: false },
+    });
   });
 
   it("describes conflicting semantic targets in user-facing language", () => {
@@ -145,6 +168,16 @@ describe("editor operations", () => {
     expect(
       editorOperationTargetLabels({ id: "replace", type: "replace-editor", editor }, editor),
     ).toEqual(["Entire Board"]);
+    expect(
+      editorOperationTargetLabels(
+        {
+          id: "presentation",
+          type: "patch-presentation",
+          patch: { placementControlsVisible: true },
+        },
+        editor,
+      ),
+    ).toEqual(["Card Position Controls"]);
   });
 
   it("creates operation IDs with and without randomUUID and validates schemas", () => {
@@ -191,6 +224,11 @@ describe("editor operations", () => {
       type: "replace-editor",
       editor: BoardModel.createDefaultEditor(),
     })).toEqual(["board"]);
+    expect(editorOperationTargetKeys({
+      id: "presentation",
+      type: "patch-presentation",
+      patch: { placementControlsVisible: true },
+    })).toEqual(["presentation:placement-controls"]);
     expect(editorOperationTargetsOverlap(cardUpdate, ["card:one"])).toBe(true);
     expect(editorOperationTargetsOverlap(cardUpdate, ["board"])).toBe(true);
     expect(editorOperationTargetsOverlap(cardUpdate, ["config:title"])).toBe(false);

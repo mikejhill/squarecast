@@ -4,6 +4,7 @@ import {
   Clipboard,
   Download,
   FileUp,
+  MapPin,
   Plus,
 } from "lucide-react";
 import {
@@ -97,6 +98,21 @@ export function CardPoolPanel({
         <div className="answer-toolbar-actions">
           <button
             type="button"
+            className={`pool-tool-button ${
+              editor.placementControlsVisible ? "is-active" : ""
+            }`}
+            aria-pressed={editor.placementControlsVisible}
+            onClick={() =>
+              controller.setPlacementControlsVisible(
+                !editor.placementControlsVisible,
+              )
+            }
+          >
+            <MapPin size={15} />
+            {editor.placementControlsVisible ? "Hide Positions" : "Show Positions"}
+          </button>
+          <button
+            type="button"
             className="pool-tool-button"
             onClick={onOpenCsv}
           >
@@ -147,6 +163,7 @@ export function CardPoolPanel({
               editor.config.size,
               editor.config.free,
             )}
+            showPlacement={editor.placementControlsVisible}
             onChange={(patch) => controller.updateCard(answer.id, patch)}
             onDelete={() => controller.deleteCard(answer.id)}
           />

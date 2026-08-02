@@ -65,6 +65,7 @@ export const editorStateSchema = z.object({
   v: z.literal(1),
   mode: z.literal("edit"),
   setupCollapsed: z.boolean().default(false),
+  placementControlsVisible: z.boolean().default(false),
   config: boardConfigSchema,
   answers: z.array(answerSchema),
 });
@@ -171,6 +172,7 @@ export class BoardModel {
       v: 1,
       mode: "edit",
       setupCollapsed: false,
+      placementControlsVisible: false,
       config: {
         title: "Weekend Adventure Bingo",
         size: 5,

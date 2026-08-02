@@ -151,4 +151,12 @@ export class EditorStateService {
   ): EditorState {
     return { ...editor, setupCollapsed };
   }
+
+  /** Persists whether Card Pool position controls are exposed. */
+  public setPlacementControlsVisible(
+    editor: EditorState,
+    placementControlsVisible: boolean,
+  ): EditorState {
+    return { ...editor, placementControlsVisible };
+  }
 }

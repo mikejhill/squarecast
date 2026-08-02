@@ -13,6 +13,7 @@ type AnswerRowProps = {
   index: number;
   size: number;
   freeIndex: number | null;
+  showPlacement: boolean;
   onChange: (patch: Partial<Answer>) => void;
   onDelete: () => void;
 };
@@ -24,6 +25,7 @@ export function AnswerRow({
   index,
   size,
   freeIndex,
+  showPlacement,
   onChange,
   onDelete,
 }: AnswerRowProps) {
@@ -49,7 +51,7 @@ export function AnswerRow({
   };
 
   return (
-    <div className="answer-row">
+    <div className={`answer-row ${showPlacement ? "has-placement-controls" : ""}`}>
       <span className="answer-number">{index + 1}</span>
       <div className="card-text-field">
         <input
@@ -70,46 +72,48 @@ export function AnswerRow({
           </span>
         )}
       </div>
-      <div
-        className={`placement ${
-          answer.placement.kind !== "any" ? "locked" : ""
-        }`}
-      >
-        {answer.placement.kind !== "any" && <LockKeyhole size={13} />}
-        <select
-          value={selectValue}
-          onChange={(event) =>
-            onChange({ placement: parsePlacement(event.target.value) })
-          }
-          aria-label={`Placement for card ${index + 1}`}
+      {showPlacement && (
+        <div
+          className={`placement ${
+            answer.placement.kind !== "any" ? "locked" : ""
+          }`}
         >
-          <option value="any">Anywhere</option>
-          <optgroup label="Specific row">
-            {Array.from({ length: size }, (_, row) => (
-              <option key={`row-${row}`} value={`row:${row}`}>
-                Row {row + 1}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Specific column">
-            {Array.from({ length: size }, (_, column) => (
-              <option key={`column-${column}`} value={`column:${column}`}>
-                Column {column + 1}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Exact square">
-            {Array.from({ length: size ** 2 }, (_, cell) =>
-              cell === freeIndex ? null : (
-                <option key={`cell-${cell}`} value={`cell:${cell}`}>
-                  Cell {Math.floor(cell / size) + 1}·{(cell % size) + 1}
+          {answer.placement.kind !== "any" && <LockKeyhole size={13} />}
+          <select
+            value={selectValue}
+            onChange={(event) =>
+              onChange({ placement: parsePlacement(event.target.value) })
+            }
+            aria-label={`Position for card ${index + 1}`}
+          >
+            <option value="any">Anywhere</option>
+            <optgroup label="Specific row">
+              {Array.from({ length: size }, (_, row) => (
+                <option key={`row-${row}`} value={`row:${row}`}>
+                  Row {row + 1}
                 </option>
-              ),
-            )}
-          </optgroup>
-        </select>
-        <ChevronDown size={14} aria-hidden="true" />
-      </div>
+              ))}
+            </optgroup>
+            <optgroup label="Specific column">
+              {Array.from({ length: size }, (_, column) => (
+                <option key={`column-${column}`} value={`column:${column}`}>
+                  Column {column + 1}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Exact square">
+              {Array.from({ length: size ** 2 }, (_, cell) =>
+                cell === freeIndex ? null : (
+                  <option key={`cell-${cell}`} value={`cell:${cell}`}>
+                    Cell {Math.floor(cell / size) + 1}·{(cell % size) + 1}
+                  </option>
+                ),
+              )}
+            </optgroup>
+          </select>
+          <ChevronDown size={14} aria-hidden="true" />
+        </div>
+      )}
       <button
         type="button"
         className="icon-button delete-button"

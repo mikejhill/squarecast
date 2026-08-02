@@ -23,6 +23,13 @@ export const editorOperationSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     id: z.string().min(1),
+    type: z.literal("patch-presentation"),
+    patch: z.object({
+      placementControlsVisible: z.boolean(),
+    }),
+  }),
+  z.object({
+    id: z.string().min(1),
     type: z.literal("add-cards"),
     cards: z.array(answerSchema),
   }),
@@ -83,6 +90,11 @@ export function applyEditorOperation(
   switch (parsed.type) {
     case "patch-config":
       return service.patchConfig(editor, parsed.patch).state;
+    case "patch-presentation":
+      return service.setPlacementControlsVisible(
+        editor,
+        parsed.patch.placementControlsVisible,
+      );
     case "add-cards":
       return service.appendAnswers(editor, parsed.cards);
     case "update-card":
@@ -107,6 +119,9 @@ export function editorOperationCoalescingKey(
     const fields = Object.keys(operation.patch).sort().join(",");
     return `config:${fields}`;
   }
+  if (operation.type === "patch-presentation") {
+    return "presentation:placement-controls";
+  }
   if (operation.type === "update-card") {
     return `card:${operation.cardId}`;
   }
@@ -120,6 +135,8 @@ export function editorOperationTargetKeys(
   switch (operation.type) {
     case "patch-config":
       return Object.keys(operation.patch).map((field) => `config:${field}`);
+    case "patch-presentation":
+      return ["presentation:placement-controls"];
     case "update-card":
     case "delete-card":
       return [`card:${operation.cardId}`];
@@ -165,6 +182,8 @@ export function editorOperationTargetLabels(
       return Object.keys(operation.patch).map(
         (field) => configTargetLabels[field as keyof BoardConfig],
       );
+    case "patch-presentation":
+      return ["Card Position Controls"];
     case "update-card":
     case "delete-card": {
       const text = editor.answers.find((card) => card.id === operation.cardId)?.text.trim();
@@ -186,6 +205,12 @@ export function coalesceEditorOperations(
 ): EditorOperation {
   if (previous.type === "patch-config" && next.type === "patch-config") {
     return { ...next, patch: { ...previous.patch, ...next.patch } };
+  }
+  if (
+    previous.type === "patch-presentation" &&
+    next.type === "patch-presentation"
+  ) {
+    return next;
   }
   if (
     previous.type === "update-card" &&

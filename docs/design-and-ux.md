@@ -99,6 +99,12 @@ Card Pool supports multiple entry styles:
 - sort; and
 - assign a placement constraint.
 
+Card position dropdowns are hidden by default. **Show Positions** exposes them
+without changing existing constraints; **Hide Positions** removes the controls
+while retaining every saved row, column, and exact-cell rule. The toggle is
+part of saved editor state and is shared through URL, device, cloud, history,
+and complete-board JSON persistence.
+
 Manual Order is the default. New cards append to the pool; choosing a
 deterministic sort mode reapplies that ordering after additions and edits.
 Pressing Enter while editing an existing card commits the edit without creating
@@ -244,7 +250,8 @@ content-driven heights and:
 - the Card Pool list uses a shorter viewport-relative scroll cap;
 - the Card Pool list has a themed inset boundary that identifies it as an
   independent scroll region;
-- each Card Pool row reserves a full second line for its placement control;
+- each Card Pool row reserves a full second line when position controls are shown
+  and collapses to one compact row when they are hidden;
 - multi-column setup fields collapse;
 - the Squarecast wordmark yields to header controls before their combined
   minimum width can enlarge the page;
@@ -252,7 +259,7 @@ content-driven heights and:
   inside broadly styled form fields;
 - board-heading tracks may shrink below their contents' intrinsic widths, with
   long labels truncated inside the board rather than widening the document;
-- Card Pool rows reorganize without hiding placement settings; and
+- Card Pool rows preserve saved placement settings even when their controls are hidden; and
 - board cells preserve a square aspect ratio.
 
 Responsive changes should retain task order. Reflow may change columns, but

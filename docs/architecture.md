@@ -174,7 +174,7 @@ All persisted application state is versioned.
 
 | Mode | Purpose | Important contents |
 | --- | --- | --- |
-| `edit` | Restorable board source | Configuration, Card Pool, placement constraints, sort mode, setup disclosure state, preview seed |
+| `edit` | Restorable board source | Configuration, Card Pool, placement constraints, position-control visibility, sort mode, setup disclosure state, preview seed |
 | `launch` | Shareable board template | Complete editor source; opening it creates a fresh randomized play state |
 | `play` | One active board | Generated cells, checked indexes, source editor, theme, typography, and seed |
 

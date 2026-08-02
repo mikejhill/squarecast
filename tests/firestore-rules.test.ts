@@ -525,6 +525,14 @@ describe("Firestore security rules", () => {
     expect(saved.editor.config.title).toBe("Saved By Guest");
     expect(saved.revision).toBe(2);
     await expect(repository.listCheckpoints("board-1")).resolves.toHaveLength(2);
+    const presentation = await repository.applyOperation("board-1", {
+      id: "show-positions",
+      type: "patch-presentation",
+      patch: { placementControlsVisible: true },
+    });
+    expect(presentation.editor.placementControlsVisible).toBe(true);
+    expect(presentation.revision).toBe(3);
+    expect((await repository.load("board-1"))?.editor.placementControlsVisible).toBe(true);
     await environment.withSecurityRulesDisabled(async (context) => {
       const snapshot = await getDoc(doc(context.firestore(), "boards", "board-1"));
       expect(snapshot.data()?.memberUids).toEqual(["owner"]);

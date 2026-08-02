@@ -20,6 +20,7 @@ export class BoardFactory {
       v: 1,
       mode: "edit",
       setupCollapsed: false,
+      placementControlsVisible: false,
       config: {
         title: "",
         size: 5,

@@ -20,6 +20,7 @@ describe("sample board catalog", () => {
       expect(editor.config.size).toBe(5);
       expect(editor.config.sortMode).toBe("manual");
       expect(editor.setupCollapsed).toBe(false);
+      expect(editor.placementControlsVisible).toBe(false);
       expect(editor.answers).toHaveLength(BoardModel.blankSquareCount(editor));
       expect(new Set(editor.answers.map((card) => card.text)).size).toBe(
         editor.answers.length,

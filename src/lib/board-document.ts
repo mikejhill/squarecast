@@ -24,6 +24,7 @@ export const boardDocumentSchema = z.object({
   format: z.literal("squarecast-board"),
   version: z.literal(1),
   config: boardConfigSchema,
+  placementControlsVisible: z.boolean().default(false),
   cards: z.array(portableCardSchema),
 });
 
@@ -43,6 +44,7 @@ export class BoardDocumentService {
       format: "squarecast-board",
       version: 1,
       config: editor.config,
+      placementControlsVisible: editor.placementControlsVisible,
       cards: editor.answers.map(({ text, placement }) => ({
         text,
         placement,
@@ -59,6 +61,7 @@ export class BoardDocumentService {
         v: 1,
         mode: "edit",
         setupCollapsed: false,
+        placementControlsVisible: document.placementControlsVisible,
         config: document.config,
         answers: document.cards.map((card) => ({
           id: IdFactory.create(),

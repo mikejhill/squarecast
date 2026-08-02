@@ -197,6 +197,21 @@ export class EditorController {
     logger.info("Changed the persistent Card Pool sort.", { mode });
   }
 
+  /** Shows or hides Card Pool position controls without changing constraints. */
+  public setPlacementControlsVisible(placementControlsVisible: boolean): void {
+    this.onChange(this.services.editorState.setPlacementControlsVisible(
+      this.editor,
+      placementControlsVisible,
+    ), "replace", undefined, {
+      meaningful: true,
+      operation: {
+        id: createOperationId(),
+        type: "patch-presentation",
+        patch: { placementControlsVisible },
+      },
+    });
+  }
+
   /** Persists Board Setup disclosure state without adding a history entry. */
   public setSetupCollapsed(collapsed: boolean): void {
     this.onChange(

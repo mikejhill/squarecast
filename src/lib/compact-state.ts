@@ -37,6 +37,12 @@ const sortModes = [
 ] as const satisfies readonly AnswerSort[];
 
 const flagSchema = z.union([z.literal(0), z.literal(1)]);
+const editorFlagsSchema = z.union([
+  z.literal(0),
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+]);
 const themeCodeSchema = z.number().int().min(0).max(themes.length - 1);
 const fontModeCodeSchema = z.number().int().min(0).max(fontModes.length - 1);
 const sortModeCodeSchema = z.number().int().min(0).max(sortModes.length - 1);
@@ -90,7 +96,7 @@ const compactDisplaySchema = z.union([
 const compactEditorSchema = z.tuple([
   z.literal(2),
   z.literal(0),
-  flagSchema,
+  editorFlagsSchema,
   compactConfigSchema,
   z.array(compactAnswerSchema),
 ]);
@@ -98,7 +104,7 @@ const compactEditorSchema = z.tuple([
 const compactLaunchSchema = z.tuple([
   z.literal(2),
   z.literal(1),
-  flagSchema,
+  editorFlagsSchema,
   compactConfigSchema,
   z.array(compactAnswerSchema),
 ]);
@@ -106,7 +112,7 @@ const compactLaunchSchema = z.tuple([
 const compactPlaySchema = z.tuple([
   z.literal(2),
   z.literal(2),
-  flagSchema,
+  editorFlagsSchema,
   compactConfigSchema,
   z.array(compactAnswerSchema),
   z.string(),
@@ -183,23 +189,25 @@ export class CompactStateSerializer {
 
   private serializeEditor(
     editor: EditorState,
-  ): [0 | 1, CompactConfig, CompactAnswer[]] {
+  ): [0 | 1 | 2 | 3, CompactConfig, CompactAnswer[]] {
     return [
-      editor.setupCollapsed ? 1 : 0,
+      ((editor.setupCollapsed ? 1 : 0) +
+        (editor.placementControlsVisible ? 2 : 0)) as 0 | 1 | 2 | 3,
       this.serializeConfig(editor.config),
       editor.answers.map((answer) => this.serializeAnswer(answer)),
     ];
   }
 
   private deserializeEditor(
-    collapsed: 0 | 1,
+    flags: 0 | 1 | 2 | 3,
     config: CompactConfig,
     answers: CompactAnswer[],
   ): EditorState {
     return {
       v: 1,
       mode: "edit",
-      setupCollapsed: collapsed === 1,
+      setupCollapsed: (flags & 1) === 1,
+      placementControlsVisible: (flags & 2) === 2,
       config: this.deserializeConfig(config),
       answers: answers.map((answer) => this.deserializeAnswer(answer)),
     };

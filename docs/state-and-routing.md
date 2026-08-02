@@ -47,9 +47,10 @@ object-based `#sq1:` payloads remain readable.
 
 ## Application Modes
 
-An `edit` state contains configuration, Card Pool, placement rules, sort mode,
-Board Setup disclosure, and preview seed. A `launch` state contains the source
-editor and generates a new concrete play state on every opening. A `play` state
+An `edit` state contains configuration, Card Pool, placement rules, position-
+control visibility, sort mode, Board Setup disclosure, and preview seed. A
+`launch` state contains the source editor and generates a new concrete play
+state on every opening. A `play` state
 contains generated cells, checked indexes, its seed, and the source editor so
 **Edit This Board** can return to it.
 

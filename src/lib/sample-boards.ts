@@ -52,6 +52,7 @@ export class SampleBoardCatalog {
       v: 1,
       mode: "edit",
       setupCollapsed: false,
+      placementControlsVisible: false,
       config: {
         title: definition.title,
         size: SampleBoardCatalog.boardSize,

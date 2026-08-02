@@ -34,6 +34,7 @@ move together.
     "sortMode": "manual",
     "previewSeed": "example-preview"
   },
+  "placementControlsVisible": false,
   "cards": [
     {
       "text": "A bright front door",
@@ -59,6 +60,7 @@ move together.
 | `format` | string | Must be `squarecast-board` |
 | `version` | number | Current document version |
 | `config` | object | Complete board configuration |
+| `placementControlsVisible` | boolean | Whether Card Pool position dropdowns are shown; defaults to `false` when omitted |
 | `cards` | array | Card text and placement rules |
 
 ### Configuration

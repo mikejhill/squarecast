@@ -133,4 +133,14 @@ describe("editor state service", () => {
     expect(collapsed.setupCollapsed).toBe(true);
     expect(editor.setupCollapsed).toBe(false);
   });
+
+  it("toggles Card Pool position controls without changing placement data", () => {
+    const editor = BoardModel.createDefaultEditor();
+    editor.answers[0]!.placement = { kind: "row", index: 2 };
+    const visible = service.setPlacementControlsVisible(editor, true);
+
+    expect(visible.placementControlsVisible).toBe(true);
+    expect(visible.answers[0]!.placement).toEqual({ kind: "row", index: 2 });
+    expect(editor.placementControlsVisible).toBe(false);
+  });
 });

@@ -57,6 +57,8 @@ function checkpointReasonFor(
       return "Import Complete Board";
     case "patch-config":
       return historyMode === "push" ? "Change Board Setup" : undefined;
+    case "patch-presentation":
+      return undefined;
     case "update-card":
       return undefined;
   }

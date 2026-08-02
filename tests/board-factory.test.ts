@@ -18,6 +18,7 @@ describe("new board factory", () => {
       sortMode: "manual",
     });
     expect(editor.setupCollapsed).toBe(false);
+    expect(editor.placementControlsVisible).toBe(false);
     expect(editor.answers).toEqual([]);
   });
 

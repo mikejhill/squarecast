@@ -13,6 +13,7 @@ describe("board model", () => {
     expect(editor.config.fontMode).toBe("auto");
     expect(editor.config.sortMode).toBe("manual");
     expect(editor.setupCollapsed).toBe(false);
+    expect(editor.placementControlsVisible).toBe(false);
     expect(editor.answers).toHaveLength(28);
   });
 

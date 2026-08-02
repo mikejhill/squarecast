@@ -17,11 +17,13 @@ describe("board document service", () => {
       sortMode: "constrained",
     };
     source.setupCollapsed = true;
+    source.placementControlsVisible = true;
     source.answers[0]!.placement = { kind: "row", index: 2 };
     const restored = documents.parse(documents.serialize(source));
 
     expect(restored.config).toEqual(source.config);
     expect(restored.setupCollapsed).toBe(false);
+    expect(restored.placementControlsVisible).toBe(true);
     expect(
       restored.answers.map(({ text, placement }) => ({ text, placement })),
     ).toEqual(
@@ -40,6 +42,7 @@ describe("board document service", () => {
     expect(exported.format).toBe("squarecast-board");
     expect(exported.version).toBe(1);
     expect(exported).toHaveProperty("config");
+    expect(exported).toHaveProperty("placementControlsVisible", false);
     expect(exported).toHaveProperty("cards");
     expect(JSON.stringify(exported)).not.toContain(source.answers[0]!.id);
   });

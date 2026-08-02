@@ -53,9 +53,11 @@ describe("device board repository", () => {
     const presentation = {
       ...updated.editor,
       setupCollapsed: true,
+      placementControlsVisible: true,
     };
     await repository.savePresentation(created.id, presentation);
     expect((await repository.load(created.id))?.editor.setupCollapsed).toBe(true);
+    expect((await repository.load(created.id))?.editor.placementControlsVisible).toBe(true);
 
     const restored = await repository.restore(created.id, 2);
     expect(restored.revision).toBe(3);
