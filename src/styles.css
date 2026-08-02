@@ -867,12 +867,75 @@ optgroup {
   margin-top: -7px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 7px;
 }
 
 .answer-toolbar-actions {
+  min-width: 0;
   flex-wrap: nowrap;
   justify-content: flex-end;
+}
+
+.answer-search {
+  width: 190px;
+  min-width: 90px;
+  min-height: 34px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 190px;
+  border: 1px solid #d9d5ce;
+  border-radius: 8px;
+  background: #fff;
+  color: #77726b;
+}
+
+.answer-search > svg {
+  position: absolute;
+  left: 9px;
+  pointer-events: none;
+}
+
+.answer-search input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  border: 0;
+  outline: 0;
+  padding: 0 30px;
+  appearance: none;
+  background: transparent;
+  color: #29292c;
+  font-size: 12px;
+}
+
+.answer-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.answer-search button {
+  width: 28px;
+  height: 28px;
+  position: absolute;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+
+.answer-search button:hover {
+  background: #f1eee9;
+  color: #28282b;
+}
+
+.answer-search:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, #d9d5ce);
+  outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  outline-offset: 1px;
 }
 
 .pool-tool-button.icon-only {
@@ -1129,6 +1192,12 @@ optgroup {
   gap: 7px;
 }
 
+.card-text-editor {
+  min-width: 0;
+  position: relative;
+  flex: 1;
+}
+
 .card-text-field input {
   width: 100%;
   min-width: 0;
@@ -1137,6 +1206,33 @@ optgroup {
   background: transparent;
   color: #29292c;
   font-size: 14px;
+}
+
+.card-text-field input.has-search-highlight:not(:focus) {
+  color: transparent;
+}
+
+.card-search-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: #29292c;
+  font-size: 14px;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.card-search-highlight mark {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 28%, #fff);
+  color: inherit;
+}
+
+.card-text-editor:focus-within .card-search-highlight {
+  visibility: hidden;
 }
 
 .duplicate-card-warning {
@@ -2001,7 +2097,8 @@ optgroup {
   .board-file-actions button,
   .pool-tool-button,
   .preview-shuffle-button,
-  .sort-control {
+  .sort-control,
+  .answer-search {
     border-color: #494850;
     background: #28282d;
     color: #d4d0c9;
@@ -2064,8 +2161,19 @@ optgroup {
   }
 
   .quick-add input,
-  .card-text-field input {
+  .card-text-field input,
+  .answer-search input,
+  .card-search-highlight {
     color: #f0ede7;
+  }
+
+  .answer-search button:hover {
+    background: #36353b;
+    color: #f0ede7;
+  }
+
+  .card-search-highlight mark {
+    background: color-mix(in srgb, var(--accent) 42%, #28282d);
   }
 
   .quick-add-submit {
@@ -2950,8 +3058,15 @@ optgroup {
   }
 
   .answer-toolbar-actions {
-    width: 100%;
+    width: auto;
+    flex: 0 1 auto;
     justify-content: flex-start;
+  }
+
+  .answer-search {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 80px;
   }
 
   .answer-toolbar-actions .sort-control {

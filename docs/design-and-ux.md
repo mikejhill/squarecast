@@ -105,6 +105,7 @@ Card Pool supports multiple entry styles:
 - drop CSV files anywhere on the panel;
 - edit in place;
 - delete;
+- fuzzy-search locally with matched text highlighted;
 - sort; and
 - assign a placement constraint.
 

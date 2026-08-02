@@ -6,6 +6,8 @@ import {
   FileUp,
   MapPin,
   Plus,
+  Search,
+  X,
 } from "lucide-react";
 import {
   useState,
@@ -15,6 +17,7 @@ import { Panel } from "../../components/Panel";
 import { ControlTooltip } from "../../components/ControlTooltip";
 import type { EditorController } from "../../controllers/EditorController";
 import { BoardModel } from "../../lib/model";
+import { CardPoolSearch, type CardSearchRange } from "../../lib/card-pool-search";
 import type { AnswerSort } from "../../lib/sorting";
 import { AnswerRow } from "./AnswerRow";
 
@@ -47,6 +50,11 @@ export function CardPoolPanel({
   onDrop,
 }: CardPoolPanelProps) {
   const [newCard, setNewCard] = useState("");
+  const [search] = useState(() => new CardPoolSearch());
+  const [searchText, setSearchText] = useState("");
+  const [searchMatches, setSearchMatches] = useState(
+    () => new Map<string, readonly CardSearchRange[]>(),
+  );
   const editor = controller.editor;
   const answerCount = controller.populatedCardCount;
   const needed = controller.neededCardCount;
@@ -55,6 +63,25 @@ export function CardPoolPanel({
   const addCard = () => {
     if (controller.addCard(newCard)) setNewCard("");
   };
+
+  // Search snapshots change only here. Unrelated editor renders preserve the
+  // current result membership and highlights until the user changes the query.
+  const applySearch = (value: string) => {
+    setSearchText(value);
+    setSearchMatches(
+      new Map(
+        search.search(editor.answers, value).map((match) => [
+          match.cardId,
+          match.ranges,
+        ]),
+      ),
+    );
+  };
+
+  const filtering = searchText.trim().length > 0;
+  const visibleAnswers = editor.answers
+    .map((answer, index) => ({ answer, index }))
+    .filter(({ answer }) => !filtering || searchMatches.has(answer.id));
 
   return (
     <Panel
@@ -89,6 +116,27 @@ export function CardPoolPanel({
       </div>
 
       <div className="answer-toolbar">
+        <label className="answer-search">
+          <Search size={15} aria-hidden="true" />
+          <span className="sr-only">Search Card Pool</span>
+          <input
+            type="search"
+            value={searchText}
+            placeholder="Search cards"
+            aria-label="Search Card Pool"
+            onChange={(event) => applySearch(event.target.value)}
+          />
+          {searchText.length > 0 && (
+            <button
+              type="button"
+              aria-label="Clear Card Pool search"
+              title="Clear search"
+              onClick={() => applySearch("")}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </label>
         <div className="answer-toolbar-actions">
           <ControlTooltip
             label={editor.placementControlsVisible ? "Hide Positions" : "Show Positions"}
@@ -154,7 +202,7 @@ export function CardPoolPanel({
       </div>
 
       <div className="answer-list" aria-label="Board cards">
-        {editor.answers.map((answer, index) => (
+        {visibleAnswers.map(({ answer, index }) => (
           <AnswerRow
             key={answer.id}
             answer={answer}
@@ -166,6 +214,7 @@ export function CardPoolPanel({
               editor.config.free,
             )}
             showPlacement={editor.placementControlsVisible}
+            matchRanges={searchMatches.get(answer.id)}
             onChange={(patch) => controller.updateCard(answer.id, patch)}
             onDelete={() => controller.deleteCard(answer.id)}
           />
@@ -175,6 +224,13 @@ export function CardPoolPanel({
             <Clipboard size={24} />
             <strong>Your card pool is empty</strong>
             <span>Use quick add, paste CSV, or drop a CSV file.</span>
+          </div>
+        )}
+        {!!editor.answers.length && filtering && !visibleAnswers.length && (
+          <div className="empty-answers search-empty">
+            <Search size={24} />
+            <strong>No matching cards</strong>
+            <span>Change or clear the search.</span>
           </div>
         )}
       </div>

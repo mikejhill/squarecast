@@ -137,6 +137,7 @@ See [State and Routing](docs/state-and-routing.md).
   - Enter-to-add
   - visible Add action
   - inline editing and deletion
+  - client-side fuzzy search with matched-text highlighting
   - persistent sorting
   - CSV paste
   - CSV drag-and-drop across the panel

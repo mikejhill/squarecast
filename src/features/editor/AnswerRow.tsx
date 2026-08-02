@@ -5,6 +5,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { KeyboardEvent } from "react";
+import { MatchedText } from "../../components/MatchedText";
+import type { CardSearchRange } from "../../lib/card-pool-search";
 import type { Answer, Placement } from "../../lib/model";
 
 type AnswerRowProps = {
@@ -14,6 +16,7 @@ type AnswerRowProps = {
   size: number;
   freeIndexes: readonly number[];
   showPlacement: boolean;
+  matchRanges?: readonly CardSearchRange[];
   onChange: (patch: Partial<Answer>) => void;
   onDelete: () => void;
 };
@@ -26,6 +29,7 @@ export function AnswerRow({
   size,
   freeIndexes,
   showPlacement,
+  matchRanges,
   onChange,
   onDelete,
 }: AnswerRowProps) {
@@ -54,12 +58,23 @@ export function AnswerRow({
     <div className={`answer-row ${showPlacement ? "has-placement-controls" : ""}`}>
       <span className="answer-number">{index + 1}</span>
       <div className="card-text-field">
-        <input
-          value={answer.text}
-          onChange={(event) => onChange({ text: event.target.value })}
-          onKeyDown={handleKey}
-          aria-label={`Card ${index + 1}`}
-        />
+        <div className="card-text-editor">
+          <input
+            className={matchRanges?.length ? "has-search-highlight" : undefined}
+            value={answer.text}
+            onChange={(event) => onChange({ text: event.target.value })}
+            onKeyDown={handleKey}
+            onBlur={(event) => {
+              event.currentTarget.scrollLeft = 0;
+            }}
+            aria-label={`Card ${index + 1}`}
+          />
+          {!!matchRanges?.length && (
+            <span className="card-search-highlight" aria-hidden="true">
+              <MatchedText text={answer.text} ranges={matchRanges} />
+            </span>
+          )}
+        </div>
         {duplicate && (
           <span
             className="duplicate-card-warning"
