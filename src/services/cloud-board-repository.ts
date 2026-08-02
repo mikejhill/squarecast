@@ -46,6 +46,7 @@ import type { FirebaseClient } from "./firebase-client";
 const MAX_PAYLOAD_BYTES = 750 * 1024;
 const MAX_MEMBERS = 20;
 const CHECKPOINT_LIMIT = 25;
+const PRESENCE_TTL_MS = 2 * 60 * 1000;
 
 const roleSchema = z.enum(["owner", "editor"]);
 const shareTokensSchema = z.object({
@@ -108,6 +109,25 @@ export type BoardPresence = {
   displayName: string;
   lastSeen: number;
 };
+
+/** Removes expired sessions and collapses multiple browser sessions for one user. */
+export function activeBoardPresence(
+  entries: readonly BoardPresence[],
+  now = Date.now(),
+): readonly BoardPresence[] {
+  const cutoff = now - PRESENCE_TTL_MS;
+  const newestByUser = new Map<string, BoardPresence>();
+  for (const entry of entries) {
+    if (entry.lastSeen < cutoff) continue;
+    const current = newestByUser.get(entry.uid);
+    if (!current || entry.lastSeen > current.lastSeen) {
+      newestByUser.set(entry.uid, entry);
+    }
+  }
+  return [...newestByUser.values()].sort(
+    (left, right) => right.lastSeen - left.lastSeen || left.uid.localeCompare(right.uid),
+  );
+}
 
 export class CloudPayloadTooLargeError extends Error {
   public constructor() {
@@ -626,6 +646,11 @@ export class CloudBoardRepository implements BoardRepository {
     const user = this.requireSignedInUser();
     let canClean = false;
     let staleReferences: Array<ReturnType<typeof doc>> = [];
+    let entries: Array<{
+      reference: ReturnType<typeof doc>;
+      presence: BoardPresence;
+    }> = [];
+    let expiryTimer: ReturnType<typeof setTimeout> | null = null;
     const clean = () => {
       if (!canClean || staleReferences.length === 0) return;
       const references = staleReferences;
@@ -634,36 +659,58 @@ export class CloudBoardRepository implements BoardRepository {
         void deleteDoc(reference).catch(() => undefined);
       }
     };
+    const publish = () => {
+      if (expiryTimer) clearTimeout(expiryTimer);
+      expiryTimer = null;
+      const now = Date.now();
+      const cutoff = now - PRESENCE_TTL_MS;
+      staleReferences = entries
+        .filter((entry) => entry.presence.lastSeen < cutoff)
+        .map((entry) => entry.reference);
+      clean();
+      const active = activeBoardPresence(
+        entries.map((entry) => entry.presence),
+        now,
+      );
+      listener(active);
+      const nextExpiry = active.reduce(
+        (earliest, entry) => Math.min(earliest, entry.lastSeen + PRESENCE_TTL_MS + 1),
+        Number.POSITIVE_INFINITY,
+      );
+      if (Number.isFinite(nextExpiry)) {
+        expiryTimer = setTimeout(publish, Math.max(1, nextExpiry - now));
+      }
+    };
     void this.requireRecord(boardId)
       .then((board) => {
         canClean = board.ownerUid === user.uid;
         clean();
       })
       .catch(() => undefined);
-    return onSnapshot(
+    const unsubscribe = onSnapshot(
       collection(this.database, "boards", boardId, "presence"),
       (snapshot) => {
-        const cutoff = Date.now() - 2 * 60 * 1000;
-        const entries = snapshot.docs.map((entry) => ({
+        entries = snapshot.docs.map((entry) => ({
           reference: entry.ref,
           presence: {
-              uid: String(entry.data().uid),
-              displayName: String(entry.data().displayName),
-              lastSeen: this.toMillis(entry.data().lastSeen),
+            uid: String(entry.data().uid),
+            displayName: String(entry.data().displayName),
+            lastSeen: this.toMillis(entry.data().lastSeen),
           },
         }));
-        staleReferences = entries
-          .filter((entry) => entry.presence.lastSeen < cutoff)
-          .map((entry) => entry.reference);
-        clean();
-        listener(
-          entries
-            .map((entry) => entry.presence)
-            .filter((entry) => entry.lastSeen >= cutoff),
-        );
+        publish();
       },
-      () => listener([]),
+      () => {
+        entries = [];
+        if (expiryTimer) clearTimeout(expiryTimer);
+        expiryTimer = null;
+        listener([]);
+      },
     );
+    return () => {
+      unsubscribe();
+      if (expiryTimer) clearTimeout(expiryTimer);
+    };
   }
 
   public async activeShareTokens(boardId: string): Promise<CloudRecord["shareTokens"]> {

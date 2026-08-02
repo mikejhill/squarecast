@@ -314,24 +314,39 @@ export function useWorkspace(services: ApplicationServices) {
         },
       );
       const sessionId = createOperationId();
+      let presenceStopped = false;
       const heartbeat = () => {
-        if (document.visibilityState === "visible") {
+        if (!presenceStopped && document.visibilityState === "visible") {
           void services.cloudBoards
             ?.heartbeatPresence(boardId, sessionId)
             .catch(() => undefined);
         }
       };
+      const clearPresence = () => {
+        void services.cloudBoards
+          ?.clearPresence(boardId, sessionId)
+          .catch(() => undefined);
+      };
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") heartbeat();
+        else clearPresence();
+      };
       heartbeat();
       presenceTimer.current = setInterval(heartbeat, 60_000);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("pagehide", clearPresence);
+      window.addEventListener("pageshow", heartbeat);
       const stopPresence = services.cloudBoards.subscribePresence(
         boardId,
         setPresence,
       );
       presenceUnsubscribe.current = () => {
+        presenceStopped = true;
         stopPresence();
-        void services.cloudBoards
-          ?.clearPresence(boardId, sessionId)
-          .catch(() => undefined);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        window.removeEventListener("pagehide", clearPresence);
+        window.removeEventListener("pageshow", heartbeat);
+        clearPresence();
       };
     },
     [services, stopCloudSession],

@@ -51,6 +51,31 @@ describe("storage interface", () => {
     expect(screen.getByText("Shared Editor Link")).toBeTruthy();
   });
 
+  it("counts multiple presence sessions for one collaborator once", () => {
+    render(
+      <StorageStatusBar
+        session={{ ...urlSession, storageKind: "cloud", recordId: "cloud-board" }}
+        authUser={null}
+        preferredStorage="device"
+        statusMessage=""
+        presence={[
+          { uid: "editor", displayName: "Editor old session", lastSeen: 1 },
+          { uid: "editor", displayName: "Editor current session", lastSeen: 2 },
+        ]}
+        onPreferredStorageChange={vi.fn()}
+        onCopyToDevice={vi.fn()}
+        onCopyToCloud={vi.fn()}
+        onUseUrlOnly={vi.fn()}
+        onOpenShare={vi.fn()}
+        onOpenHistory={vi.fn()}
+        onRestoreHistorical={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("1 editing")).toBeTruthy();
+    expect(screen.getByTitle("Editor current session")).toBeTruthy();
+  });
+
   it("shows first-edit storage selection and disables account storage while signed out", async () => {
     const user = userEvent.setup();
     const onPreferredStorageChange = vi.fn();

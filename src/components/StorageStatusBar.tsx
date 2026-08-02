@@ -48,7 +48,13 @@ export function StorageStatusBar({
       : session.storageKind === "device"
         ? Database
         : Link2;
-  const otherEditors = presence.filter((entry) => entry.uid !== authUser?.uid);
+  const otherEditors = [
+    ...new Map(
+      presence
+        .filter((entry) => entry.uid !== authUser?.uid)
+        .map((entry) => [entry.uid, entry] as const),
+    ).values(),
+  ];
   const activeStorageLabel = session.editorToken
     ? "Shared Editor Link"
     : storageLabels[session.storageKind];

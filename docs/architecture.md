@@ -134,8 +134,10 @@ make reconnect replay safe.
 
 Cloud board listeners reapply local pending operations over the latest remote
 head. Presence uses a board subcollection, one visible-session heartbeat per
-minute, and a two-minute freshness cutoff. It deliberately excludes cursors and
-character-level CRDT behavior.
+minute, immediate cleanup when a page hides or exits, and a two-minute freshness
+cutoff for abandoned sessions. Multiple sessions with the same Firebase UID are
+shown as one editor. Presence deliberately excludes cursors and character-level
+CRDT behavior.
 
 Editor links use Firebase Anonymous Authentication as a transparent Security
 Rules identity; recipients do not see a login prompt. A small board-scoped

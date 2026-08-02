@@ -121,7 +121,7 @@ describe("workspace route resolution", () => {
       cloudBoards,
     });
 
-    const { result } = renderHook(() => useWorkspace(services));
+    const { result, unmount } = renderHook(() => useWorkspace(services));
     await waitFor(() => expect(result.current.session.status).toBe("ready"));
     expect(result.current.session).toEqual(
       expect.objectContaining({
@@ -133,12 +133,19 @@ describe("workspace route resolution", () => {
     expect(result.current.authUser).toBeNull();
     expect(cloudBoards.acceptInvite).toHaveBeenCalledWith("guest-token");
     expect(services.history.write).not.toHaveBeenCalled();
+    expect(cloudBoards.heartbeatPresence).toHaveBeenCalledOnce();
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    await waitFor(() => expect(cloudBoards.clearPresence).toHaveBeenCalledOnce());
+    act(() => window.dispatchEvent(new Event("pageshow")));
+    await waitFor(() => expect(cloudBoards.heartbeatPresence).toHaveBeenCalledTimes(2));
     act(() => result.current.navigate(editor, "replace"));
     expect(services.history.write).toHaveBeenLastCalledWith(
       "#sqi1:guest-token",
       "replace",
       expect.any(Object),
     );
+    unmount();
+    await waitFor(() => expect(cloudBoards.clearPresence).toHaveBeenCalledTimes(2));
   });
 
   it("restores a saved history snapshot without writing or mutating storage", async () => {
