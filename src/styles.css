@@ -864,6 +864,8 @@ optgroup {
 }
 
 .answer-toolbar {
+  width: 100%;
+  min-width: 0;
   margin-top: -7px;
   display: flex;
   align-items: center;
@@ -873,18 +875,19 @@ optgroup {
 
 .answer-toolbar-actions {
   min-width: 0;
+  flex: 0 0 auto;
   flex-wrap: nowrap;
   justify-content: flex-end;
 }
 
 .answer-search {
-  width: 190px;
-  min-width: 90px;
+  width: auto;
+  min-width: 0;
   min-height: 34px;
   position: relative;
   display: flex;
   align-items: center;
-  flex: 0 1 190px;
+  flex: 1 1 0;
   border: 1px solid #d9d5ce;
   border-radius: 8px;
   background: #fff;
@@ -3064,9 +3067,7 @@ optgroup {
   }
 
   .answer-search {
-    width: auto;
-    min-width: 0;
-    flex: 1 1 80px;
+    flex-basis: 0;
   }
 
   .answer-toolbar-actions .sort-control {

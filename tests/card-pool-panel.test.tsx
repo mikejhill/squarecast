@@ -78,6 +78,14 @@ describe("Card Pool search", () => {
     );
 
     const search = screen.getByRole("searchbox", { name: "Search Card Pool" });
+    const searchControl = search.closest(".answer-search");
+    const toolbar = search.closest(".answer-toolbar");
+    expect(toolbar?.firstElementChild).toBe(searchControl);
+    expect(
+      searchControl?.nextElementSibling?.classList.contains(
+        "answer-toolbar-actions",
+      ),
+    ).toBe(true);
     expect(screen.queryByRole("button", { name: "Clear Card Pool search" })).toBeNull();
 
     await user.type(search, "snack");

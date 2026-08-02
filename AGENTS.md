@@ -151,6 +151,8 @@ See [State and Routing](docs/state-and-routing.md).
 - Keep Show/Hide Positions, Paste CSV, and Export CSV as accessible 34-pixel
   icon controls with keyboard tooltips. Keep the sort mode visible as text and
   keep the toolbar on one row without page overflow.
+- Keep Card Pool search to the left of those controls and let it consume the
+  toolbar's full remaining width at desktop and mobile sizes.
 - Board Setup disclosure and preview seed are editor-session presentation.
   Preserve them when device/cloud acknowledgements or listeners merge saved
   state; never preserve shared `placementControlsVisible` during that merge.
