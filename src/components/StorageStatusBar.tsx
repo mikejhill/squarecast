@@ -1,4 +1,4 @@
-import { Cloud, Database, History, Link2, RotateCcw, Share2, Users } from "lucide-react";
+import { Cloud, Database, History, Link2, RotateCcw, Share2, UserRound, Users } from "lucide-react";
 import type {
   StorageKind,
   WorkspaceReadySession,
@@ -9,6 +9,7 @@ import type { BoardPresence } from "../services/cloud-board-repository";
 type StorageStatusBarProps = {
   session: WorkspaceReadySession;
   authUser: AuthUser | null;
+  guestUser?: AuthUser | null;
   preferredStorage: StorageKind;
   statusMessage: string;
   presence: readonly BoardPresence[];
@@ -32,6 +33,7 @@ const storageLabels: Record<StorageKind, string> = {
 export function StorageStatusBar({
   session,
   authUser,
+  guestUser = null,
   preferredStorage,
   statusMessage,
   presence,
@@ -75,6 +77,12 @@ export function StorageStatusBar({
               : syncLabel(session.syncStatus)}
             {statusMessage ? ` — ${statusMessage}` : ""}
           </span>
+          {session.editorToken && guestUser && (
+            <span className="guest-identity">
+              <UserRound size={12} aria-hidden="true" />
+              Guest username: <strong>{guestUser.displayName}</strong>
+            </span>
+          )}
         </div>
       </div>
       {otherEditors.length > 0 && (

@@ -36,6 +36,13 @@ describe("storage interface", () => {
           editorToken: "active-token",
         }}
         authUser={null}
+        guestUser={{
+          uid: "guest-user",
+          email: "",
+          displayName: "Guest Cosmic Otter 482",
+          emailVerified: false,
+          isAnonymous: true,
+        }}
         preferredStorage="device"
         statusMessage=""
         presence={[]}
@@ -50,6 +57,9 @@ describe("storage interface", () => {
       />,
     );
     expect(screen.getByText("Shared Editor Link")).toBeTruthy();
+    expect(screen.getByText("Guest Cosmic Otter 482").parentElement?.textContent).toBe(
+      "Guest username: Guest Cosmic Otter 482",
+    );
   });
 
   it("counts multiple presence sessions for one collaborator once", () => {

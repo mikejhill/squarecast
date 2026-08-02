@@ -26,6 +26,7 @@ type EditorPageProps = {
   onChange: StateChangeHandler;
   session: WorkspaceReadySession;
   authUser: AuthUser | null;
+  guestUser: AuthUser | null;
   preferredStorage: StorageKind;
   statusMessage: string;
   presence: readonly BoardPresence[];
@@ -49,6 +50,7 @@ export function EditorPage({
   onChange,
   session,
   authUser,
+  guestUser,
   preferredStorage,
   statusMessage,
   presence,
@@ -156,6 +158,7 @@ export function EditorPage({
       <StorageStatusBar
         session={session}
         authUser={authUser}
+        guestUser={guestUser}
         preferredStorage={preferredStorage}
         statusMessage={statusMessage}
         presence={presence}

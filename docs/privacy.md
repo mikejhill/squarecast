@@ -38,6 +38,10 @@ anonymous Firebase identity without showing a login prompt. Authentication
 persistence is managed by Firebase Auth.
 
 An anonymous Firebase identity contains a random UID and no email address.
+Squarecast deterministically turns that UID into a clearly labeled, playful
+guest username for the guest's status bar and other editors' presence lists.
+The name remains stable for that browser identity and requires no additional
+profile data.
 Its board-scoped editor-session record contains only that UID's document path,
 the active editor token, schema version, and creation timestamp. Replacing the
 anonymous identity with a signed-in account does not transfer unrelated device

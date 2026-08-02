@@ -2287,6 +2287,18 @@ optgroup {
   white-space: nowrap;
 }
 
+.storage-status-main .guest-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.storage-status-main .guest-identity strong {
+  font-size: inherit;
+}
+
 .presence-label {
   display: inline-flex;
   align-items: center;

@@ -90,7 +90,7 @@ describe("workspace route resolution", () => {
     const guest = {
       uid: "guest-user",
       email: "",
-      displayName: "Guest Editor",
+      displayName: "Guest Cosmic Otter 482",
       emailVerified: false,
       isAnonymous: true,
     };
@@ -133,6 +133,7 @@ describe("workspace route resolution", () => {
       }),
     );
     expect(result.current.authUser).toBeNull();
+    expect(result.current.guestUser).toEqual(guest);
     expect(cloudBoards.acceptInvite).toHaveBeenCalledWith("guest-token");
     expect(services.history.write).not.toHaveBeenCalled();
     expect(cloudBoards.heartbeatPresence).toHaveBeenCalledOnce();

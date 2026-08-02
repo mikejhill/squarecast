@@ -510,6 +510,8 @@ export function useWorkspace(services: ApplicationServices) {
         let routeUser = user;
         if (route.kind === "invite" && !routeUser) {
           routeUser = await services.auth.ensureAnonymousUser();
+          authRef.current = routeUser;
+          setAuthUser(routeUser);
         }
         if (
           route.kind !== "invite" &&
@@ -1081,6 +1083,7 @@ export function useWorkspace(services: ApplicationServices) {
     session,
     navigate,
     authUser: authUser?.isAnonymous ? null : authUser,
+    guestUser: authUser?.isAnonymous ? authUser : null,
     authKnown,
     preferredStorage,
     setPreferredStorage,

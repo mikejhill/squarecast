@@ -29,6 +29,50 @@ export type AuthUser = {
   isAnonymous: boolean;
 };
 
+const guestAdjectives = [
+  "Brisk",
+  "Clever",
+  "Cosmic",
+  "Dapper",
+  "Fuzzy",
+  "Jolly",
+  "Lucky",
+  "Merry",
+  "Nimble",
+  "Plucky",
+  "Quirky",
+  "Sunny",
+] as const;
+
+const guestCreatures = [
+  "Badger",
+  "Capybara",
+  "Gecko",
+  "Hedgehog",
+  "Mantis",
+  "Narwhal",
+  "Otter",
+  "Panda",
+  "Penguin",
+  "Raccoon",
+  "Wombat",
+  "Yak",
+] as const;
+
+/** Produces a stable, recognizable collaboration alias without storing profile data. */
+export function guestDisplayName(uid: string): string {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < uid.length; index += 1) {
+    hash ^= uid.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  const value = hash >>> 0;
+  const adjective = guestAdjectives[value % guestAdjectives.length];
+  const creature = guestCreatures[(value >>> 8) % guestCreatures.length];
+  const suffix = 100 + ((value >>> 16) % 900);
+  return `Guest ${adjective} ${creature} ${suffix}`;
+}
+
 /** Provides account and transparent anonymous collaboration identity without UI coupling. */
 export class CloudAuthService {
   private authClient: Auth | null = null;
@@ -142,7 +186,7 @@ export class CloudAuthService {
       displayName:
         user.displayName ??
         user.email?.split("@")[0] ??
-        (user.isAnonymous ? "Guest Editor" : "Editor"),
+        (user.isAnonymous ? guestDisplayName(user.uid) : "Editor"),
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
     };

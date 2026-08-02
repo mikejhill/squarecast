@@ -34,7 +34,10 @@ vi.mock("firebase/auth", () => ({
   signOut: vi.fn(),
 }));
 
-import { CloudAuthService } from "../src/services/cloud-auth-service";
+import {
+  CloudAuthService,
+  guestDisplayName,
+} from "../src/services/cloud-auth-service";
 import type { FirebaseClient } from "../src/services/firebase-client";
 
 function firebaseUser(isAnonymous: boolean, email: string | null = null) {
@@ -66,12 +69,19 @@ describe("cloud authentication", () => {
     await expect(service.ensureAnonymousUser()).resolves.toEqual(
       expect.objectContaining({
         uid: "guest-uid",
-        displayName: "Guest Editor",
+        displayName: guestDisplayName("guest-uid"),
         isAnonymous: true,
       }),
     );
     expect(authMocks.setPersistence).toHaveBeenCalledOnce();
     expect(authMocks.signInAnonymously).toHaveBeenCalledOnce();
+  });
+
+  it("derives a stable and explicitly guest-labeled collaboration name", () => {
+    const name = guestDisplayName("persistent-anonymous-uid");
+    expect(name).toMatch(/^Guest [A-Z][a-z]+ [A-Z][a-z]+ \d{3}$/);
+    expect(guestDisplayName("persistent-anonymous-uid")).toBe(name);
+    expect(guestDisplayName("different-anonymous-uid")).not.toBe(name);
   });
 
   it("links a new Google account to the anonymous collaboration identity", async () => {

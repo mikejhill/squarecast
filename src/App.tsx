@@ -146,6 +146,7 @@ export function App() {
           session={workspace.session}
           onChange={workspace.navigate}
           authUser={workspace.authUser}
+          guestUser={workspace.guestUser}
           preferredStorage={workspace.preferredStorage}
           statusMessage={workspace.statusMessage}
           presence={workspace.presence}
