@@ -567,29 +567,28 @@ optgroup {
   box-shadow: 0 2px 7px rgba(32, 29, 25, 0.12);
 }
 
-.field > .free-square-control {
-  position: relative;
+.field > .free-square-count-control {
   min-height: 42px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(72px, 96px) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  padding: 0 11px;
-  border: 1px solid #d9d5ce;
-  border-radius: 10px;
-  background: #fff;
   color: #4e4b47;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
-  cursor: pointer;
 }
 
-.free-square-control input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
+.free-square-count-control input {
+  height: 42px;
+  padding-block: 8px;
+  text-align: center;
+}
+
+.free-square-count-control span {
+  color: #77716a;
+  white-space: nowrap;
 }
 
 .free-square-label-field {
@@ -604,40 +603,6 @@ optgroup {
   background: #e9e6e0;
   color: #7b766f;
   cursor: not-allowed;
-}
-
-.toggle {
-  margin-left: auto;
-  width: 40px;
-  height: 23px;
-  border-radius: 99px;
-  background: #d2cec7;
-  padding: 3px;
-  transition: background 0.2s;
-}
-
-.toggle::after {
-  content: "";
-  display: block;
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
-  transition: transform 0.2s;
-}
-
-.free-square-control input:checked + .toggle {
-  background: var(--accent);
-}
-
-.free-square-control input:checked + .toggle::after {
-  transform: translateX(17px);
-}
-
-.free-square-control input:focus-visible + .toggle {
-  outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  outline-offset: 2px;
 }
 
 .theme-row {
@@ -1911,7 +1876,7 @@ optgroup {
 
   .field input,
   .csv-input,
-  .free-square-control,
+  .free-square-count-control input,
   .quick-add,
   .answer-row {
     border-color: #414047;
@@ -1947,12 +1912,8 @@ optgroup {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
   }
 
-  .toggle {
-    background: #4a4950;
-  }
-
-  .toggle::after {
-    background: #f5f2ec;
+  .free-square-count-control span {
+    color: #aaa59d;
   }
 
   .theme-swatch {

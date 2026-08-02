@@ -15,6 +15,9 @@ describe("sample board catalog", () => {
     expect(new Set(editors.map((editor) => editor.config.accentColor)).size).toBe(
       16,
     );
+    expect(new Set(editors.map((editor) => editor.config.free))).toEqual(
+      new Set([0, 1, 2, 3, 4]),
+    );
 
     for (const editor of editors) {
       expect(editor.config.size).toBe(5);

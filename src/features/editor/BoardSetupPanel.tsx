@@ -35,6 +35,7 @@ export function BoardSetupPanel({
   const usesVisiblePreset = ColorTheme.presets.some(
     (preset) => preset.id === config.theme,
   );
+  const maximumFreeSquares = Math.max(0, config.size - 1);
 
   return (
     <Panel
@@ -75,32 +76,36 @@ export function BoardSetupPanel({
 
       <div className="field free-square-field">
         <div className="field-label">
-          <span>Free Square</span>
-          <InfoTooltip label="About the free square">
-            Adds an automatically marked square at the center of the board.
+          <span>Free Squares</span>
+          <InfoTooltip label="About free squares">
+            Adds automatically marked squares using a balanced pattern for the
+            selected board size.
           </InfoTooltip>
         </div>
-        <label className="free-square-control">
-          <span>{config.free ? "Enabled" : "Disabled"}</span>
+        <label className="free-square-count-control">
           <input
-            type="checkbox"
-            checked={config.free}
-            aria-label="Free Square"
-            onChange={(event) => onPatch({ free: event.target.checked })}
+            type="number"
+            min="0"
+            max={maximumFreeSquares}
+            step="1"
+            inputMode="numeric"
+            value={config.free}
+            aria-label="Number of Free Squares"
+            onChange={(event) => onPatch({ free: Number(event.target.value) })}
           />
-          <span className="toggle" aria-hidden="true" />
+          <span>Maximum {maximumFreeSquares}</span>
         </label>
       </div>
 
       <label
         className={`field free-square-label-field ${
-          config.free ? "" : "is-disabled"
+          config.free > 0 ? "" : "is-disabled"
         }`}
       >
         <span>Free Square Label</span>
         <input
           value={config.freeLabel}
-          disabled={!config.free}
+          disabled={config.free === 0}
           onChange={(event) => onPatch({ freeLabel: event.target.value })}
           placeholder="FREE"
           maxLength={36}

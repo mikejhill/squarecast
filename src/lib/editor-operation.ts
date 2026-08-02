@@ -2,7 +2,8 @@ import { z } from "zod";
 import type { EditorStateService } from "./editor-state";
 import {
   answerSchema,
-  boardConfigSchema,
+  answerSortSchema,
+  boardConfigPatchSchema,
   editorStateSchema,
   type Answer,
   type BoardConfig,
@@ -19,7 +20,7 @@ export const editorOperationSchema = z.discriminatedUnion("type", [
   z.object({
     id: z.string().min(1),
     type: z.literal("patch-config"),
-    patch: boardConfigSchema.partial(),
+    patch: boardConfigPatchSchema,
   }),
   z.object({
     id: z.string().min(1),
@@ -47,7 +48,7 @@ export const editorOperationSchema = z.discriminatedUnion("type", [
   z.object({
     id: z.string().min(1),
     type: z.literal("sort-cards"),
-    mode: boardConfigSchema.shape.sortMode,
+    mode: answerSortSchema,
   }),
   z.object({
     id: z.string().min(1),
@@ -162,7 +163,7 @@ export function editorOperationTargetsOverlap(
 const configTargetLabels: Record<keyof BoardConfig, string> = {
   title: "Board Title",
   size: "Board Size",
-  free: "Free Square",
+  free: "Free Squares",
   freeLabel: "Free Square Label",
   theme: "Board Theme",
   accentColor: "Board Color",

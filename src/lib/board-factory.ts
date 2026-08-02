@@ -7,14 +7,14 @@ const logger = new RuntimeLogger("board-factory");
 /** Creates clean editor sessions with the product's documented defaults. */
 export class BoardFactory {
   /**
-   * Returns an empty 5×5 editor with a free square, automatic text sizing,
+   * Returns an empty 5×5 editor with one free square, automatic text sizing,
    * manual card ordering, and a newly randomized accessible accent.
    */
   public createNewEditor(random: () => number = Math.random): EditorState {
     const accentColor = ColorTheme.random(random);
     logger.info("Created a new editor session.", {
       size: 5,
-      freeSquare: true,
+      freeSquareCount: 1,
     });
     return {
       v: 1,
@@ -24,7 +24,7 @@ export class BoardFactory {
       config: {
         title: "",
         size: 5,
-        free: true,
+        free: 1,
         freeLabel: "FREE",
         theme: "custom",
         accentColor,

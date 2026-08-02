@@ -27,7 +27,9 @@ describe("player controller", () => {
 
     expect(controller.winningCells.size).toBe(5);
     controller.toggleCell(5);
-    controller.toggleCell(BoardModel.freeCellIndex(play.size, true)!);
+    controller.toggleCell(
+      BoardModel.freeCellIndexes(play.size, play.source.config.free)[0]!,
+    );
     controller.reshuffle();
     controller.editSource();
     await controller.copySession("https://example.test/session");

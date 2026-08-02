@@ -42,12 +42,19 @@ export class BoardGenerator {
     const mandatory = answers.filter(
       (answer) => answer.placement.kind !== "any",
     );
-    const freeIndex = BoardModel.freeCellIndex(
+    const maximumFreeSquares = BoardModel.maxFreeSquareCount(
       editor.config.size,
-      editor.config.free,
+    );
+    const freeIndexes = new Set(
+      BoardModel.freeCellIndexes(editor.config.size, editor.config.free),
     );
 
     if (!editor.config.title.trim()) errors.push("Add a board title.");
+    if (editor.config.free > maximumFreeSquares) {
+      errors.push(
+        `Use no more than ${maximumFreeSquares} free squares on a ${editor.config.size} × ${editor.config.size} board.`,
+      );
+    }
     if (answers.length < needed) {
       const missing = needed - answers.length;
       errors.push(`Add ${missing} more card${missing === 1 ? "" : "s"}.`);
@@ -60,7 +67,7 @@ export class BoardGenerator {
       !this.placeMandatory(
         mandatory,
         editor.config.size,
-        freeIndex,
+        freeIndexes,
         this.createRandom(1),
       )
     ) {
@@ -103,7 +110,9 @@ export class BoardGenerator {
     }
 
     const size = editor.config.size;
-    const freeIndex = BoardModel.freeCellIndex(size, editor.config.free);
+    const freeIndexes = new Set(
+      BoardModel.freeCellIndexes(size, editor.config.free),
+    );
     const random = this.createRandom(this.hashString(seed));
     const answers = editor.answers
       .filter((answer) => answer.text.trim())
@@ -114,7 +123,7 @@ export class BoardGenerator {
     const flexible = answers.filter(
       (answer) => answer.placement.kind === "any",
     );
-    const placed = this.placeMandatory(mandatory, size, freeIndex, random);
+    const placed = this.placeMandatory(mandatory, size, freeIndexes, random);
     if (!placed) {
       const error = new Error("The placement rules conflict.");
       logger.error("Validated placement rules became unsatisfiable.", error);
@@ -123,7 +132,7 @@ export class BoardGenerator {
 
     const openCells = this.shuffle(
       Array.from({ length: size ** 2 }, (_, index) => index).filter(
-        (index) => index !== freeIndex && !placed.has(index),
+        (index) => !freeIndexes.has(index) && !placed.has(index),
       ),
       random,
     );
@@ -139,7 +148,7 @@ export class BoardGenerator {
     const cells: PlayCell[] = Array.from(
       { length: size ** 2 },
       (_, index) => {
-        if (index === freeIndex) {
+        if (freeIndexes.has(index)) {
           return {
             id: "__free__",
             text: editor.config.freeLabel.trim() || "FREE",
@@ -158,7 +167,7 @@ export class BoardGenerator {
 
     logger.info("Generated a play board.", {
       size,
-      freeSquare: freeIndex !== null,
+      freeSquareCount: freeIndexes.size,
       constrainedCardCount: mandatory.length,
     });
     return {
@@ -171,7 +180,7 @@ export class BoardGenerator {
       fontMode: editor.config.fontMode,
       fontSize: editor.config.fontSize,
       cells,
-      checked: freeIndex === null ? [] : [freeIndex],
+      checked: [...freeIndexes].sort((left, right) => left - right),
       source: editor,
       seed,
     };
@@ -188,7 +197,9 @@ export class BoardGenerator {
     }
 
     const size = editor.config.size;
-    const freeIndex = BoardModel.freeCellIndex(size, editor.config.free);
+    const freeIndexes = new Set(
+      BoardModel.freeCellIndexes(size, editor.config.free),
+    );
     const random = this.createRandom(this.hashString(seed));
     const answers = this.shuffle(
       editor.answers
@@ -198,7 +209,7 @@ export class BoardGenerator {
     );
     const openCells = this.shuffle(
       Array.from({ length: size ** 2 }, (_, index) => index).filter(
-        (index) => index !== freeIndex,
+        (index) => !freeIndexes.has(index),
       ),
       random,
     );
@@ -209,7 +220,7 @@ export class BoardGenerator {
     );
 
     return Array.from({ length: size ** 2 }, (_, index) => {
-      if (index === freeIndex) {
+      if (freeIndexes.has(index)) {
         return {
           id: "__free__",
           text: editor.config.freeLabel.trim() || "FREE",
@@ -309,15 +320,15 @@ export class BoardGenerator {
   private allowedCells(
     placement: Placement,
     size: number,
-    freeIndex: number | null,
+    freeIndexes: ReadonlySet<number>,
   ): number[] {
     const all = Array.from(
       { length: size ** 2 },
       (_, index) => index,
-    ).filter((index) => index !== freeIndex);
+    ).filter((index) => !freeIndexes.has(index));
     switch (placement.kind) {
       case "cell":
-        return placement.index < size ** 2 && placement.index !== freeIndex
+        return placement.index < size ** 2 && !freeIndexes.has(placement.index)
           ? [placement.index]
           : [];
       case "row":
@@ -338,14 +349,14 @@ export class BoardGenerator {
   private placeMandatory(
     answers: Answer[],
     size: number,
-    freeIndex: number | null,
+    freeIndexes: ReadonlySet<number>,
     random: () => number,
   ): Map<number, Answer> | null {
     const candidates = answers
       .map((answer) => ({
         answer,
         cells: this.shuffle(
-          this.allowedCells(answer.placement, size, freeIndex),
+          this.allowedCells(answer.placement, size, freeIndexes),
           random,
         ),
       }))

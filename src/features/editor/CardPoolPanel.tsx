@@ -159,7 +159,7 @@ export function CardPoolPanel({
             duplicate={duplicateCardIds.has(answer.id)}
             index={index}
             size={editor.config.size}
-            freeIndex={BoardModel.freeCellIndex(
+            freeIndexes={BoardModel.freeCellIndexes(
               editor.config.size,
               editor.config.free,
             )}

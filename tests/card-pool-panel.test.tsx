@@ -11,13 +11,14 @@ afterEach(cleanup);
 
 function controller(placementControlsVisible: boolean) {
   const editor = BoardModel.createDefaultEditor();
+  editor.config.free = 2;
   editor.answers = editor.answers.slice(0, 2);
   editor.answers[0]!.placement = { kind: "row", index: 1 };
   editor.placementControlsVisible = placementControlsVisible;
   return {
     editor,
     populatedCardCount: 2,
-    neededCardCount: 24,
+    neededCardCount: 23,
     duplicateCardIds: new Set<string>(),
     addCard: vi.fn(() => false),
     updateCard: vi.fn(),
@@ -60,5 +61,7 @@ describe("Card Pool position controls", () => {
     const positions = screen.getAllByRole("combobox", { name: /Position for card/ });
     expect(positions).toHaveLength(2);
     expect((positions[0] as HTMLSelectElement).value).toBe("row:1");
+    expect(positions[0]!.querySelector('option[value="cell:12"]')).toBeNull();
+    expect(positions[0]!.querySelector('option[value="cell:1"]')).toBeNull();
   });
 });

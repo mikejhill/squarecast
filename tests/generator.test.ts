@@ -5,15 +5,22 @@ import { BoardModel } from "../src/lib/model";
 describe("board generator", () => {
   const generator = new BoardGenerator();
 
-  it("fills every square and keeps the free square centered", () => {
+  it("fills every square and applies the predetermined multi-free pattern", () => {
     const editor = BoardModel.createDefaultEditor();
+    editor.config.free = 4;
     const play = generator.generate(editor, "stable-seed");
-    const center = BoardModel.freeCellIndex(5, true)!;
+    const freeIndexes = BoardModel.freeCellIndexes(5, 4);
     expect(play.cells).toHaveLength(25);
-    expect(play.cells[center]?.free).toBe(true);
+    expect(
+      play.cells.flatMap((cell, index) => (cell.free ? [index] : [])),
+    ).toEqual([...freeIndexes].sort((left, right) => left - right));
+    expect(play.checked).toEqual(
+      [...freeIndexes].sort((left, right) => left - right),
+    );
     expect(
       new Set(play.cells.filter((cell) => !cell.free).map((cell) => cell.id)).size,
-    ).toBe(24);
+    ).toBe(21);
+    expect(generator.winningCells(play).size).toBe(0);
   });
 
   it("keeps the editable source attached so play testing can return to editing", () => {
@@ -86,11 +93,49 @@ describe("board generator", () => {
   it("fills a board without a free square", () => {
     const editor = BoardModel.createDefaultEditor();
     editor.config.size = 3;
-    editor.config.free = false;
+    editor.config.free = 0;
     const play = generator.generate(editor, "no-free");
     expect(play.cells).toHaveLength(9);
     expect(play.cells.some((cell) => cell.free)).toBe(false);
     expect(play.checked).toEqual([]);
+  });
+
+  it.each([3, 4, 5, 6, 7])(
+    "opens a size-%d board at its maximum without an immediate win",
+    (size) => {
+      const editor = BoardModel.createDefaultEditor();
+      editor.config.size = size;
+      editor.config.free = BoardModel.maxFreeSquareCount(size);
+      editor.answers = Array.from(
+        { length: BoardModel.blankSquareCount(editor) },
+        (_, index) => ({
+          id: `card-${index}`,
+          text: `Card ${index}`,
+          placement: { kind: "any" as const },
+        }),
+      );
+
+      const play = generator.generate(editor, `safe-${size}`);
+      expect(play.checked).toEqual(
+        [...BoardModel.freeCellIndexes(size, size - 1)].sort(
+          (left, right) => left - right,
+        ),
+      );
+      expect(play.cells.filter((cell) => cell.free)).toHaveLength(size - 1);
+      expect(generator.winningCells(play).size).toBe(0);
+    },
+  );
+
+  it("rejects a free-square count that could fill a winning line", () => {
+    const editor = BoardModel.createDefaultEditor();
+    editor.config.size = 3;
+    editor.config.free = 3;
+    expect(generator.validate(editor).errors).toContain(
+      "Use no more than 2 free squares on a 3 × 3 board.",
+    );
+    expect(() => generator.generate(editor, "too-many-free")).toThrow(
+      "Use no more than 2 free squares",
+    );
   });
 
   it("reshuffles partial previews before the board is valid", () => {
@@ -121,7 +166,7 @@ describe("board generator", () => {
   it("rejects more constrained cards than available squares", () => {
     const editor = BoardModel.createDefaultEditor();
     editor.config.size = 3;
-    editor.config.free = true;
+    editor.config.free = 1;
     editor.answers = editor.answers.slice(0, 9).map((answer, index) => ({
       ...answer,
       placement: { kind: "cell" as const, index },

@@ -5,7 +5,7 @@ import { IdFactory, type PlayState } from "./model";
 export class PlayerSessionService {
   public constructor(private readonly generator: BoardGenerator) {}
 
-  /** Toggles a playable cell while leaving the immutable free square marked. */
+  /** Toggles a playable cell while leaving every immutable free square marked. */
   public toggleCell(play: PlayState, index: number): PlayState {
     if (play.cells[index]?.free) return play;
     const checked = new Set(play.checked);

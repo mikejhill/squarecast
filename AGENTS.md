@@ -81,9 +81,12 @@ See [State and Routing](docs/state-and-routing.md).
 
 - Board Setup is full-width.
 - On desktop, Board Setup uses two rows of three equal-width fields:
-  1. Board Title, Free Square, Free Square Label
+  1. Board Title, Free Squares, Free Square Label
   2. Board Color, Tile Text Size, Board File
-- Free Square Label remains visible and disabled when the free square is off.
+- Free Square Label remains visible and disabled when the free-square count is
+  zero.
+- Free-square counts range from zero through `size - 1`; reducing board size
+  clamps the count automatically.
 - Field labels use one consistent treatment. Secondary explanation belongs in
   accessible hover/focus tooltips.
 - Card Pool and Live Preview are equal-width desktop columns.
@@ -143,7 +146,7 @@ See [State and Routing](docs/state-and-routing.md).
 ## Play UX
 
 - Players mark and unmark cards directly.
-- The free square is marked automatically and cannot be cleared.
+- Every free square is marked automatically and cannot be cleared.
 - Detect completed rows, columns, and diagonals.
 - Highlight every checked cell belonging to a completed line.
 - Show the Bingo banner as an overlay above the board heading.
@@ -173,8 +176,8 @@ See [State and Routing](docs/state-and-routing.md).
 ## Samples
 
 - Every curated sample is 5×5.
-- A sample with a free square has exactly 24 distinct cards.
-- A sample without a free square has exactly 25 distinct cards.
+- A sample has exactly `25 - free` distinct cards, where `free` is its
+  configured count from zero through four.
 - Samples use distinct IDs, titles, and accent colors.
 - Sample content must be complete, unoffensive, casual, and independently
   themed.

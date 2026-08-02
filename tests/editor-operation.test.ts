@@ -201,7 +201,7 @@ describe("editor operations", () => {
     expect(editorOperationTargetKeys({
       id: "config",
       type: "patch-config",
-      patch: { title: "Title", free: false },
+      patch: { title: "Title", free: 0 },
     })).toEqual(["config:title", "config:free"]);
     expect(editorOperationTargetKeys(cardUpdate)).toEqual(["card:one"]);
     expect(editorOperationTargetKeys({

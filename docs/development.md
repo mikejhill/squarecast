@@ -179,7 +179,8 @@ Examples of meaningful tests include:
 
 1. Add an immutable definition under `src/data/`.
 2. Use a distinct ID, title, and accent color.
-3. Supply exactly 24 cards with a free square or 25 without one.
+3. Supply exactly `25 - free` cards, where `free` is an integer from zero
+   through four.
 4. Keep the board broadly usable and unoffensive.
 5. Run the sample catalog test, which validates every board and generated cell.
 

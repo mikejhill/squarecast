@@ -21,11 +21,11 @@ move together.
 ```json
 {
   "format": "squarecast-board",
-  "version": 1,
+  "version": 2,
   "config": {
     "title": "Neighborhood Photo Hunt",
     "size": 5,
-    "free": true,
+    "free": 2,
     "freeLabel": "FREE",
     "theme": "teal",
     "accentColor": "#008b8b",
@@ -69,7 +69,7 @@ move together.
 | --- | --- |
 | `title` | String |
 | `size` | Integer from 3 through 7 |
-| `free` | Boolean |
+| `free` | Integer from zero through `size - 1` |
 | `freeLabel` | String |
 | `theme` | Supported preset identifier or `custom` |
 | `accentColor` | Six-digit hexadecimal color |
@@ -77,6 +77,10 @@ move together.
 | `fontSize` | Integer from 10 through 32 |
 | `sortMode` | `manual`, `alphabetical`, `reverse`, `constrained`, or `shuffle` |
 | `previewSeed` | Non-empty string |
+
+Version 2 writes `free` as a count. Version 1 documents and legacy URL objects
+that stored `free` as a boolean remain readable; `true` becomes `1` and
+`false` becomes `0`.
 
 ### Placement rules
 

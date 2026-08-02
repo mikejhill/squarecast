@@ -29,7 +29,7 @@ the URL, which can be copied or bookmarked at any time.
 ## Features
 
 - Square boards from 3×3 through 7×7
-- Optional centered free square with a custom label
+- Zero or more balanced free squares with a custom label
 - Curated 5×5 sample boards
 - Card Pools with no fixed maximum and persistent sorting
 - Exact-cell, row, and column placement constraints

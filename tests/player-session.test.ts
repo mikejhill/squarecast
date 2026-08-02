@@ -7,15 +7,20 @@ describe("player session service", () => {
   const generator = new BoardGenerator();
   const service = new PlayerSessionService(generator);
 
-  it("toggles playable cells and leaves the free square immutable", () => {
-    const play = generator.generate(BoardModel.createDefaultEditor(), "toggle");
-    const freeIndex = BoardModel.freeCellIndex(play.size, true)!;
+  it("toggles playable cells and leaves every free square immutable", () => {
+    const editor = BoardModel.createDefaultEditor();
+    editor.config.free = 4;
+    const play = generator.generate(editor, "toggle");
+    const freeIndexes = BoardModel.freeCellIndexes(play.size, 4);
 
-    expect(service.toggleCell(play, freeIndex)).toBe(play);
-    const checked = service.toggleCell(play, 0);
-    expect(checked.checked).toContain(0);
-    const unchecked = service.toggleCell(checked, 0);
-    expect(unchecked.checked).not.toContain(0);
+    for (const freeIndex of freeIndexes) {
+      expect(service.toggleCell(play, freeIndex)).toBe(play);
+    }
+    const playableIndex = play.cells.findIndex((cell) => !cell.free);
+    const checked = service.toggleCell(play, playableIndex);
+    expect(checked.checked).toContain(playableIndex);
+    const unchecked = service.toggleCell(checked, playableIndex);
+    expect(unchecked.checked).not.toContain(playableIndex);
   });
 
   it("creates a fresh play board from the attached source", () => {

@@ -77,7 +77,7 @@ Board Setup contains settings that affect the whole board:
 
 - title;
 - square dimension;
-- optional centered free square and label;
+- a size-constrained free-square count and shared label;
 - board color;
 - automatic or fixed tile text sizing; and
 - complete-board JSON import and export.
@@ -85,6 +85,11 @@ Board Setup contains settings that affect the whole board:
 Related settings share rows on desktop and stack at narrow widths.
 The section can be collapsed after setup, and its disclosure state follows the
 restorable editor URL.
+
+Free-square counts range from zero through one less than the board size. A
+board-size reduction clamps the count immediately. Odd boards place the first
+free square at center; later squares follow a predetermined balanced pattern
+that prefers unused rows, columns, and diagonals.
 
 ### Card Pool
 

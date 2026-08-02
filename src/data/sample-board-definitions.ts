@@ -3,7 +3,7 @@ import type { Theme } from "../lib/model";
 export type SampleBoardDefinition = {
   readonly id: string;
   readonly title: string;
-  readonly free: boolean;
+  readonly free: number;
   readonly theme: Theme;
   readonly accentColor: string;
   readonly cards: readonly string[];
@@ -17,7 +17,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "weekend-adventure",
       title: "Weekend Adventure Bingo",
-      free: true,
+      free: 1,
       theme: "coral",
       accentColor: "#ff6b45",
       cards: [
@@ -50,7 +50,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "cozy-reading",
       title: "Cozy Reading Night",
-      free: true,
+      free: 2,
       theme: "violet",
       accentColor: "#7559d9",
       cards: [
@@ -77,13 +77,12 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
         "Read a story set somewhere new",
         "Choose tomorrow's next chapter",
         "Pair a snack with the story",
-        "Share a favorite line",
       ],
     },
     {
       id: "farmers-market",
       title: "Farmers Market Finds",
-      free: false,
+      free: 0,
       theme: "sunflower",
       accentColor: "#d99a00",
       cards: [
@@ -117,7 +116,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "nature-walk",
       title: "Nature Walk Discovery",
-      free: true,
+      free: 3,
       theme: "mint",
       accentColor: "#20a679",
       cards: [
@@ -143,14 +142,12 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
         "Notice the trail changing",
         "Find a place to pause",
         "See a tree with textured bark",
-        "Spot something red in nature",
-        "Take a quiet minute",
       ],
     },
     {
       id: "road-trip",
       title: "Road Trip Moments",
-      free: true,
+      free: 1,
       theme: "ocean",
       accentColor: "#1976d2",
       cards: [
@@ -183,7 +180,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "creative-afternoon",
       title: "Creative Afternoon",
-      free: true,
+      free: 1,
       theme: "rose",
       accentColor: "#d94f70",
       cards: [
@@ -216,7 +213,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "photo-hunt",
       title: "Neighborhood Photo Hunt",
-      free: true,
+      free: 1,
       theme: "teal",
       accentColor: "#008b8b",
       cards: [
@@ -249,7 +246,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "game-night",
       title: "Friends and Family Game Night",
-      free: true,
+      free: 4,
       theme: "indigo",
       accentColor: "#4d5bd4",
       cards: [
@@ -274,15 +271,12 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
         "A surprising alliance forms",
         "The lead changes hands",
         "Someone predicts the outcome",
-        "A clever clue gets solved",
-        "The table gets rearranged",
-        "The final turn decides it",
       ],
     },
     {
       id: "garden-discovery",
       title: "Garden Discovery",
-      free: false,
+      free: 0,
       theme: "custom",
       accentColor: "#5a8f3d",
       cards: [
@@ -316,7 +310,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "museum-explorer",
       title: "Museum Explorer",
-      free: true,
+      free: 2,
       theme: "ink",
       accentColor: "#34343a",
       cards: [
@@ -343,13 +337,12 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
         "Find an exhibit for children",
         "Notice a sound in a gallery",
         "Read about a restoration",
-        "Pick a souvenir postcard",
       ],
     },
     {
       id: "kitchen-adventure",
       title: "Kitchen Adventure",
-      free: true,
+      free: 1,
       theme: "orange",
       accentColor: "#e86f18",
       cards: [
@@ -382,7 +375,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "stargazing",
       title: "Stargazing Evening",
-      free: true,
+      free: 1,
       theme: "custom",
       accentColor: "#4257b2",
       cards: [
@@ -415,7 +408,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "home-movie-night",
       title: "Home Movie Night",
-      free: true,
+      free: 1,
       theme: "custom",
       accentColor: "#b65f33",
       cards: [
@@ -448,7 +441,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "library-visit",
       title: "Library Visit",
-      free: true,
+      free: 1,
       theme: "custom",
       accentColor: "#28707f",
       cards: [
@@ -481,7 +474,7 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
     {
       id: "rainy-day",
       title: "Rainy Day Reset",
-      free: true,
+      free: 3,
       theme: "custom",
       accentColor: "#5e6f9e",
       cards: [
@@ -507,14 +500,12 @@ export const sampleBoardDefinitions: readonly SampleBoardDefinition[] = [
         "Learn simple origami",
         "Plan a sunny-day outing",
         "Photograph raindrops",
-        "Finish one small task",
-        "Notice the rain easing",
       ],
     },
     {
       id: "community-festival",
       title: "Community Festival",
-      free: false,
+      free: 0,
       theme: "custom",
       accentColor: "#b14f8a",
       cards: [

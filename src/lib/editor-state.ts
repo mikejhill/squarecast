@@ -27,18 +27,30 @@ export class EditorStateService {
     editor: EditorState,
     patch: Partial<BoardConfig>,
   ): EditorMutation {
-    const config = { ...editor.config, ...patch };
+    const requestedConfig = { ...editor.config, ...patch };
+    const config = {
+      ...requestedConfig,
+      free: Math.max(
+        0,
+        Math.min(
+          requestedConfig.free,
+          BoardModel.maxFreeSquareCount(requestedConfig.size),
+        ),
+      ),
+    };
     let answers = editor.answers;
     const changesGeometry =
       patch.size !== undefined || patch.free !== undefined;
     if (changesGeometry) {
-      const freeIndex = BoardModel.freeCellIndex(config.size, config.free);
+      const freeIndexes = new Set(
+        BoardModel.freeCellIndexes(config.size, config.free),
+      );
       answers = answers.map((answer) => {
         const placement = answer.placement;
         const invalid =
           (placement.kind === "cell" &&
             (placement.index >= config.size ** 2 ||
-              placement.index === freeIndex)) ||
+              freeIndexes.has(placement.index))) ||
           ((placement.kind === "row" || placement.kind === "column") &&
             placement.index >= config.size);
         return invalid

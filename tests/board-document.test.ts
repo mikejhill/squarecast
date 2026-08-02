@@ -11,7 +11,7 @@ describe("board document service", () => {
       ...source.config,
       title: "Imported Board",
       size: 6,
-      free: false,
+      free: 0,
       fontMode: "fixed",
       fontSize: 21,
       sortMode: "constrained",
@@ -40,11 +40,25 @@ describe("board document service", () => {
     >;
 
     expect(exported.format).toBe("squarecast-board");
-    expect(exported.version).toBe(1);
+    expect(exported.version).toBe(2);
     expect(exported).toHaveProperty("config");
     expect(exported).toHaveProperty("placementControlsVisible", false);
     expect(exported).toHaveProperty("cards");
     expect(JSON.stringify(exported)).not.toContain(source.answers[0]!.id);
+  });
+
+  it("imports version 1 boolean free-square settings as integer counts", () => {
+    const source = BoardModel.createDefaultEditor();
+    const legacy = JSON.parse(documents.serialize(source)) as {
+      version: number;
+      config: { free: boolean | number };
+    };
+    legacy.version = 1;
+    legacy.config.free = true;
+
+    expect(documents.parse(JSON.stringify(legacy)).config.free).toBe(1);
+    legacy.config.free = false;
+    expect(documents.parse(JSON.stringify(legacy)).config.free).toBe(0);
   });
 
   it.each([
@@ -62,7 +76,7 @@ describe("board document service", () => {
       "unsupported version",
       JSON.stringify({
         format: "squarecast-board",
-        version: 2,
+        version: 3,
         config: {},
         cards: [],
       }),

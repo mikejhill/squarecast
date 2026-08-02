@@ -22,7 +22,7 @@ describe("editor state service", () => {
     editor.answers[2]!.placement = { kind: "column", index: 4 };
     editor.answers[3]!.placement = { kind: "cell", index: 0 };
 
-    const mutation = service.patchConfig(editor, { size: 3, free: false });
+    const mutation = service.patchConfig(editor, { size: 3, free: 0 });
 
     expect(mutation.historyMode).toBe("push");
     expect(mutation.state.answers.slice(0, 3).every(
@@ -34,14 +34,27 @@ describe("editor state service", () => {
     });
   });
 
-  it("clears an exact placement when a new free square occupies it", () => {
+  it("clears exact placements occupied by an increased free-square count", () => {
     const editor = BoardModel.createDefaultEditor();
-    editor.config.free = false;
+    editor.config.free = 0;
     editor.answers[0]!.placement = { kind: "cell", index: 12 };
+    editor.answers[1]!.placement = { kind: "cell", index: 1 };
 
-    const mutation = service.patchConfig(editor, { free: true });
+    const mutation = service.patchConfig(editor, { free: 2 });
 
     expect(mutation.state.answers[0]?.placement).toEqual({ kind: "any" });
+    expect(mutation.state.answers[1]?.placement).toEqual({ kind: "any" });
+  });
+
+  it("clamps free squares when a smaller board reduces the safe maximum", () => {
+    const editor = BoardModel.createDefaultEditor();
+    editor.config.size = 7;
+    editor.config.free = 6;
+
+    const mutation = service.patchConfig(editor, { size: 3 });
+
+    expect(mutation.state.config.free).toBe(2);
+    expect(mutation.historyMode).toBe("push");
   });
 
   it("appends trimmed cards in the default manual order and rejects blanks", () => {

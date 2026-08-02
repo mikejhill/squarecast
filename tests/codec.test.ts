@@ -15,6 +15,7 @@ describe("URL state codec", () => {
     const state = BoardModel.createDefaultEditor();
     state.setupCollapsed = true;
     state.placementControlsVisible = true;
+    state.config.free = 4;
     state.answers[0]!.placement = { kind: "cell", index: 0 };
     state.answers[1]!.placement = { kind: "row", index: 1 };
     state.answers[2]!.placement = { kind: "column", index: 2 };
@@ -23,11 +24,13 @@ describe("URL state codec", () => {
 
   it("round-trips launch and generated play state without duplicated cell text", () => {
     const editor = BoardModel.createDefaultEditor();
+    editor.config.free = 4;
     const launch = { v: 1, mode: "launch", source: editor } as const;
     const play = generator.generate(editor, "codec-seed");
 
     expect(codec.decode(codec.encode(launch))).toEqual(launch);
     expect(codec.decode(codec.encode(play))).toEqual(play);
+    expect(play.cells.filter((cell) => cell.free)).toHaveLength(4);
   });
 
   it("preserves noncanonical but schema-valid play values exactly", () => {
@@ -112,12 +115,13 @@ describe("URL state codec", () => {
     } = editor;
     const restored = editorStateSchema.parse({
       ...legacyEditor,
-      config: { ...legacyConfig, appearance: "dark" },
+      config: { ...legacyConfig, free: true, appearance: "dark" },
     });
 
     expect(restored.config.sortMode).toBe("alphabetical");
     expect(restored.setupCollapsed).toBe(false);
     expect(restored.placementControlsVisible).toBe(false);
+    expect(restored.config.free).toBe(1);
     expect("appearance" in restored.config).toBe(false);
   });
 });

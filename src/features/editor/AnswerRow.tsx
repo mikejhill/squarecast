@@ -12,7 +12,7 @@ type AnswerRowProps = {
   duplicate: boolean;
   index: number;
   size: number;
-  freeIndex: number | null;
+  freeIndexes: readonly number[];
   showPlacement: boolean;
   onChange: (patch: Partial<Answer>) => void;
   onDelete: () => void;
@@ -24,7 +24,7 @@ export function AnswerRow({
   duplicate,
   index,
   size,
-  freeIndex,
+  freeIndexes,
   showPlacement,
   onChange,
   onDelete,
@@ -103,7 +103,7 @@ export function AnswerRow({
             </optgroup>
             <optgroup label="Exact square">
               {Array.from({ length: size ** 2 }, (_, cell) =>
-                cell === freeIndex ? null : (
+                freeIndexes.includes(cell) ? null : (
                   <option key={`cell-${cell}`} value={`cell:${cell}`}>
                     Cell {Math.floor(cell / size) + 1}·{(cell % size) + 1}
                   </option>

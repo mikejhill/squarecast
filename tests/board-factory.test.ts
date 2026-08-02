@@ -10,7 +10,7 @@ describe("new board factory", () => {
     expect(editor.config).toMatchObject({
       title: "",
       size: 5,
-      free: true,
+      free: 1,
       freeLabel: "FREE",
       theme: "custom",
       fontMode: "auto",

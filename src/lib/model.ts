@@ -44,10 +44,15 @@ export const answerSchema = z.object({
 });
 export type Answer = z.infer<typeof answerSchema>;
 
-export const boardConfigSchema = z.object({
+const freeSquareCountSchema = z.preprocess(
+  (value) => (typeof value === "boolean" ? (value ? 1 : 0) : value),
+  z.number().int().min(0).max(6),
+);
+
+const boardConfigShape = {
   title: z.string(),
   size: z.number().int().min(3).max(7),
-  free: z.boolean(),
+  free: freeSquareCountSchema,
   freeLabel: z.string(),
   theme: themeSchema.default("coral"),
   accentColor: z
@@ -58,7 +63,23 @@ export const boardConfigSchema = z.object({
   fontSize: z.number().int().min(10).max(32).default(18),
   sortMode: answerSortSchema.default("alphabetical"),
   previewSeed: z.string().min(1).default("preview"),
-});
+};
+
+export const boardConfigPatchSchema = z.object(boardConfigShape).partial();
+export const boardConfigSchema = z.object(boardConfigShape).superRefine(
+  (config, context) => {
+    if (config.free > config.size - 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.too_big,
+        maximum: config.size - 1,
+        type: "number",
+        inclusive: true,
+        path: ["free"],
+        message: `A ${config.size} × ${config.size} board supports at most ${config.size - 1} free squares.`,
+      });
+    }
+  },
+);
 export type BoardConfig = z.infer<typeof boardConfigSchema>;
 
 export const editorStateSchema = z.object({
@@ -176,7 +197,7 @@ export class BoardModel {
       config: {
         title: "Weekend Adventure Bingo",
         size: 5,
-        free: true,
+        free: 1,
         freeLabel: "FREE",
         theme: "coral",
         accentColor: "#ff6b45",
@@ -193,13 +214,37 @@ export class BoardModel {
     };
   }
 
-  /** Returns the center index when the free square is enabled. */
-  public static freeCellIndex(size: number, enabled: boolean): number | null {
-    return enabled ? Math.floor(size / 2) * size + Math.floor(size / 2) : null;
+  /** Returns the largest count that cannot complete a line before play begins. */
+  public static maxFreeSquareCount(size: number): number {
+    return Math.max(0, size - 1);
+  }
+
+  /**
+   * Returns the predetermined free-cell sequence for a supported board size.
+   * Early cells maximize newly covered lines and avoid repeated rows, columns,
+   * and diagonals whenever the geometry permits it.
+   */
+  public static freeCellIndexes(
+    size: number,
+    count: number,
+  ): readonly number[] {
+    const patterns: Record<number, readonly number[]> = {
+      3: [4, 0],
+      4: [0, 6, 11],
+      5: [12, 1, 5, 19],
+      6: [0, 10, 13, 23, 26],
+      7: [24, 1, 7, 19, 34, 37],
+    };
+    const pattern = patterns[size] ?? [];
+    const safeCount = Math.min(
+      Math.max(0, Math.trunc(count)),
+      pattern.length,
+    );
+    return pattern.slice(0, safeCount);
   }
 
   /** Calculates the number of card-backed cells required for a complete board. */
   public static blankSquareCount(editor: EditorState): number {
-    return editor.config.size ** 2 - (editor.config.free ? 1 : 0);
+    return editor.config.size ** 2 - editor.config.free;
   }
 }

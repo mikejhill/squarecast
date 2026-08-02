@@ -22,7 +22,7 @@ const portableCardSchema = z.object({
  */
 export const boardDocumentSchema = z.object({
   format: z.literal("squarecast-board"),
-  version: z.literal(1),
+  version: z.union([z.literal(1), z.literal(2)]),
   config: boardConfigSchema,
   placementControlsVisible: z.boolean().default(false),
   cards: z.array(portableCardSchema),
@@ -42,7 +42,7 @@ export class BoardDocumentService {
   public serialize(editor: EditorState): string {
     const document: BoardDocument = {
       format: "squarecast-board",
-      version: 1,
+      version: 2,
       config: editor.config,
       placementControlsVisible: editor.placementControlsVisible,
       cards: editor.answers.map(({ text, placement }) => ({

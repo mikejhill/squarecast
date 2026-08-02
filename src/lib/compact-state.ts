@@ -37,6 +37,7 @@ const sortModes = [
 ] as const satisfies readonly AnswerSort[];
 
 const flagSchema = z.union([z.literal(0), z.literal(1)]);
+const freeSquareCountSchema = z.number().int().min(0).max(6);
 const editorFlagsSchema = z.union([
   z.literal(0),
   z.literal(1),
@@ -55,7 +56,7 @@ const placementCodeSchema = z.union([
 const compactConfigSchema = z.tuple([
   z.string(),
   z.number().int().min(3).max(7),
-  flagSchema,
+  freeSquareCountSchema,
   z.string(),
   themeCodeSchema,
   z.string().regex(/^[0-9a-f]{6}$/i),
@@ -217,7 +218,7 @@ export class CompactStateSerializer {
     return [
       config.title,
       config.size,
-      config.free ? 1 : 0,
+      config.free,
       config.freeLabel,
       this.codeOf(themes, config.theme),
       config.accentColor.slice(1),
@@ -232,7 +233,7 @@ export class CompactStateSerializer {
     return {
       title: config[0],
       size: config[1],
-      free: config[2] === 1,
+      free: config[2],
       freeLabel: config[3],
       theme: themes[config[4]]!,
       accentColor: `#${config[5]}`,

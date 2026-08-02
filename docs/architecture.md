@@ -200,7 +200,7 @@ flowchart TD
     D -- "Yes" --> F["Create seeded random source"]
     F --> G["Place constrained cards with backtracking"]
     G --> H["Shuffle remaining cells and flexible cards"]
-    H --> I["Insert optional free square"]
+    H --> I["Insert the balanced free-square pattern"]
     I --> J["Create immutable play state"]
 ```
 
@@ -213,13 +213,18 @@ Flexible cards and remaining cells are shuffled with a deterministic
 pseudorandom source derived from the play seed. Extra cards increase variety;
 only the number required to fill the board is selected.
 
+Each supported size has a deterministic free-square sequence. The maximum is
+`size - 1`, which makes an opening win impossible. The sequence prioritizes
+newly covered winning lines and avoids repeated rows, columns, and diagonals
+until the board geometry makes overlap unavoidable.
+
 ## Live Preview
 
 A valid editor uses the production generator for its preview. An incomplete or
 otherwise invalid editor uses a partial-preview path that:
 
 - randomizes available cards;
-- preserves the optional free square;
+- preserves every configured free square;
 - fills remaining cells with placeholders; and
 - remains available while the user resolves validation errors.
 
