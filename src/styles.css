@@ -64,6 +64,11 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.cloud-share-list button:disabled,
+.member-list button:disabled {
+  opacity: 0.58;
+}
+
 option,
 optgroup {
   background: #fff;
@@ -2522,6 +2527,8 @@ optgroup {
 
 .share-token-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 5px;
 }
 

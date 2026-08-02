@@ -386,16 +386,23 @@ export class CloudBoardRepository implements BoardRepository {
   public async createPublicShare(
     boardId: string,
     kind: PublicShareKind,
+    rotate = false,
   ): Promise<string> {
     const user = this.requireVerifiedUser();
     const token = this.createToken();
     const boardReference = doc(this.database, "boards", boardId);
-    await runTransaction(this.database, async (transaction) => {
+    return runTransaction(this.database, async (transaction) => {
       const snapshot = await transaction.get(boardReference);
       if (!snapshot.exists()) throw new Error("The account board no longer exists.");
       const board = this.parseRecord(snapshot.data());
       if (board.ownerUid !== user.uid) throw new Error("Only the owner can share this board.");
       const previous = board.shareTokens[kind];
+      if (previous && !rotate) {
+        const previousSnapshot = await transaction.get(
+          doc(this.database, "publicShares", previous),
+        );
+        if (previousSnapshot.exists()) return previous;
+      }
       transaction.update(boardReference, {
         [`shareTokens.${kind}`]: token,
       });
@@ -411,20 +418,29 @@ export class CloudBoardRepository implements BoardRepository {
       if (previous) {
         transaction.delete(doc(this.database, "publicShares", previous));
       }
+      return token;
     });
-    return token;
   }
 
-  public async createEditorInvite(boardId: string): Promise<string> {
+  public async createEditorInvite(boardId: string, rotate = false): Promise<string> {
     const user = this.requireVerifiedUser();
     const token = this.createToken();
     const boardReference = doc(this.database, "boards", boardId);
-    await runTransaction(this.database, async (transaction) => {
+    return runTransaction(this.database, async (transaction) => {
       const snapshot = await transaction.get(boardReference);
       if (!snapshot.exists()) throw new Error("The account board no longer exists.");
       const board = this.parseRecord(snapshot.data());
       if (board.ownerUid !== user.uid) throw new Error("Only the owner can invite editors.");
       const previous = board.shareTokens.invite;
+      if (previous && !rotate) {
+        const previousSnapshot = await transaction.get(
+          doc(this.database, "editorInvites", previous),
+        );
+        if (previousSnapshot.exists()) {
+          const invite = inviteSchema.parse(previousSnapshot.data());
+          if (this.toMillis(invite.expiresAt) > Date.now()) return previous;
+        }
+      }
       transaction.update(boardReference, { "shareTokens.invite": token });
       transaction.set(doc(this.database, "editorInvites", token), {
         schemaVersion: 1,
@@ -437,8 +453,8 @@ export class CloudBoardRepository implements BoardRepository {
       if (previous) {
         transaction.delete(doc(this.database, "editorInvites", previous));
       }
+      return token;
     });
-    return token;
   }
 
   public async revokeShare(
@@ -514,13 +530,26 @@ export class CloudBoardRepository implements BoardRepository {
     if (this.toMillis(invite.expiresAt) <= Date.now()) {
       throw new Error("This editor invitation has expired.");
     }
-    await updateDoc(doc(this.database, "boards", invite.boardId), {
-      memberUids: arrayUnion(user.uid),
-      [`roles.${user.uid}`]: "editor",
-      lastAcceptedInvite: token,
-      updatedAt: serverTimestamp(),
-      updatedBy: user.uid,
-    });
+    const boardReference = doc(this.database, "boards", invite.boardId);
+    if (await this.canReadBoardAsMember(boardReference, user.uid)) {
+      return invite.boardId;
+    }
+    try {
+      await updateDoc(boardReference, {
+        memberUids: arrayUnion(user.uid),
+        [`roles.${user.uid}`]: "editor",
+        lastAcceptedInvite: token,
+        updatedAt: serverTimestamp(),
+        updatedBy: user.uid,
+      });
+    } catch (error) {
+      if (
+        !this.isPermissionDenied(error) ||
+        !(await this.canReadBoardAsMember(boardReference, user.uid))
+      ) {
+        throw error;
+      }
+    }
     return invite.boardId;
   }
 
@@ -614,6 +643,30 @@ export class CloudBoardRepository implements BoardRepository {
     return (await this.requireRecord(boardId)).shareTokens;
   }
 
+  /** Confirms that a displayed token is still the board's active, readable share. */
+  public async isShareActive(
+    boardId: string,
+    kind: PublicShareKind | "invite",
+    token: string,
+  ): Promise<boolean> {
+    const board = await this.requireRecord(boardId);
+    if (board.shareTokens[kind] !== token) return false;
+    const snapshot = await getDoc(
+      doc(
+        this.database,
+        kind === "invite" ? "editorInvites" : "publicShares",
+        token,
+      ),
+    );
+    if (!snapshot.exists()) return false;
+    if (kind === "invite") {
+      const invite = inviteSchema.parse(snapshot.data());
+      return invite.boardId === boardId && this.toMillis(invite.expiresAt) > Date.now();
+    }
+    const share = publicShareSchema.parse(snapshot.data());
+    return share.boardId === boardId && share.kind === kind;
+  }
+
   public async members(boardId: string): Promise<Readonly<Record<string, "owner" | "editor">>> {
     return (await this.requireRecord(boardId)).roles;
   }
@@ -622,6 +675,29 @@ export class CloudBoardRepository implements BoardRepository {
     const snapshot = await getDoc(doc(this.database, "boards", id));
     if (!snapshot.exists()) throw new Error("The account board no longer exists.");
     return this.parseRecord(snapshot.data());
+  }
+
+  /** Treats a readable board membership as successful prior invite acceptance. */
+  private async canReadBoardAsMember(
+    reference: ReturnType<typeof doc>,
+    uid: string,
+  ): Promise<boolean> {
+    try {
+      const snapshot = await getDoc(reference);
+      return snapshot.exists() && this.parseRecord(snapshot.data()).memberUids.includes(uid);
+    } catch (error) {
+      if (this.isPermissionDenied(error)) return false;
+      throw error;
+    }
+  }
+
+  private isPermissionDenied(error: unknown): boolean {
+    return Boolean(
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: unknown }).code === "permission-denied",
+    );
   }
 
   private parseRecord(data: DocumentData): CloudRecord {

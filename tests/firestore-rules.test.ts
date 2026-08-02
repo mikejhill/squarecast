@@ -21,6 +21,12 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { StateCodec } from "../src/lib/codec";
+import { EditorStateService } from "../src/lib/editor-state";
+import { AnswerPoolSorter } from "../src/lib/sorting";
+import type { AuthUser } from "../src/services/cloud-auth-service";
+import { CloudBoardRepository } from "../src/services/cloud-board-repository";
+import type { FirebaseClient } from "../src/services/firebase-client";
 
 const projectId = "squarecast-test";
 const rules = readFileSync(
@@ -198,6 +204,69 @@ describe("Firestore security rules", () => {
         updatedBy: "late",
       }),
     );
+  });
+
+  it("treats reopening an accepted editor invitation as a successful no-op", async () => {
+    await seedBoard();
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "editorInvites", "reusable-token"), {
+        schemaVersion: 1,
+        boardId: "board-1",
+        role: "editor",
+        ownerUid: "owner",
+        createdAt: Timestamp.now(),
+        expiresAt: Timestamp.fromMillis(Date.now() + 60_000),
+      });
+    });
+    const database = auth("joiner");
+    const repository = new CloudBoardRepository(
+      { firestore: () => database } as unknown as FirebaseClient,
+      new StateCodec(),
+      new EditorStateService(new AnswerPoolSorter()),
+      () => ({
+        uid: "joiner",
+        email: "joiner@example.test",
+        displayName: "Joiner",
+        emailVerified: true,
+      }),
+    );
+
+    expect(await repository.acceptInvite("reusable-token")).toBe("board-1");
+    expect(await repository.acceptInvite("reusable-token")).toBe("board-1");
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const snapshot = await getDoc(doc(context.firestore(), "boards", "board-1"));
+      expect(snapshot.data()?.memberUids).toEqual(["owner", "joiner"]);
+      expect(snapshot.data()?.roles).toEqual({ owner: "owner", joiner: "editor" });
+    });
+  });
+
+  it("keeps Create idempotent and invalidates an invite only on explicit rotation", async () => {
+    await seedBoard();
+    const database = auth("owner");
+    const currentUser: AuthUser = {
+      uid: "owner",
+      email: "owner@example.test",
+      displayName: "Owner",
+      emailVerified: true,
+    };
+    const repository = new CloudBoardRepository(
+      { firestore: () => database } as unknown as FirebaseClient,
+      new StateCodec(),
+      new EditorStateService(new AnswerPoolSorter()),
+      () => currentUser,
+    );
+
+    const first = await repository.createEditorInvite("board-1");
+    const repeated = await repository.createEditorInvite("board-1");
+    expect(repeated).toBe(first);
+
+    const rotated = await repository.createEditorInvite("board-1", true);
+    expect(rotated).not.toBe(first);
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const admin = context.firestore();
+      expect((await getDoc(doc(admin, "editorInvites", first))).exists()).toBe(false);
+      expect((await getDoc(doc(admin, "editorInvites", rotated))).exists()).toBe(true);
+    });
   });
 
   it("allows public token gets while denying collection listing", async () => {
