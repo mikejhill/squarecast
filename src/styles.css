@@ -1203,30 +1203,27 @@ optgroup {
   flex: 1;
 }
 
-.card-text-field input {
+/* Keep the input and matched-text replacement on one identical baseline. */
+.card-text-control {
   width: 100%;
   min-width: 0;
   height: 32px;
   border: 0;
-  outline: 0;
-  padding: 0;
+  padding: 6px 0;
+  appearance: none;
   background: transparent;
   color: #29292c;
   font-size: 14px;
+  line-height: 20px;
+}
+
+.card-text-field input {
+  outline: 0;
 }
 
 .card-search-highlight {
-  width: 100%;
-  min-width: 0;
-  height: 32px;
   display: block;
   overflow: hidden;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: #29292c;
-  font-size: 14px;
-  line-height: 32px;
   text-align: left;
   text-overflow: clip;
   white-space: pre;

@@ -93,6 +93,7 @@ describe("Card Pool search", () => {
     const matchedCard = screen.getByRole("button", {
       name: /Edit Card 1: Try a new snack/,
     });
+    expect(matchedCard.classList.contains("card-text-control")).toBe(true);
     expect(screen.queryByLabelText("Card 1")).toBeNull();
     expect(screen.queryByLabelText("Card 2")).toBeNull();
     expect(container.querySelector("mark")?.textContent).toBe("snack");
@@ -100,7 +101,9 @@ describe("Card Pool search", () => {
 
     await user.click(matchedCard);
     expect(screen.queryByRole("button", { name: /Edit Card 1:/ })).toBeNull();
-    expect(screen.getByLabelText("Card 1")).toBeTruthy();
+    expect(
+      screen.getByLabelText("Card 1").classList.contains("card-text-control"),
+    ).toBe(true);
     expect(container.querySelector("mark")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Clear Card Pool search" }));

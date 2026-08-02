@@ -71,7 +71,7 @@ export function AnswerRow({
           {showMatchedText ? (
             <button
               type="button"
-              className="card-search-highlight"
+              className="card-text-control card-search-highlight"
               aria-label={`Edit Card ${index + 1}: ${answer.text}`}
               onClick={() => setEditingMatchedText(true)}
             >
@@ -80,6 +80,7 @@ export function AnswerRow({
           ) : (
             <input
               ref={inputRef}
+              className="card-text-control"
               value={answer.text}
               onChange={(event) => onChange({ text: event.target.value })}
               onKeyDown={handleKey}

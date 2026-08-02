@@ -128,7 +128,8 @@ another card.
 The Card Pool search consumes the toolbar width left by the action group
 at desktop and mobile sizes.
 Matched rows render one highlighted edit control. Activating it replaces that
-control with the Card text input; the two text renderings never coexist.
+control with the Card text input; the two text renderings never coexist and use
+the same line-box metrics.
 
 Duplicate text remains permitted because some boards intentionally repeat a
 card. It is treated as a warning, with affected cards identified directly in

@@ -154,7 +154,8 @@ See [State and Routing](docs/state-and-routing.md).
 - Keep Card Pool search to the left of those controls and let it consume the
   toolbar's full remaining width at desktop and mobile sizes.
 - Matched Card text must render once. Show the highlighted edit control or the
-  active text input, never an overlaid copy of both.
+  active text input, never an overlaid copy of both. Both states use identical
+  shared typography and line-box metrics.
 - Board Setup disclosure and preview seed are editor-session presentation.
   Preserve them when device/cloud acknowledgements or listeners merge saved
   state; never preserve shared `placementControlsVisible` during that merge.
