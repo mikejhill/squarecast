@@ -23,6 +23,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { StateCodec } from "../src/lib/codec";
 import { EditorStateService } from "../src/lib/editor-state";
+import { BoardModel } from "../src/lib/model";
 import { AnswerPoolSorter } from "../src/lib/sorting";
 import type { AuthUser } from "../src/services/cloud-auth-service";
 import { CloudBoardRepository } from "../src/services/cloud-board-repository";
@@ -458,8 +459,11 @@ describe("Firestore security rules", () => {
   });
 
   it("opens an editor link through the repository without permanent membership", async () => {
+    const codec = new StateCodec();
+    const editor = BoardModel.createDefaultEditor();
     await seedBoard("board-1", {
       ...boardData(),
+      stateHash: codec.encode(editor),
       shareTokens: { invite: "repository-token" },
     });
     await environment.withSecurityRulesDisabled(async (context) => {
@@ -474,7 +478,7 @@ describe("Firestore security rules", () => {
     const database = anonymous("repository-guest");
     const repository = new CloudBoardRepository(
       { firestore: () => database } as unknown as FirebaseClient,
-      new StateCodec(),
+      codec,
       new EditorStateService(new AnswerPoolSorter()),
       () => ({
         uid: "repository-guest",
@@ -487,6 +491,18 @@ describe("Firestore security rules", () => {
 
     expect(await repository.acceptInvite("repository-token")).toBe("board-1");
     expect(await repository.acceptInvite("repository-token")).toBe("board-1");
+    const saved = await repository.applyOperation(
+      "board-1",
+      {
+        id: "guest-save",
+        type: "patch-config",
+        patch: { title: "Saved By Guest" },
+      },
+      "Guest Board Change",
+    );
+    expect(saved.editor.config.title).toBe("Saved By Guest");
+    expect(saved.revision).toBe(2);
+    await expect(repository.listCheckpoints("board-1")).resolves.toHaveLength(1);
     await environment.withSecurityRulesDisabled(async (context) => {
       const snapshot = await getDoc(doc(context.firestore(), "boards", "board-1"));
       expect(snapshot.data()?.memberUids).toEqual(["owner"]);

@@ -213,14 +213,14 @@ export class CloudBoardRepository implements BoardRepository {
     operation: EditorOperation,
     checkpointReason?: string,
   ): Promise<SavedBoard> {
-    const user = this.requireVerifiedUser();
+    const user = this.requireSignedInUser();
     const parsedOperation = editorOperationSchema.parse(operation);
     const boardReference = doc(this.database, "boards", id);
     const saved = await runTransaction(this.database, async (transaction) => {
       const snapshot = await transaction.get(boardReference);
       if (!snapshot.exists()) throw new Error("The account board no longer exists.");
       const current = this.parseRecord(snapshot.data());
-      if (!current.memberUids.includes(user.uid)) {
+      if (!user.isAnonymous && !current.memberUids.includes(user.uid)) {
         throw new Error("Access to this board was removed.");
       }
       if (current.recentOperationIds.includes(parsedOperation.id)) {
@@ -366,7 +366,9 @@ export class CloudBoardRepository implements BoardRepository {
   public async listCheckpoints(id: string): Promise<readonly BoardCheckpoint[]> {
     const user = this.requireSignedInUser();
     const board = await this.requireRecord(id);
-    if (!board.memberUids.includes(user.uid)) throw new Error("Access removed.");
+    if (!user.isAnonymous && !board.memberUids.includes(user.uid)) {
+      throw new Error("Access removed.");
+    }
     const snapshots = await getDocs(
       query(
         collection(this.database, "boards", id, "checkpoints"),
