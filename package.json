@@ -20,29 +20,38 @@
     "@mikejhill/portable-document-browser": "0.1.0",
     "@mikejhill/portable-document-codec": "0.1.0",
     "@mikejhill/portable-document-core": "0.1.0",
-    "firebase": "^12.17.0",
+    "firebase": "^12.19.0",
     "loglevel": "^1.9.2",
     "lucide-react": "^0.468.0",
     "lz-string": "^1.5.0",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "zod": "^3.24.1"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^5.0.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@types/node": "^22.10.5",
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "^6.0.4",
-    "@vitest/coverage-v8": "^4.1.10",
-    "fake-indexeddb": "^6.2.5",
-    "firebase-tools": "^15.25.1",
+    "@vitest/coverage-v8": "^4.1.12",
+    "fake-indexeddb": "^6.2.6",
+    "firebase-tools": "^15.36.0",
     "jsdom": "^29.0.1",
     "typescript": "^5.7.2",
-    "vite": "^8.1.5",
-    "vitest": "^4.1.10"
+    "vite": "^8.3.8",
+    "vitest": "^4.1.12"
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.7",
+    "re2js": "^2.10.0",
+    "glob": "^14.0.5",
+    "uuid": "^11.1.1",
+    "@google-cloud/pubsub": {
+      "@opentelemetry/core": "^2.8.0"
+    }
+  }
 }

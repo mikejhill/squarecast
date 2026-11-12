@@ -74,10 +74,13 @@ class DocumentationCatalog {
   }
 
   private slug(heading: string): string {
-    return heading
-      .trim()
-      .toLowerCase()
-      .replace(/<[^>]+>/g, "")
+    let text = heading.trim().toLowerCase();
+    let previous: string;
+    do {
+      previous = text;
+      text = text.replace(/<[^>]*>/g, "");
+    } while (text !== previous);
+    return text
       .replace(/[^\p{L}\p{N}\s-]/gu, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-");

@@ -74,6 +74,36 @@ describe("editor operations", () => {
     expect(replaced).toEqual(editor);
   });
 
+  it("keeps unrelated board settings when a partial config patch is replayed", () => {
+    const editor = BoardModel.createDefaultEditor();
+    const customized = {
+      ...editor,
+      config: {
+        ...editor.config,
+        theme: "ocean" as const,
+        fontSize: 24,
+        sortMode: "manual" as const,
+      },
+    };
+    const operation = editorOperationSchema.parse({
+      id: "title-only",
+      type: "patch-config",
+      patch: { title: "Renamed" },
+    });
+    expect(operation).toEqual({
+      id: "title-only",
+      type: "patch-config",
+      patch: { title: "Renamed" },
+    });
+    const patched = applyEditorOperation(service, customized, operation);
+    expect(patched.config).toMatchObject({
+      title: "Renamed",
+      theme: "ocean",
+      fontSize: 24,
+      sortMode: "manual",
+    });
+  });
+
   it("rejects updates to cards deleted by another editor", () => {
     const operation = {
       id: "missing",
@@ -259,9 +289,16 @@ describe("editor operations", () => {
   it("creates operation IDs with and without randomUUID and validates schemas", () => {
     expect(createOperationId()).toBeTruthy();
     const originalCrypto = globalThis.crypto;
-    vi.stubGlobal("crypto", {});
-    expect(createOperationId()).toContain("-");
+    const getRandomValues = vi.fn(<T extends ArrayBufferView>(array: T) =>
+      originalCrypto.getRandomValues(array),
+    );
+    vi.stubGlobal("crypto", { getRandomValues });
+    const fallbackId = createOperationId();
     vi.stubGlobal("crypto", originalCrypto);
+    expect(getRandomValues).toHaveBeenCalledTimes(1);
+    expect(fallbackId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
     expect(
       editorOperationSchema.safeParse({
         id: "x",
