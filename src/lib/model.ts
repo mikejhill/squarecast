@@ -49,30 +49,43 @@ const freeSquareCountSchema = z.preprocess(
   z.number().int().min(0).max(6),
 );
 
-const boardConfigShape = {
+const accentColorSchema = z.string().regex(/^#[0-9a-f]{6}$/i);
+const fontSizeSchema = z.number().int().min(10).max(32);
+const previewSeedSchema = z.string().min(1);
+
+// Patch fields stay default-free: Zod applies defaults inside optional fields,
+// so defaults here would overwrite unrelated settings on every partial update.
+const boardConfigPatchShape = {
   title: z.string(),
   size: z.number().int().min(3).max(7),
   free: freeSquareCountSchema,
   freeLabel: z.string(),
-  theme: themeSchema.default("coral"),
-  accentColor: z
-    .string()
-    .regex(/^#[0-9a-f]{6}$/i)
-    .default("#ff6b45"),
-  fontMode: fontModeSchema.default("auto"),
-  fontSize: z.number().int().min(10).max(32).default(18),
-  sortMode: answerSortSchema.default("alphabetical"),
-  previewSeed: z.string().min(1).default("preview"),
+  theme: themeSchema,
+  accentColor: accentColorSchema,
+  fontMode: fontModeSchema,
+  fontSize: fontSizeSchema,
+  sortMode: answerSortSchema,
+  previewSeed: previewSeedSchema,
 };
 
-export const boardConfigPatchSchema = z.object(boardConfigShape).partial();
+const boardConfigShape = {
+  ...boardConfigPatchShape,
+  theme: themeSchema.default("coral"),
+  accentColor: accentColorSchema.default("#ff6b45"),
+  fontMode: fontModeSchema.default("auto"),
+  fontSize: fontSizeSchema.default(18),
+  sortMode: answerSortSchema.default("alphabetical"),
+  previewSeed: previewSeedSchema.default("preview"),
+};
+
+export const boardConfigPatchSchema = z.object(boardConfigPatchShape).partial();
 export const boardConfigSchema = z.object(boardConfigShape).superRefine(
   (config, context) => {
     if (config.free > config.size - 1) {
       context.addIssue({
-        code: z.ZodIssueCode.too_big,
+        code: "too_big",
         maximum: config.size - 1,
-        type: "number",
+        origin: "number",
         inclusive: true,
         path: ["free"],
         message: `A ${config.size} × ${config.size} board supports at most ${config.size - 1} free squares.`,
